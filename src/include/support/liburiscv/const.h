@@ -8,8 +8,12 @@
 #define RRR 0x15
 #define WWW 0x2A
 
-// CSRs
-#define CYCLE 0xC00 // Clock cycle counter
+#define NUM_HARTS 2
+#define MODE_USER 0
+#define MODE_SUPERVISOR 1
+#define MODE_MACHINE 2
+
+#define CYCLE 0xC00 // Clock	cycle	counter
 #define MCYCLE 0xB00
 #define CYCLEH 0xC80 // Upper half of cycle (RV32 only)
 #define MCYCLEH 0xB80
@@ -19,6 +23,25 @@
 #define MINSTRET 0xB02
 #define INSTRETH 0xC82 // Upper half of instret (RV32 only)
 #define MINSTRETH 0xB82
+#define UTVEC 0x005   // Trap	handler	base	address
+#define SEDELEG 0x102 // Exception	delegation	register
+#define MEDELEG 0x302
+#define SIDELEG 0x103 // Interrupt delegation	register
+#define MIDELEG 0x303
+#define STVEC 0x105
+#define MTVEC 0x305
+#define USCRATCH 0x40 // Previous value of PC
+#define SSCRATCH 0x140
+#define MSCRATCH 0x340
+#define UEPC 0x41 // Previous value of PC
+#define SEPC 0x141
+#define MEPC 0x341
+#define UCAUSE 0x42 // Trap cause code
+#define SCAUSE 0x142
+#define MCAUSE 0x342
+#define UTVAL 0x43 // Bad	address	or	bad	instruction
+#define STVAL 0x143
+#define MTVAL 0x343
 
 // general configuration constants
 #define MPSFILETYPE ".umps"

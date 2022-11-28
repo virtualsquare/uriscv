@@ -3,22 +3,21 @@
 
 #include "bus.h"
 #include "config.h"
-#include "const.h"
-#include "types.h"
-
-#define NUM_REGS 32
-#define NUM_CSRS 4096
+#include "uriscv/hart.h"
 
 class Processor {
 public:
-  Processor(Config *config);
+  Processor(Config *config, Bus *bus);
   virtual ~Processor(){};
 
-  void Init(Word pc, Word sp);
+  void Init(Word nharts, Word pc, Word sp);
 
-  Word Fetch(Word pc);
-  Word Fetch();
-  bool Excecute(Word instr);
+  exception_t Fetch(Word pc, Word *instr);
+  exception_t Fetch(Word *instr);
+  exception_t Excecute(Word instr);
+
+  exception_t Cycle();
+  void TrapHandler(exception_t e);
 
   Word GRegRead(Word reg);
   void GRegWrite(Word reg, Word value);
@@ -26,28 +25,56 @@ public:
   Word CSRRead(Word reg);
   void CSRWrite(Word reg, Word value);
 
-  void initCSR();
+  Hart *GetCurrentHart();
+
+  void SetPC(Word value);
+  void SetSP(Word value);
+  Word IncrementPC(Word value);
+  Word IncrementSP(Word value);
+  Word GetPC();
+  Word GetSP();
 
 private:
   Config *config;
   Bus *bus;
+  Hart **harts;
 
-  Word pc, sp;
-  /*
-   * Registers
-   * x0 - zero
-   * x1 - ra
-   * x2 - sp
-   * x3 - gp
-   * x4 - tp
-   * x5-x7,x28-x31 t0-t6
-   * x8,x9,x18-x27 s0-s11
-   * x8 fp
-   * x10-x17 a0-a7
-   */
-  Word gregs[NUM_REGS];
-  Word fregs[NUM_REGS];
-  csr_t csrs[NUM_CSRS];
+  // currently selected hart
+  Word selHart;
+  uint8_t old_mode;
+  uint8_t mode;
+
+  // Bit Description
+  // 0	 USIE	–	user	software	interrupt	enable
+  // 1	 SSIE	–	supervisor
+  // 3	 MSIE	–	machine
+  // 4	 UTIE	–	user	timer	interrupt	enable
+  // 5	 STIE	–	supervisor
+  // 7	 MTIE	–	machine
+  // 8	 UEIE	–	user	external	interrupt	enable
+  // 9	 SEIE	–	supervisor
+  // 11	 MEIE	–	machine
+  uint16_t mie;
+
+  // Bit Description
+  // 0	 USIP	–	user	software	interrupt	pending
+  // 1	 SSIP	–	supervisor
+  // 3	 MSIP	–	machine
+  // 4	 UTIP	–	user	timer	interrupt	pending
+  // 5	 STIP	–	supervisor
+  // 7	 MTIP	–	machine
+  // 8	 UEIP	–	user	external	interrupt	pending
+  // 9	 SEIP	–	supervisor
+  // 11	 MEIP	–	machine
+  uint16_t mip;
+
+  // Same but for Supervisor and User mode
+  uint16_t sie;
+  uint16_t sip;
+  uint16_t uie;
+  uint16_t uip;
+
+  Word mprv;
 };
 
 #endif

@@ -2,8 +2,6 @@
 #define URISCV_BUS_H
 
 #include "config.h"
-#include "const.h"
-#include "types.h"
 
 class RAM {
 public:
@@ -12,8 +10,8 @@ public:
   RAM(Word size, uint8_t *ram);
   virtual ~RAM(){};
 
-  Word Read(Word addr) const;
-  void Write(Word addr, Word value);
+  exception_t Read(Word addr, Word *dst) const;
+  exception_t Write(Word addr, Word value);
   Word Size() const;
 
 private:
@@ -26,7 +24,8 @@ public:
   Bus(Config *config);
   virtual ~Bus(){};
 
-  bool Read(Word addr, Word *dst);
+  exception_t Read(Word addr, Word *dst);
+  exception_t Write(Word addr, Word value);
 
 private:
   RAM *ram;

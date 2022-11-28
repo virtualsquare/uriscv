@@ -1,8 +1,8 @@
 #ifndef URISCV_CONFIG_H
 #define URISCV_CONFIG_H
 
-#include "const.h"
-#include "types.h"
+#include "support/liburiscv/const.h"
+#include "support/liburiscv/types.h"
 #include <string>
 
 class Config {

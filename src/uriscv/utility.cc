@@ -1,6 +1,4 @@
 #include "uriscv/utility.h"
-#include "uriscv/const.h"
-#include "uriscv/types.h"
 #include <cstring>
 #include <fstream>
 #include <iostream>

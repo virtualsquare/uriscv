@@ -1,8 +1,8 @@
 #ifndef URISCV_UTILITY_H
 #define URISCV_UTILITY_H
 
-#include "const.h"
-#include "types.h"
+#include "support/liburiscv/const.h"
+#include "support/liburiscv/types.h"
 #include <fstream>
 #include <iostream>
 #include <string>

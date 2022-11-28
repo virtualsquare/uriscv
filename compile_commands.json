@@ -1,27 +1,27 @@
 [
 {
-  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/build/src",
-  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/src.dir/uriscv/utility.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/uriscv/utility.cc",
-  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/uriscv/utility.cc"
+  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/build/src",
+  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/src.dir/uriscv/utility.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/uriscv/utility.cc",
+  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/uriscv/utility.cc"
 },
 {
-  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/build/src",
-  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/src.dir/uriscv/config.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/uriscv/config.cc",
-  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/uriscv/config.cc"
+  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/build/src",
+  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/src.dir/uriscv/config.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/uriscv/config.cc",
+  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/uriscv/config.cc"
 },
 {
-  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/build/src",
-  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/src.dir/uriscv/bus.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/uriscv/bus.cc",
-  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/uriscv/bus.cc"
+  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/build/src",
+  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/src.dir/uriscv/bus.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/uriscv/bus.cc",
+  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/uriscv/bus.cc"
 },
 {
-  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/build/src",
-  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/src.dir/uriscv/processor.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/uriscv/processor.cc",
-  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/uriscv/processor.cc"
+  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/build/src",
+  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/src.dir/uriscv/processor.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/uriscv/processor.cc",
+  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/uriscv/processor.cc"
 },
 {
-  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/build/app",
-  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/emu.dir/main.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/app/main.cc",
-  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto/app/main.cc"
+  "directory": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/build/app",
+  "command": "/usr/bin/c++  -I/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/src/include -D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -std=gnu++11 -o CMakeFiles/emu.dir/main.cc.o -c /home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/app/main.cc",
+  "file": "/home/xgampx/Desktop/UNI/SISTEMI_VIRTUALI/progetto-sistemi-virtuali-riscv/app/main.cc"
 }
 ]
