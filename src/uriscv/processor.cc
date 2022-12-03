@@ -1,13 +1,18 @@
+// https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/
+
 #include "uriscv/processor.h"
-#include "uriscv/bus.h"
 #include "uriscv/config.h"
+#include "uriscv/const.h"
 #include "uriscv/hart.h"
+#include "uriscv/mybus.h"
 #include "uriscv/utility.h"
 #include <assert.h>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+
+#define DEBUG 0
 
 #define OP_L 0x3
 #define OP_LB 0x0
@@ -99,7 +104,8 @@
 #define B_IMM(instr)                                                           \
   (((instr & 0xF00) >> 7) | ((instr & 0x80) << 4) |                            \
    ((instr & 0x80000000) >> 19) | ((instr & 0x7E000000) >> 20))
-#define U_IMM(instr) (instr & 0xFFFFF000)
+#define U_IMM_SIZE 20
+#define U_IMM(instr) (instr >> 12)
 #define S_IMM_SIZE 12
 #define S_IMM(instr) (RD(instr) | (FUNC7(instr) << 5))
 #define J_IMM_SIZE 20
@@ -112,10 +118,13 @@
   (SIGN_BIT(value, bits) ? (((value) | (((1 << (32 - bits)) - 1)) << bits))    \
                          : value)
 
-Processor::Processor(Config *config, Bus *bus) {
+Processor::Processor(Config *config, MyBus *bus) : id(0) {
   this->config = config;
   this->bus = bus;
 }
+Processor::Processor(const MachineConfig *config, Word cpuId, Machine *machine,
+                     SystemBus *bus)
+    : id(cpuId) {}
 
 void Processor::Init(Word nharts, Word pc, Word sp) {
   assert(nharts <= NUM_HARTS);
@@ -161,50 +170,53 @@ exception_t Processor::Excecute(Word instr) {
     printf("\tI-type | ");
     int8_t rd = RD(instr);
     int8_t rs1 = RS1(instr);
-    int16_t imm = S_IMM(instr);
+    int16_t imm = I_IMM(instr);
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    Word read = 0;
     switch (func3) {
     case OP_LB: {
-      printf("OP_LBU\n");
-      Word read = 0;
+      printf("OP_LB\n");
       e = this->bus->Read((SWord)this->GRegRead(rs1) + (SWord)imm, &read);
       // just 8 bits
       read = SIGN_EXTENSION(read & 0xFF, 8);
       this->GRegWrite(rd, read);
       this->IncrementPC(WORDLEN);
-    }
-    case OP_LBU: {
-      printf("OP_LBU\n");
-      Word read = 0;
-      e = this->bus->Read((SWord)this->GRegRead(rs1) + (SWord)imm, &read);
-      // just 8 bits
-      read = read & 0xFF;
-      this->GRegWrite(rd, read);
-      this->IncrementPC(WORDLEN);
+      break;
     }
     case OP_LH: {
       printf("OP_LBH\n");
-      Word read = 0;
       e = this->bus->Read((SWord)this->GRegRead(rs1) + (SWord)imm, &read);
       // just 16 bits
       read = SIGN_EXTENSION(read & 0xFFFF, 16);
       this->GRegWrite(rd, read);
       this->IncrementPC(WORDLEN);
+      break;
+    }
+    case OP_LW: {
+      e = this->bus->Read((SWord)this->GRegRead(rs1) + (SWord)imm, &read);
+      printf("OP_LW %d,%d(%x),%d\n", rd, rs1, this->GRegRead(rs1), (Word)imm);
+      printf("read %x\n", read);
+      this->GRegWrite(rd, read);
+      this->IncrementPC(WORDLEN);
+      break;
+    }
+    case OP_LBU: {
+      printf("OP_LBU %d,%d(%x),%x\n", rd, rs1, this->GRegRead(rs1), imm);
+      e = this->bus->Read((Word)this->GRegRead(rs1) + (Word)imm, &read);
+      // just 8 bits
+      read = read & 0xFF;
+      this->GRegWrite(rd, read);
+      this->IncrementPC(WORDLEN);
+      break;
     }
     case OP_LHU: {
       printf("OP_LHU\n");
-      Word read = 0;
-      e = this->bus->Read((SWord)this->GRegRead(rs1) + (SWord)imm, &read);
+      e = this->bus->Read((Word)this->GRegRead(rs1) + (Word)imm, &read);
       // just 16 bits
       read = read & 0xFFFF;
       this->GRegWrite(rd, read);
       this->IncrementPC(WORDLEN);
-    }
-    case OP_LW: {
-      printf("OP_LBH\n");
-      Word read = 0;
-      e = this->bus->Read((SWord)this->GRegRead(rs1) + (SWord)imm, &read);
-      this->GRegWrite(rd, read);
-      this->IncrementPC(WORDLEN);
+      break;
     }
     default: {
       return EXC_ILL_INSTR;
@@ -214,14 +226,42 @@ exception_t Processor::Excecute(Word instr) {
   }
   case R_TYPE: {
     printf("\tR-type | ");
+    int8_t rs1 = RS1(instr);
+    int8_t rs2 = RS2(instr);
+    uint8_t rd = RD(instr);
+    uint8_t func7 = FUNC7(instr);
     switch (func3) {
-    case OP_ADD:
-      std::cout << "OP_ADD\n";
-      int8_t rs1 = RS1(instr);
-      int8_t rs2 = RS2(instr);
-      uint8_t rd = RD(instr);
-      this->GRegWrite(rd, rs1 + rs2);
+    case OP_ADD: {
+      switch (func7) {
+      case OP_ADD_func7: {
+        printf("OP_ADD %d,%d,%d\n", rd, rs1, rs2);
+        this->GRegWrite(rd, this->GRegRead(rs1) + this->GRegRead(rs2));
+        break;
+      }
+
+      case OP_SUB_func7: {
+        printf("OP_SUB %d,%d,%d\n", rd, rs1, rs2);
+        this->GRegWrite(rd, this->GRegRead(rs1) - this->GRegRead(rs2));
+        break;
+      }
+      default: {
+        return EXC_ILL_INSTR;
+      }
+      }
+    }
+    case OP_OR: {
+      printf("OP_OR %d,%d,%d\n", rd, rs1, rs2);
+      this->GRegWrite(rd, this->GRegRead(rs1) | this->GRegRead(rs2));
       break;
+    }
+    case OP_XOR: {
+      printf("OP_XOR %d,%d,%d\n", rd, rs1, rs2);
+      this->GRegWrite(rd, this->GRegRead(rs1) ^ this->GRegRead(rs2));
+      break;
+    }
+    default: {
+      return EXC_ILL_INSTR;
+    }
     }
     this->IncrementPC(WORDLEN);
     break;
@@ -233,13 +273,13 @@ exception_t Processor::Excecute(Word instr) {
     uint8_t rd = RD(instr);
     switch (func3) {
     case OP_ADDI: {
-      printf("OP_ADDI\n");
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+      printf("OP_ADDI %d,%d(%x),%d\n", rd, rs1, this->GRegRead(rs1), imm);
       this->GRegWrite(rd, this->GRegRead(rs1) + imm);
       break;
     }
     case OP_SLLI: {
-      printf("OP_SLLI\n");
+      printf("OP_SLLI %d,%d,%d\n", rd, rs1, imm);
       this->GRegWrite(rd, this->GRegRead(rs1) << imm);
       break;
     }
@@ -309,6 +349,9 @@ exception_t Processor::Excecute(Word instr) {
     case OP_ECALL_EBREAK: {
       switch (imm) {
       case ECALL_IMM: {
+        // a7 - syscall number
+        // a0 - result of syscall
+        // https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/slides/14-ecf-pre.pdf
         printf("ECALL\n");
         switch (this->mode) {
         case MODE_USER: {
@@ -390,10 +433,11 @@ exception_t Processor::Excecute(Word instr) {
     int8_t rs1 = RS1(instr);
     int8_t rs2 = RS2(instr);
     int16_t imm = B_IMM(instr);
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
     switch (func3) {
     case OP_BEQ: {
-      std::cout << "OP_BEQ\n";
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+      printf("OP_BEQ %d(%x),%d(%x),%x\n", rs1, this->GRegRead(rs1), rs2,
+             this->GRegRead(rs2), imm);
       if (this->GRegRead(rs1) == this->GRegRead(rs2))
         this->SetPC((SWord)this->GetPC() + ((SWord)imm));
       else
@@ -402,7 +446,6 @@ exception_t Processor::Excecute(Word instr) {
     }
     case OP_BNE: {
       std::cout << "OP_BNE\n";
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       if (this->GRegRead(rs1) != this->GRegRead(rs2))
         this->SetPC((SWord)this->GetPC() + ((SWord)imm));
       else
@@ -411,7 +454,6 @@ exception_t Processor::Excecute(Word instr) {
     }
     case OP_BLT: {
       std::cout << "OP_BLT\n";
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       if (this->GRegRead(rs1) < this->GRegRead(rs2))
         this->SetPC((SWord)this->GetPC() + ((SWord)imm));
       else
@@ -420,7 +462,6 @@ exception_t Processor::Excecute(Word instr) {
     }
     case OP_BGE: {
       std::cout << "OP_BGE\n";
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       if (this->GRegRead(rs1) >= this->GRegRead(rs2)) {
         this->SetPC((SWord)this->GetPC() + ((SWord)imm));
       } else
@@ -429,7 +470,6 @@ exception_t Processor::Excecute(Word instr) {
     }
     case OP_BLTU: {
       std::cout << "OP_BLTU\n";
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       if (this->GRegRead(rs1) < this->GRegRead(rs2))
         this->SetPC(this->GetPC() + (imm));
       else
@@ -438,7 +478,6 @@ exception_t Processor::Excecute(Word instr) {
     }
     case OP_BGEU: {
       std::cout << "OP_BGEU\n";
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       if (this->GRegRead(rs1) >= this->GRegRead(rs2))
         this->SetPC(this->GetPC() + (imm));
       else
@@ -456,10 +495,10 @@ exception_t Processor::Excecute(Word instr) {
     int8_t rs1 = RS1(instr);
     int8_t rs2 = RS2(instr);
     int16_t imm = S_IMM(instr);
+    imm = SIGN_EXTENSION(imm, S_IMM_SIZE);
     switch (func3) {
     case OP_SB: {
       printf("OP_SB\n");
-      imm = SIGN_EXTENSION(imm, S_IMM_SIZE);
       e = this->bus->Write((SWord)this->GRegRead(rs1) + (SWord)imm,
                            this->GRegRead(rs2) & 0xFF);
       this->IncrementPC(WORDLEN);
@@ -467,7 +506,6 @@ exception_t Processor::Excecute(Word instr) {
     }
     case OP_SH: {
       printf("OP_SH\n");
-      imm = SIGN_EXTENSION(imm, S_IMM_SIZE);
       e = this->bus->Write((SWord)this->GRegRead(rs1) + (SWord)imm,
                            this->GRegRead(rs2) & 0xFFFF);
       this->IncrementPC(WORDLEN);
@@ -475,7 +513,6 @@ exception_t Processor::Excecute(Word instr) {
     }
     case OP_SW: {
       printf("OP_SW\n");
-      imm = SIGN_EXTENSION(imm, S_IMM_SIZE);
       e = this->bus->Write((SWord)this->GRegRead(rs1) + (SWord)imm,
                            this->GRegRead(rs2));
       this->IncrementPC(WORDLEN);
@@ -497,10 +534,9 @@ exception_t Processor::Excecute(Word instr) {
     break;
   }
   case OP_LUI: {
-    printf("\tU-type | OP_LUI\n");
     uint8_t rd = RD(instr);
-    SWord imm = U_IMM(instr);
-    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    SWord imm = SIGN_EXTENSION(U_IMM(instr), U_IMM_SIZE) << 12;
+    printf("\tU-type | OP_LUI %d,%x\n", rd, imm);
     this->GRegWrite(rd, imm);
     this->IncrementPC(WORDLEN);
     break;
@@ -510,7 +546,6 @@ exception_t Processor::Excecute(Word instr) {
     uint8_t rd = RD(instr);
     Word imm = I_IMM(instr);
     imm = SIGN_EXTENSION(imm, I_IMM_SIZE) & 0xfffffffe;
-    Utility::printb(sizeof(imm), &imm);
     this->GRegWrite(rd, this->GetPC() + WORDLEN);
     this->IncrementPC(imm);
     break;
@@ -519,11 +554,11 @@ exception_t Processor::Excecute(Word instr) {
     printf("\tJ-type | OP_JALR\n");
     // TODO: understand diffs with JAL
     uint8_t rd = RD(instr);
+    uint8_t rs1 = RS1(instr);
     Word imm = I_IMM(instr);
     imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-    Utility::printb(sizeof(imm), &imm);
     this->GRegWrite(rd, this->GetPC() + WORDLEN);
-    this->IncrementPC(imm);
+    this->IncrementPC((this->GRegRead(rs1) + imm) & 0xfffffffe);
     break;
   }
   case OP_FENCE: {
@@ -551,7 +586,11 @@ exception_t Processor::Excecute(Word instr) {
 exception_t Processor::Cycle() {
   Word instr = 0;
   exception_t e = EXC_OK;
-  this->Fetch(&instr);
+  e = this->Fetch(&instr);
+  if (e != EXC_OK) {
+    printf("Istruzione non trovata !!!\n");
+    return e;
+  }
   if ((e = this->Excecute(instr)) != EXC_OK) {
     if (e == EXC_ILL_INSTR) {
       printf("Istruzione non gestita !!!\n");
@@ -559,12 +598,17 @@ exception_t Processor::Cycle() {
     }
     TrapHandler(e);
   }
-  Word tohost = 0;
-  this->bus->Read(0x20001000, &tohost);
-  if (tohost == 1) {
-    printf("[-] Test passed !!!\n");
-    return EXC_ILL_INSTR;
+  if (DEBUG == 1) {
+    Word tohost = 0;
+    this->bus->Read(0x20001000, &tohost);
+    if (tohost == 1) {
+      printf("[-] Test passed !!!\n");
+      return EXC_ILL_INSTR;
+    }
   }
+
+  // printf("SP %x | S0 %x | A5 %x\n", this->GRegRead(REG_SP),
+  // this->GRegRead(REG_S0), this->GRegRead(REG_A0));
 
   return EXC_OK;
 }

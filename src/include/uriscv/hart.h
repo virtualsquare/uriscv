@@ -23,8 +23,8 @@ read	or	write	values	to/from	the	memory space
  *
  */
 
-#include "bus.h"
 #include "config.h"
+#include "uriscv/mybus.h"
 #include <iterator>
 
 #define NUM_REGS 32
@@ -34,7 +34,7 @@ read	or	write	values	to/from	the	memory space
 // Can have a coprocessor
 class Hart {
 public:
-  Hart(Bus *bus);
+  Hart(MyBus *bus);
   virtual ~Hart(){};
 
   void Init(Word id, Word pc, Word sp);
@@ -57,7 +57,7 @@ public:
   Word GetSP();
 
 private:
-  Bus *bus;
+  MyBus *bus;
 
   Word id;
   Word pc, sp;

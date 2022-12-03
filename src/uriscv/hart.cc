@@ -1,7 +1,8 @@
 #include "uriscv/hart.h"
-#include "uriscv/bus.h"
+#include "uriscv/mybus.h"
+#include <cstdio>
 
-Hart::Hart(Bus *bus) { this->bus = bus; }
+Hart::Hart(MyBus *bus) { this->bus = bus; }
 
 void Hart::Init(Word id, Word pc, Word sp) {
   this->id = id;
@@ -14,7 +15,8 @@ void Hart::Init(Word id, Word pc, Word sp) {
 //
 // physical pc, not virtual
 exception_t Hart::Fetch(Word pc, Word *instr) {
-  if (!this->bus->Read(pc, instr))
+  exception_t e = this->bus->Read(pc, instr);
+  if (e != EXC_OK)
     // TODO: signal error
     return EXC_INSTR_ACC_FAULT;
 

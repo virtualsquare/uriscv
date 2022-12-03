@@ -1,211 +1,102 @@
-#ifndef URISCV_CONST_H
-#define URISCV_CONST_H
+/*
+ * uMPS - A general purpose computer system simulator
+ *
+ * Copyright (C) 2020 Mikey Goldweber
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 3
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
+ */
 
-// CSRs permissions
-#define NNR 0x1
-#define NNW 0x2
-#define NWW 0xA
-#define RRR 0x15
-#define WWW 0x2A
+/****************************************************************************
+ *
+ * This header file contains utility constants & macro definitions.
+ *
+ ****************************************************************************/
 
-#define NUM_HARTS 2
-#define MODE_USER 0
-#define MODE_SUPERVISOR 1
-#define MODE_MACHINE 2
+#ifndef UMPS_CONSTS_H
+#define UMPS_CONSTS_H
 
-#define CYCLE 0xC00 // Clock	cycle	counter
-#define MCYCLE 0xB00
-#define CYCLEH 0xC80 // Upper half of cycle (RV32 only)
-#define MCYCLEH 0xB80
-#define TIME 0xC01    // Current time in ticks
-#define TIMEH 0xC81   // Upper half of time (RV32 only)
-#define INSTRET 0xC02 // Number of instructions retired
-#define MINSTRET 0xB02
-#define INSTRETH 0xC82 // Upper half of instret (RV32 only)
-#define MINSTRETH 0xB82
-#define UTVEC 0x005   // Trap	handler	base	address
-#define SEDELEG 0x102 // Exception	delegation	register
-#define MEDELEG 0x302
-#define SIDELEG 0x103 // Interrupt delegation	register
-#define MIDELEG 0x303
-#define STVEC 0x105
-#define MTVEC 0x305
-#define USCRATCH 0x40 // Previous value of PC
-#define SSCRATCH 0x140
-#define MSCRATCH 0x340
-#define UEPC 0x41 // Previous value of PC
-#define SEPC 0x141
-#define MEPC 0x341
-#define UCAUSE 0x42 // Trap cause code
-#define SCAUSE 0x142
-#define MCAUSE 0x342
-#define UTVAL 0x43 // Bad	address	or	bad	instruction
-#define STVAL 0x143
-#define MTVAL 0x343
+/* Hardware & software constants */
+#define PAGESIZE 4096 /* page size in bytes */
+#define WORDLEN 4     /* word size in bytes */
 
-// general configuration constants
-#define MPSFILETYPE ".umps"
-#define AOUTFILETYPE ".aout.umps"
-#define BIOSFILETYPE ".rom.umps"
-#define COREFILETYPE ".core.umps"
-#define STABFILETYPE ".stab.umps"
+/* timer, timescale, TOD-LO and other bus regs */
+#define RAMBASEADDR 0x10000000
+#define TODLOADDR 0x1000001C
+#define INTERVALTMR 0x10000020
+#define TIMESCALEADDR 0x10000024
 
-// maximum area size for trace ranges: a little more than 4KB
-// to avoid troubles in browser refresh if area is too large
-#define MAXTRACESIZE (FRAMESIZE + 1)
-
-/***************************************************************************/
-
-// no more user-serviceable parts below this line
-
-// some utility constants
+/* utility constants */
+#define TRUE 1
+#define FALSE 0
 #define HIDDEN static
-
 #define EOS '\0'
-#define EMPTYSTR ""
-#define EXIT_FAILURE 1
-#define EXIT_SUCCESS 0
 
-// host specific constants
-#ifdef WORDS_BIGENDIAN
-#define BIGENDIANCPU 1
-#else
-#define BIGENDIANCPU 0
-#endif
+#define NULL ((void *)0)
 
-// hardware constants
+/* device interrupts */
+#define DISKINT 3
+#define FLASHINT 4
+#define NETWINT 5
+#define PRNTINT 6
+#define TERMINT 7
 
-// physical memory page frame size (in words)
-#define FRAMESIZE 1024
+#define DEVINTNUM 5 /* interrupt lines used by devices */
+#define DEVPERINT 8 /* devices per interrupt line */
+#define DEVREGLEN                                                              \
+  4 /* device register field length in bytes, and regs per dev */
+#define DEVREGSIZE 16 /* device register size in bytes */
 
-// KB per frame
-#define FRAMEKB 4
+/* device register field number for non-terminal devices */
+#define STATUS 0
+#define COMMAND 1
+#define DATA0 2
+#define DATA1 3
 
-// block device size in words
-#define BLOCKSIZE FRAMESIZE
+/* device register field number for terminal devices */
+#define RECVSTATUS 0
+#define RECVCOMMAND 1
+#define TRANSTATUS 2
+#define TRANCOMMAND 3
 
-// eth packet size
-#define PACKETSIZE 1514
+/* device common STATUS codes */
+#define UNINSTALLED 0
+#define READY 1
+#define BUSY 3
 
-// DMA transfer time
-#define DMATICKS BLOCKSIZE
+/* device common COMMAND codes */
+#define RESET 0
+#define ACK 1
 
-// miscellaneous MIPS alignment and size definitions needed by modules
-// other by processor.cc
+/* Memory related constants */
+#define KSEG0 0x00000000
+#define KSEG1 0x20000000
+#define KSEG2 0x40000000
+#define KUSEG 0x80000000
+#define RAMSTART 0x20000000
+#define BIOSDATAPAGE 0x0FFFF000
 
-// number of ASIDs
-#define MAXASID 64
+/* Useful Operations */
+#define MIN(A, B) ((A) < (B) ? A : B)
+#define MAX(A, B) ((A) < (B) ? B : A)
+#define ALIGNED(A) (((unsigned)A & 0x3) == 0)
 
-// MIPS NOP instruction
-#define NOP 0UL
+/* Macro to load the Interval Timer */
+#define LDIT(T) ((*((cpu_t *)INTERVALTMR)) = (T) * (*((cpu_t *)TIMESCALEADDR)))
 
-// word length in bytes, byte length in bits, sign masks, etc.
-#define WORDLEN 4
-#define BYTELEN 8
-#define WORDSHIFT 2
-#define MINWORDVAL 0x00000000UL
-#define MAXWORDVAL 0xFFFFFFFFUL
-#define MAXSWORDVAL 0x7FFFFFFFUL
-#define SIGNMASK 0x80000000UL
-#define BYTEMASK 0x000000FFUL
+/* Macro to read the TOD clock */
+#define STCK(T) ((T) = ((*((cpu_t *)TODLOADDR)) / (*((cpu_t *)TIMESCALEADDR))))
 
-// immediate/lower halfword part mask
-#define IMMMASK 0x0000FFFFUL
-
-// word alignment mask
-#define ALIGNMASK 0x00000003UL
-
-// halfword bit length
-#define HWORDLEN 16
-
-// exception type constants (simulator internal coding)
-#define NOEXCEPTION 0
-#define INTEXCEPTION 1
-#define MODEXCEPTION 2
-#define UTLBLEXCEPTION 3
-#define TLBLEXCEPTION 4
-#define UTLBSEXCEPTION 5
-#define TLBSEXCEPTION 6
-#define ADELEXCEPTION 7
-#define ADESEXCEPTION 8
-#define DBEXCEPTION 9
-#define IBEXCEPTION 10
-#define SYSEXCEPTION 11
-#define BPEXCEPTION 12
-#define RIEXCEPTION 13
-#define CPUEXCEPTION 14
-#define OVEXCEPTION 15
-
-// interrupt handling related constants
-
-// timer interrupt line
-#define TIMERINT 2
-
-// device starting interrupt line
-#define DEVINTBASE 3
-
-// device register length
-#define DEVREGLEN 4
-
-// interrupts available for registers
-#define DEVINTUSED 5
-
-// devices per interrupt line
-#define DEVPERINT 8
-
-// segments base addresses
-#define KSEG0BASE 0x00000000UL
-#define KSEG0TOP 0x20000000UL
-#define KUSEGBASE 0x80000000UL
-
-// bus memory mapping constants (BIOS/BIOS Data Page/device registers/BOOT/RAM)
-#define BIOSBASE 0x00000000UL
-#define BIOSDATABASE 0x0FFFF000UL
-#define DEVBASE 0x10000000UL
-#define BOOTBASE 0x1FC00000UL
-#define RAMBASE 0x20000000UL
-
-// size of bios data page (in words)
-#define BIOSDATASIZE ((DEVBASE - BIOSDATABASE) / WORDLEN)
-
-// Processor structure register numbers
-#define CPUREGNUM 34
-#define CPUGPRNUM 32
-#define CP0REGNUM 10
-
-// device type codes
-#define NULLDEV 0
-#define DISKDEV 1
-#define FLASHDEV 2
-#define ETHDEV 3
-#define PRNTDEV 4
-#define TERMDEV 5
-
-// interrupt line offset used for terminals
-// (lots of code must be modified if this changes)
-
-#define TERMINT 4
-
-// memory access types for brkpt/susp/trace ranges in watch.cc and appforms.cc
-// modules
-#define READWRITE 0x6
-#define READ 0x4
-#define WRITE 0x2
-#define EXEC 0x1
-#define EMPTY 0x0
-
-// some useful macros
-
-// recognizes bad (unaligned) virtual address
-#define BADADDR(w) ((w & ALIGNMASK) != 0UL)
-
-// returns the sign bit of a word
-#define SIGNBIT(w) (w & SIGNMASK)
-
-// returns 1 if the two strings are equal, 0 otherwise
-#define SAMESTRING(s, t) (strcmp(s, t) == 0)
-
-// returns 1 if a is in open-ended interval [b, c[, 0 otherwise
-#define INBOUNDS(a, b, c) (a >= b && a < c)
-
-#endif
+#endif /* !defined(UMPS_CONST_H) */

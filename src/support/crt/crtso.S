@@ -43,7 +43,8 @@ __start:
 
 	/* computes stack bottom (end of first page of RAM)
 	   using s0 and s1 (s0 and s1) */
-	li	s0, BUS_REG_RAM_BASE
+  li t0, BUS_REG_RAM_BASE
+	lw	s0, 0(t0)
 	li	s1, KERNELSTACKSIZE
 	add	s0, s0, s1
 	addi	sp, s0, -8

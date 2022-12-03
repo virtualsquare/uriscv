@@ -8,7 +8,7 @@ func:
 
 #define END_LEAF_FUNC(func)			\
 	.end	func;                 \
-	.size	func, . - func;        \
+	.size	func, . - func
 
 	/* We don't want abicalls unconditionally. */
 #ifdef ABICALLS
@@ -35,5 +35,27 @@ LEAF_FUNC(SYSCALL)
   ecall
 	nop
 	jr	ra
-END_LEAF_FUNC(SYSCALL)
+
+/*
+ * WAIT instruction wrapper
+ */
+LEAF_FUNC(WAIT)
+  /*
+	.set	noreorder
+	.set	nomacro
+  */
+	nop
+  /*
+	.set	mips32
+  */
+	wfi
+  /*
+	.set	mips0
+  */
+	nop
+  /*
+	.set	reorder
+	.set	macro
+  */
+	jr	ra
 
