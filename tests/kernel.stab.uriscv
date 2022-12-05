@@ -1,0 +1,10 @@
+RISA00000008 00000001
+term0_reg                        :OBJ:0x20002000:0x00000004:LOC
+term_puts                        :FUN:0x20001144:0x0000005C:LOC
+term_putchar                     :FUN:0x200011A0:0x000000C4:LOC
+tx_status                        :FUN:0x20001264:0x0000002C:LOC
+WAIT                             :FUN:0x200012D8:0x00000000:GLB
+__start                          :FUN:0x20001290:0x00000000:GLB
+SYSCALL                          :FUN:0x200012C8:0x00000000:GLB
+main                             :FUN:0x200010E8:0x0000005C:GLB
+divide                           :FUN:0x200010B0:0x00000038:GLB

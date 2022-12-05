@@ -19,8 +19,8 @@
  * USA.
  */
 
-#ifndef UMPS_VDE_NETWORK_H
-#define UMPS_VDE_NETWORK_H
+#ifndef URISCV_VDE_NETWORK_H
+#define URISCV_VDE_NETWORK_H
 
 #include <sys/poll.h>
 #include <sys/socket.h>
@@ -58,4 +58,4 @@ private:
   class netblockq *queue;
 };
 
-#endif // UMPS_VDE_NETWORK_H
+#endif // URISCV_VDE_NETWORK_H

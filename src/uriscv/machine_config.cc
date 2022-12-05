@@ -189,6 +189,7 @@ void MachineConfig::Save() {
   std::string buf;
   root->Serialize(buf, true);
 
+  printf("Filename machine config : %s\n", fileName.c_str());
   std::ofstream file(fileName.c_str(),
                      std::ios_base::trunc | std::ios_base::out);
   if (file.fail() || !(file << buf))
@@ -315,6 +316,7 @@ void MachineConfig::resetToFactorySettings() {
   setRamSize(DEFAUlT_RAM_SIZE);
 
   std::string dataDir = PACKAGE_DATA_DIR;
+  printf("DATA DIR : %s\n", dataDir.c_str());
 
   setROM(ROM_TYPE_BOOT, dataDir + "/coreboot.rom.uriscv");
   setROM(ROM_TYPE_BIOS, dataDir + "/exec.rom.uriscv");

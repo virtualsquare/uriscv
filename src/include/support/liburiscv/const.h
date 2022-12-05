@@ -25,8 +25,8 @@
  *
  ****************************************************************************/
 
-#ifndef UMPS_CONSTS_H
-#define UMPS_CONSTS_H
+#ifndef URISCV_CONSTS_H
+#define URISCV_CONSTS_H
 
 /* Hardware & software constants */
 #define PAGESIZE 4096 /* page size in bytes */
@@ -99,4 +99,4 @@
 /* Macro to read the TOD clock */
 #define STCK(T) ((T) = ((*((cpu_t *)TODLOADDR)) / (*((cpu_t *)TIMESCALEADDR))))
 
-#endif /* !defined(UMPS_CONST_H) */
+#endif /* !defined(URISCV_CONST_H) */

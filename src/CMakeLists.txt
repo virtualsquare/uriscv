@@ -23,8 +23,18 @@ add_library(src STATIC
   )
 
 set_property(SOURCE support/liburiscv/liburiscv.S PROPERTY LANGUAGE C)
-set(UMPS_DATA_DIR ${CMAKE_INSTALL_FULL_DATADIR}/uriscv)
+set(URISCV_DATA_DIR ${CMAKE_INSTALL_FULL_DATADIR}/uriscv)
 target_compile_definitions(src PRIVATE -DPACKAGE_DATA_DIR="${URISCV_DATA_DIR}")
 target_include_directories(src
         PUBLIC ${PROJECT_SOURCE_DIR}/include
     )
+
+add_executable(uriscv-elf2uriscv uriscv/elf2uriscv.cc)
+target_include_directories(uriscv-elf2uriscv
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
+    )
+target_link_libraries(uriscv-elf2uriscv ${LIBELF})
+
+install(TARGETS uriscv-elf2uriscv RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+add_subdirectory(support)

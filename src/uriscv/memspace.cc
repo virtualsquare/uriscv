@@ -44,6 +44,7 @@
 RamSpace::RamSpace(Word size_, const char *fName)
     : ram(new Word[size_]), size(size_) {
   if (fName != NULL && *fName) {
+    printf("Filename %s\n", fName);
     FILE *cFile;
     if ((cFile = fopen(fName, "r")) == NULL)
       throw FileError(fName);
@@ -51,6 +52,7 @@ RamSpace::RamSpace(Word size_, const char *fName)
     // Check validity
     Word tag;
     if (fread((void *)&tag, WORDLEN, 1, cFile) != 1 || tag != COREFILEID) {
+      printf("tag %x\n", tag);
       fclose(cFile);
       throw InvalidCoreFileError(fName, "Invalid core file");
     }
@@ -109,6 +111,7 @@ BiosSpace::BiosSpace(const char *fileName) {
 // This method returns the value of Word at ofs address
 // (SystemBus must assure that ofs is in range)
 Word BiosSpace::MemRead(Word ofs) {
+  printf("bios mem read at %x\n", ofs);
   assert(ofs < size);
   return memPtr[ofs];
 }

@@ -19,8 +19,8 @@
  * USA.
  */
 
-#ifndef UMPS_STOPPOINT_H
-#define UMPS_STOPPOINT_H
+#ifndef URISCV_STOPPOINT_H
+#define URISCV_STOPPOINT_H
 
 #include <cassert>
 #include <map>
@@ -176,4 +176,4 @@ void StoppointSet::GetStoppointsInRange(Word asid, Word start, Word end,
   }
 }
 
-#endif // UMPS_STOPPOINT_H
+#endif // URISCV_STOPPOINT_H

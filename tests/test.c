@@ -22,7 +22,10 @@ static u32 tx_status(termreg_t *tp);
 
 static termreg_t *term0_reg = (termreg_t *)DEV_REG_ADDR(IL_TERMINAL, 0);
 
+double divide(int a, int b) { return (double)a / b; }
+
 int main(int argc, char **argv) {
+  divide(20, 10);
   int i = term0_reg->recv_command;
   term_puts("hello, world\n");
 

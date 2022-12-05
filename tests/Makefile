@@ -15,7 +15,7 @@ URISCV_CRT_DIR = $(URISCV_DIR_PREFIX)/src/support/crt
 URISCV_INCLUDE_DIR = $(URISCV_DIR_PREFIX)/src/include
 
 # Compiler options
-CFLAGS_LANG = -ffreestanding -ansi
+CFLAGS_LANG = -ffreestanding -ansi -static -nostartfiles -nostdlib
 CFLAGS = $(CFLAGS_LANG) -I$(URISCV_INCLUDE_DIR) -Wall -O0 -march=rv32id -mabi=ilp32d
 OBJCOPYFLAGS = -O binary
 OBJDUMPFLAGS = -d
@@ -31,8 +31,8 @@ VPATH = $(URISCV_CRT_DIR)  $(URISCV_LIB_DIR)
 all : kernel.core.uriscv
 
 kernel.core.uriscv : kernel
-	$(OBJCOPY) $(OBJCOPYFLAGS) $< $@
-	# umps3-elf2umps -k $<
+	# $(OBJCOPY) $(OBJCOPYFLAGS) $< $@
+	uriscv-elf2uriscv -k $<
 
 kernel : test.o crtso.o liburiscv.o
 	$(LD) -o $@ $^ $(LDFLAGS)

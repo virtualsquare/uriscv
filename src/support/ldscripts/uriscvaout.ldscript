@@ -1,4 +1,4 @@
-OUTPUT_ARCH(mips)
+OUTPUT_ARCH(riscv)
 ENTRY(__start)
 
 PHDRS

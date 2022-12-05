@@ -38,19 +38,21 @@
 	.align	2
 	.globl	coreboot
 	.type	coreboot,@function
-	.ent	coreboot
+	// .ent	coreboot
 
 coreboot:
+/*
 	.frame	fp,0,ra
 	.mask	0x00000000,0
 	.fmask	0x00000000,0
-	; .set noat
-	;
-	; .set noreorder
-	; .set nomacro
+	.set noat
+
+	.set noreorder
+	.set nomacro
+  */
 
 	/* boot starts here */
-	b	LCoreBootStart
+	j	LCoreBootStart
 	nop
 
 	.space PADDINGTLB
@@ -70,8 +72,10 @@ coreboot:
 	jr	t0
 	nop
 
-	; .set reorder
-	; .set macro
+/*
+	.set reorder
+	.set macro
+  */
 
 LCoreBootStart:
 	/*
@@ -80,10 +84,12 @@ LCoreBootStart:
 	 * we also assure that kernel will start in kernel mode with
 	 * interrupts disabled: this is done zeroing bits 3 and 2.
 	 */
-	; mfc0	a0, CP0_Status
-	; li	  a1, STATUSMASK
-	; and   a0, a0, a1
-	; mtc0	a0, CP0_Status
+   /*
+	 mfc0	a0, CP0_Status
+	 li	  a1, STATUSMASK
+	 and   a0, a0, a1
+	 mtc0	a0, CP0_Status
+   */
 
   /*
   * Setting Exception PCs, both for general exceptions and for TLB
@@ -117,12 +123,16 @@ LCoreBootStart:
 	li	a0, PROGVSTART
 	lw	ra, 0(a0)
 
-	; .set noreorder
-	; .set nomacro
+/*
+	 .set noreorder
+	 .set nomacro
+   */
 	jr	ra
-	mret ;rfe
-	; .set reorder
-	; .set macro
+	mret /* rfe */
+  /*
+	 .set reorder
+	 .set macro
+   */
 
 	.end coreboot
 	.size	 coreboot, . - coreboot

@@ -121,12 +121,13 @@ void Machine::onCpuStatusChanged(const Processor *cpu) {
     pauseRequested = true;
 }
 
+// TODO : check for breakpoints,suspects to not be null
 void Machine::HandleBusAccess(Word pAddr, Word access, Processor *cpu) {
   // Check for breakpoints and suspects
   switch (access) {
   case READ:
   case WRITE:
-    if (stopMask & SC_SUSPECT) {
+    if (stopMask & SC_SUSPECT && suspects != NULL) {
       Stoppoint *suspect = suspects->Probe(
           MAXASID, pAddr, (access == READ) ? AM_READ : AM_WRITE, cpu);
       if (suspect != NULL) {
@@ -138,7 +139,7 @@ void Machine::HandleBusAccess(Word pAddr, Word access, Processor *cpu) {
     break;
 
   case EXEC:
-    if (stopMask & SC_BREAKPOINT) {
+    if (stopMask & SC_BREAKPOINT && breakpoints != NULL) {
       Stoppoint *breakpoint = breakpoints->Probe(MAXASID, pAddr, AM_EXEC, cpu);
       if (breakpoint != NULL) {
         pd[cpu->getId()].stopCause |= SC_BREAKPOINT;
@@ -154,7 +155,7 @@ void Machine::HandleBusAccess(Word pAddr, Word access, Processor *cpu) {
   }
 
   // Check for traced ranges
-  if (access == WRITE) {
+  if (access == WRITE && tracepoints != NULL) {
     Stoppoint *tracepoint = tracepoints->Probe(MAXASID, pAddr, AM_WRITE, cpu);
     (void)tracepoint;
   }
@@ -165,7 +166,7 @@ void Machine::HandleVMAccess(Word asid, Word vaddr, Word access,
   switch (access) {
   case READ:
   case WRITE:
-    if (stopMask & SC_SUSPECT) {
+    if (stopMask & SC_SUSPECT && suspects != NULL) {
       Stoppoint *suspect = suspects->Probe(
           asid, vaddr, (access == READ) ? AM_READ : AM_WRITE, cpu);
       if (suspect != NULL) {
@@ -177,7 +178,7 @@ void Machine::HandleVMAccess(Word asid, Word vaddr, Word access,
     break;
 
   case EXEC:
-    if (stopMask & SC_BREAKPOINT) {
+    if (stopMask & SC_BREAKPOINT && breakpoints != NULL) {
       Stoppoint *breakpoint = breakpoints->Probe(asid, vaddr, AM_EXEC, cpu);
       if (breakpoint != NULL) {
         pd[cpu->Id()].stopCause |= SC_BREAKPOINT;
