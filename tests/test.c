@@ -22,7 +22,10 @@ static u32 tx_status(termreg_t *tp);
 
 static termreg_t *term0_reg = (termreg_t *)DEV_REG_ADDR(IL_TERMINAL, 0);
 
-double divide(int a, int b) { return (double)a / b; }
+double divide(int a, int b) {
+  double res = (double)a / b;
+  return res;
+}
 
 int main(int argc, char **argv) {
   divide(20, 10);
@@ -67,8 +70,3 @@ static int term_putchar(char c) {
 static u32 tx_status(termreg_t *tp) {
   return ((tp->transm_status) & TERM_STATUS_MASK);
 }
-
-/* double divide(int a, int b) {
-    double res = a / b;
-    return res;
-} */
