@@ -64,3 +64,8 @@ static int term_putchar(char c) {
 static u32 tx_status(termreg_t *tp) {
   return ((tp->transm_status) & TERM_STATUS_MASK);
 }
+
+/* double divide(int a, int b) {
+    double res = a / b;
+    return res;
+} */
