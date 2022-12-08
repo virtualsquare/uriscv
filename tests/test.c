@@ -29,6 +29,7 @@ double divide(int a, int b) {
 
 int main(int argc, char **argv) {
   term_puts("hello, world\n");
+  term_puts("im gonna cry ... it works\n");
 
   /* Go to sleep and power off the machine if anything wakes us up */
   WAIT();

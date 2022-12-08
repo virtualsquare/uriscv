@@ -15,13 +15,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #include "uriscv/types.h"
 
-#ifndef UMPS_DISASSEMBLE_H
-#define UMPS_DISASSEMBLE_H
+#ifndef URISCV_DISASSEMBLE_H
+#define URISCV_DISASSEMBLE_H
 
 // This function decodes and returns the opcode type for an instruction
 unsigned int OpType(Word instr);
@@ -37,19 +38,19 @@ bool InvalidRegInstr(Word instr);
 
 // This function maps the MIPS R2/3000 CP0 register codes to simulator internal
 // codes and returns TRUE if the register is implemented, FALSE otherwise
-bool ValidCP0Reg(unsigned int regnum, unsigned int * cpnum);
+bool ValidCP0Reg(unsigned int regnum, unsigned int *cpnum);
 
 // This function returns main processor's register name indexed by position
-const char * RegName(unsigned int index);
+const char *RegName(unsigned int index);
 
 // This function returns CP0 register name indexed by position
-const char * CP0RegName(unsigned int index);
+const char *CP0RegName(unsigned int index);
 
 // this function returns the pointer to a static buffer which contains
 // the instruction translation into readable form
 
-const char * StrInstr(Word instr);
+const char *StrInstr(Word instr);
 
-const char* InstructionMnemonic(Word ins);
+const char *InstructionMnemonic(Word ins);
 
-#endif // UMPS_DISASSEMBLE_H
+#endif // URISCV_DISASSEMBLE_H

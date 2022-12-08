@@ -294,6 +294,7 @@ enum {
 #define OP_ECALL_EBREAK 0x0
 #define ECALL_IMM 0x0
 #define EBREAK_IMM 0x1
+#define EWFI_IMM 0x105
 #define OP_CSRRW 0x1
 #define OP_CSRRS 0x2
 #define OP_CSRRC 0x3

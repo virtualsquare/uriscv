@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define ERROR(msg)                                                             \
   printf("\n[x] %s\n", msg);                                                   \
@@ -17,6 +17,8 @@
 #define DEBUGMSG(...)                                                          \
   if (DEBUG)                                                                   \
     printf(__VA_ARGS__);
+
+#define ERRORMSG(...) printf(__VA_ARGS__);
 
 namespace Utility {
 void readFile(std::string filename, char *&dst, Word *size);

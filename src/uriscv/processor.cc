@@ -1085,6 +1085,11 @@ bool Processor::execInstr(Word instr) {
         ERROR("BREAK");
         break;
       }
+      case EWFI_IMM: {
+        DEBUGMSG("EWFI\n");
+        suspend();
+        break;
+      }
       default: {
         SignalExc(CPUEXCEPTION, 0);
         e = true;
@@ -1319,10 +1324,10 @@ bool Processor::execInstr(Word instr) {
   //   break;
   // }
   default: {
-    DEBUGMSG("OpCode not handled %x\n", instr);
+    ERRORMSG("OpCode not handled %x\n", instr);
     SignalExc(CPUEXCEPTION, 0);
     e = true;
-    ERROR("opcode not handled\n");
+    ERROR("opcode not handled");
     break;
   }
   }

@@ -39,12 +39,12 @@ target_link_libraries(uriscv-elf2uriscv ${LIBELF})
 
 install(TARGETS uriscv-elf2uriscv RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-# add_executable(testdis uriscv/testdis.cc)
-# target_include_directories(testdis
-#         PUBLIC ${PROJECT_SOURCE_DIR}/include
-#     )
-# target_link_libraries(testdis ${LIBELF})
+add_executable(testdis uriscv/testdis.cc uriscv/disassemble.cc)
+target_include_directories(testdis
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
+    )
+target_link_libraries(testdis)
 
-# install(TARGETS testdis RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS testdis RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_subdirectory(support)

@@ -118,7 +118,6 @@ SystemBus::SystemBus(const MachineConfig *conf, Machine *machine)
         instDevTable[intl] = SetBit(instDevTable[intl], devNo);
     }
   }
-  printf("[-] SystemBus init done\n");
 }
 
 // This method deletes a SystemBus object and all related structures
