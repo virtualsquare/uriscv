@@ -213,9 +213,12 @@ private:
   // for log file handling
   FILE *termFile;
 
+  unsigned int devNo;
+
   // receiver buffer and pointer to first character to receive from it
   char *recvBuf;
   unsigned int recvBp;
+  std::string tranBuf;
 
   // static buffer for receiver
   char recvStatStr[TERMBUFSIZE];

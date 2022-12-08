@@ -17,9 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
- */
-
+ * USA. */
 /*
  * This module implements the Processor class. A Processor object emulates
  * MIPS R2/3000 processor features almost perfectly. It is linked to a
@@ -35,6 +33,7 @@
 #include "uriscv/processor.h"
 
 #include <cassert>
+#include <complex>
 
 #include "uriscv/const.h"
 #include "uriscv/cp0.h"
@@ -45,6 +44,11 @@
 #include "uriscv/processor_defs.h"
 #include "uriscv/systembus.h"
 #include "uriscv/utility.h"
+
+const char *const regName[] = {
+    "zero", "ra", "sp", "gp", "tp",  "t0",  "t1", "t2", "s0/fp", "s1", "a0",
+    "a1",   "a2", "a3", "a4", "a5",  "a6",  "a7", "s2", "s3",    "s4", "s5",
+    "s6",   "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5",    "t6"};
 
 // Names of exceptions
 HIDDEN const char *const excName[] = {
@@ -141,11 +145,88 @@ bool TLBEntry::IsD() { return BitVal(tlbLO, DBITPOS); }
 
 Processor::Processor(const MachineConfig *config, Word cpuId, Machine *machine,
                      SystemBus *bus)
-    : id(cpuId), machine(machine), bus(bus), status(PS_HALTED),
+    : id(cpuId), config(config), machine(machine), bus(bus), status(PS_HALTED),
       tlbSize(config->getTLBSize()), tlb(new TLBEntry[tlbSize]),
-      tlbFloorAddress(config->getTLBFloorAddress()) {}
+      tlbFloorAddress(config->getTLBFloorAddress()) {
+  initCSR();
+}
 
 Processor::~Processor() {}
+
+void Processor::initCSR() {
+  csr[CYCLE].perm = RRR;
+  csr[CYCLEH].perm = NNW;
+  csr[MCYCLE].perm = RRR;
+  csr[MCYCLEH].perm = RRR;
+
+  csr[TIME].perm = RRR;
+  csr[TIMEH].perm = RRR;
+
+  csr[INSTRET].perm = RRR;
+  csr[MINSTRET].perm = NNW;
+  csr[INSTRETH].perm = RRR;
+  csr[MINSTRETH].perm = NNW;
+
+  csr[0x000].perm = WWW;
+  csr[0x100].perm = NWW;
+  csr[0x300].perm = NNW;
+
+  csr[0x004].perm = WWW;
+  csr[0x104].perm = NWW;
+  csr[0x304].perm = NNW;
+
+  csr[UTVEC].perm = WWW;
+  csr[STVEC].perm = NWW;
+  csr[MTVEC].perm = NNW;
+
+  csr[0x102].perm = NWW;
+  csr[0x302].perm = NNW;
+
+  csr[0x103].perm = NWW;
+  csr[0x303].perm = NNW;
+
+  csr[0x106].perm = NWW;
+  csr[0x306].perm = NNW;
+
+  for (Word i = 0; i < 5; i++) {
+    csr[0x040 + i].perm = WWW;
+    csr[0x140 + i].perm = NWW;
+    csr[0x340 + i].perm = NNW;
+  }
+
+  csr[0x180].perm = NWW;
+
+  csr[0x301].perm = NNW;
+  csr[0xF11].perm = NNR;
+  csr[0xF12].perm = NNR;
+  csr[0xF13].perm = NNR;
+  csr[0xF14].perm = NNR;
+
+  csr[0x001].perm = WWW;
+  csr[0x002].perm = WWW;
+  csr[0x003].perm = WWW;
+
+  for (Word i = 0; i < 0x33F - 0x323 + 1; i++) {
+    csr[0x323 + i].perm = NNW;
+    csr[0xC03 + i].perm = RRR;
+    csr[0xB03 + i].perm = NNW;
+    csr[0xC83 + i].perm = RRR;
+    csr[0xB83 + i].perm = NNW;
+  }
+
+  csr[0x3A0].perm = NNW;
+  csr[0x3A1].perm = NNW;
+  csr[0x3A2].perm = NNW;
+  csr[0x3A3].perm = NNW;
+
+  for (Word i = 0; i < 0xF; i++) {
+    csr[0x3B0 + i].perm = NNW;
+  }
+
+  for (Word i = 0; i < 0x7B2 - 0x7A0 + 1; i++) {
+    csr[0x7A0 + i].perm = NNW;
+  }
+}
 
 void Processor::setStatus(ProcessorStatus newStatus) {
   if (status != newStatus) {
@@ -193,17 +274,11 @@ void Processor::Reset(Word pc, Word sp) {
 
   currPC = pc;
 
-  printf("1. currPC %x | physicalPC %x | currInstr %x\n", currPC, currPhysPC,
-         currInstr);
-
   // maps PC to physical address space and fetches first instruction
   // mapVirtual and SystemBus cannot signal TRUE on this call
   if (mapVirtual(currPC, &currPhysPC, EXEC) ||
       bus->InstrRead(currPhysPC, &currInstr, this))
     Panic("Illegal memory access in Processor::Reset");
-
-  printf("2. currPC %x | physicalPC %x | currInstr %x\n", currPC, currPhysPC,
-         currInstr);
 
   // sets values for following PCs
   nextPC = currPC + WORDLEN;
@@ -246,8 +321,6 @@ void Processor::Cycle() {
   // In low-power state, only the per-cpu timer keeps running
   if (isIdle())
     return;
-
-  printf("Instr %x\n", currInstr);
 
   // Instruction decode & exec
   if (execInstr(currInstr))
@@ -367,6 +440,12 @@ const char *Processor::getExcCauseStr() {
     return (EMPTYSTR);
 }
 
+// This method allows to add value to the current PC
+Word Processor::incrementPC(Word value) {
+  currPC += value;
+  return currPC;
+}
+
 // This method allows to get the physical location of instruction executed
 // in the previous Processor Cycle()
 Word Processor::getPrevPPC() { return (prevPhysPC); }
@@ -402,6 +481,28 @@ Word Processor::getTLBHi(unsigned int index) const {
 
 Word Processor::getTLBLo(unsigned int index) const {
   return tlb[index].getLO();
+}
+
+Word Processor::regRead(Word reg) {
+  assert(reg >= 0 && reg < CPUGPRNUM);
+  if (reg == REG_ZERO)
+    return 0;
+  return gpr[reg];
+}
+void Processor::regWrite(Word reg, Word value) {
+  assert(reg >= 0 && reg < CPUGPRNUM);
+  if (reg != REG_ZERO)
+    gpr[reg] = value;
+}
+Word Processor::csrRead(Word reg) {
+  // TODO: check perm
+  assert(reg >= 0 && reg < kNumCSRRegisters);
+  return csr[reg].value;
+}
+void Processor::csrWrite(Word reg, Word value) {
+  // TODO: check perm
+  assert(reg >= 0 && reg < kNumCSRRegisters);
+  csr[reg].value = value;
 }
 
 // This method allows to modify the current value of a general purpose
@@ -736,237 +837,497 @@ void Processor::setTLBRegs(Word vaddr) {
 // This method make Processor execute a single MIPS instruction, emulating
 // pipeline constraints and load delay slots (see external doc).
 bool Processor::execInstr(Word instr) {
-  /*
-  Word temp;
-  unsigned int i, cp0Num;
-  bool error = false;
-  bool isValidBranch = false;
+  Word e = NOEXCEPTION;
+  uint8_t opcode = OPCODE(instr);
+  uint8_t func3 = FUNC3(instr);
+  const Symbol *sym =
+      machine->getStab()->Probe(config->getSymbolTableASID(), getPC(), true);
+  if (sym != NULL && sym->getName() != prevFunc) {
+    prevFunc = sym->getName();
+    DEBUGMSG("FUN %s\n", sym->getName());
+  }
+  DEBUGMSG("[%x] (%08x) ", getPC(), instr);
 
-  switch (OpType(instr)) {
-  case REGTYPE:
-    // MIPS register-type instruction execution
-    error = execRegInstr(&temp, instr, &isValidBranch);
-
-    // delayed load is completed _after_ istruction execution, but
-    // _before_ instruction result is moved to target register
-    completeLoad();
-
-    if (!error && RD(instr))
-      // no errors & target register != r0: put instruction result
-      // into target register
-      gpr[RD(instr)] = (SWord)temp;
-    break;
-
-  case IMMTYPE:
-    // MIPS immediate-type instruction
-    error = execImmInstr(&temp, instr);
-
-    // delayed load is completed _after_ istruction execution, but
-    // _before_ instruction result is moved to target register
-    completeLoad();
-
-    if (!error && RT(instr))
-      // no errors & target register != r0: put instruction result
-      // into target register
-      gpr[RT(instr)] = (SWord)temp;
-    break;
-
-  case BRANCHTYPE:
-    // MIPS branch-type instruction
-    error = execBranchInstr(instr, &isValidBranch);
-
-    // delayed load is completed just after instruction execution
-    completeLoad();
-    break;
-
-  case COPTYPE:
-    // MIPS coprocessor-type instruction
-
-    // Some simulation issues:
-    // CP0 is built-in and its Cp0Cond condition line is always
-    // FALSE; other coprocessors are hard-wired to
-    // non-availability
-
-    // detects coprocessor referred
-    if (OPCODE(instr) == COP0SEL && cp0Usable()) {
-      // COPOPTYPE corresponds to RS field
-      switch (COPOPTYPE(instr)) {
-      case CO0:
-        // coprocessor 0 operations
-        if (RT(instr) || RD(instr) || SHAMT(instr)) {
-          // instruction is ill-formed: exception signaled
-          // is CPU to help detection cause
-          SignalExc(CPUEXCEPTION, 0);
-          error = true;
-        } else {
-          // all instructions follow MIPS guidelines
-          switch (FUNCT(instr)) {
-          case RFE:
-            popKUIEStack();
-            break;
-
-          case TLBP:
-            // solution "by the book"
-            cpreg[INDEX] = SIGNMASK;
-            if (probeTLB(&i, cpreg[ENTRYHI], cpreg[ENTRYHI]))
-              cpreg[INDEX] = (i << RNDIDXOFFS);
-            break;
-
-          case TLBR:
-            cpreg[ENTRYHI] = tlb[RNDIDX(cpreg[INDEX])].getHI();
-            cpreg[ENTRYLO] = tlb[RNDIDX(cpreg[INDEX])].getLO();
-            break;
-
-          case TLBWI:
-            tlb[RNDIDX(cpreg[INDEX])].setHI(cpreg[ENTRYHI]);
-            tlb[RNDIDX(cpreg[INDEX])].setLO(cpreg[ENTRYLO]);
-            SignalTLBChanged(RNDIDX(cpreg[INDEX]));
-            break;
-
-          case TLBWR:
-            tlb[RNDIDX(cpreg[RANDOM])].setHI(cpreg[ENTRYHI]);
-            tlb[RNDIDX(cpreg[RANDOM])].setLO(cpreg[ENTRYLO]);
-            SignalTLBChanged(RNDIDX(cpreg[INDEX]));
-            break;
-
-          case COFUN_WAIT:
-            suspend();
-            break;
-
-          default:
-            // unknown coprocessor 0 operation requested
-            SignalExc(CPUEXCEPTION, 0);
-            error = true;
-            break;
-          }
-        }
-        // delayed load is completed after instruction execution
-        completeLoad();
-        break;
-
-      case BC0:
-        switch (COPOPCODE(instr)) {
-        case BC0F:
-          // condition line for CP0 is always FALSE
-          succPC = nextPC + (SignExtImm(instr) << WORDSHIFT);
-          isValidBranch = true;
-          break;
-
-        case BC0T:
-          // condition line for CP0 is always FALSE
-          // so this is a nop instruction
-          isValidBranch = true;
-          break;
-
-        default:
-          // traps BC0FL R4000 instructions
-          // and the like...
-          SignalExc(CPUEXCEPTION, 0);
-          error = true;
-          break;
-        }
-        completeLoad();
-        break;
-
-      case MFC0:
-        // delayed load is completed _before_ istruction
-        // execution since instruction itself produces a
-        // delayed load
-        completeLoad();
-
-        // valid instruction has SHAMT and FUNCT fields
-        // set to 0, and refers to a valid CP0 register
-        if (ValidCP0Reg(RD(instr), &cp0Num) && !SHAMT(instr) && !FUNCT(instr)) {
-          setLoad(LOAD_TARGET_GPREG, RT(instr), (SWord)cpreg[cp0Num]);
-        } else {
-          // invalid instruction format or CP0 reg
-          SignalExc(CPUEXCEPTION, 0);
-          error = true;
-        }
-        break;
-
-      case MTC0:
-        // delayed load is completed _before_ istruction
-        // execution since instruction itself produces a
-        // delayed load
-        completeLoad();
-
-        // valid instruction has SHAMT and FUNCT fields
-        // set to 0, and refers to a valid CP0 register
-        if (ValidCP0Reg(RD(instr), &cp0Num) && !SHAMT(instr) && !FUNCT(instr))
-          setLoad(LOAD_TARGET_CPREG, cp0Num, gpr[RT(instr)]);
-        else {
-          // check if it is TLBCLR backpatch
-          if (RD(instr) == CONTEXTREG && !SHAMT(instr) && !FUNCT(instr))
-            zapTLB();
-          else {
-            // invalid instruction
-            SignalExc(CPUEXCEPTION, 0);
-            error = true;
-          }
-        }
-        break;
-
-      default:
-        // unknown and CFC0, CTC0, COP0, LWC0 generic instructions
-        SignalExc(CPUEXCEPTION, 0);
-        error = true;
-        break;
-      }
-    } else {
-      // coprocessor 0 (or other) unusable
-      SignalExc(CPUEXCEPTION, COPNUM(instr));
-      error = true;
+  switch (opcode) {
+  case OP_L: {
+    DEBUGMSG("\tI-type | ");
+    int8_t rd = RD(instr);
+    int8_t rs1 = RS1(instr);
+    int16_t imm = I_IMM(instr);
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    Word read = 0;
+    Word vaddr = regRead(rs1) + imm, paddr = 0;
+    switch (func3) {
+    case OP_LB: {
+      DEBUGMSG("LB\n");
+      // just 8 bits
+      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
+          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+        regWrite(rd, signExtByte(read, BYTEPOS(vaddr)));
+        setNextPC(getPC() + WORDLEN);
+      } else
+        e = true;
+      exit(-1);
+      break;
+    }
+    case OP_LH: {
+      DEBUGMSG("LBH\n");
+      // just 16 bits
+      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
+          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+        regWrite(rd, signExtHWord(read, HWORDPOS(vaddr)));
+        setNextPC(getPC() + WORDLEN);
+      } else
+        e = true;
+      break;
+    }
+    case OP_LW: {
+      if (!mapVirtual(vaddr, &paddr, READ) &&
+          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+        regWrite(rd, read);
+        DEBUGMSG("LW %s,%s(%x),%d -> %x\n", regName[rd], regName[rs1],
+                 regRead(rs1), (Word)imm, read);
+        setNextPC(getPC() + WORDLEN);
+      } else
+        e = true;
+      break;
+    }
+    case OP_LBU: {
+      // just 8 bits
+      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
+          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+        DEBUGMSG("LBU %s,%s(%x),%d -> %x\n", regName[rd], regName[rs1],
+                 regRead(rs1), imm, read);
+        regWrite(rd, zExtByte(read, BYTEPOS(vaddr)));
+        setNextPC(getPC() + WORDLEN);
+      } else
+        e = true;
+      break;
+    }
+    case OP_LHU: {
+      // just 16 bits
+      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
+          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+        DEBUGMSG("LHU\n");
+        regWrite(rd, zExtHWord(read, HWORDPOS(vaddr)));
+        setNextPC(getPC() + WORDLEN);
+      } else
+        e = true;
+      break;
+    }
+    default: {
+      SignalExc(CPUEXCEPTION, 0);
+      e = true;
+      break;
+    }
     }
     break;
+  }
+  case R_TYPE: {
+    DEBUGMSG("\tR-type | ");
+    int8_t rs1 = RS1(instr);
+    int8_t rs2 = RS2(instr);
+    uint8_t rd = RD(instr);
+    uint8_t func7 = FUNC7(instr);
+    switch (func3) {
+    case OP_ADD: {
+      switch (func7) {
+      case OP_ADD_func7: {
+        DEBUGMSG("ADD %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        regWrite(rd, regRead(rs1) + regRead(rs2));
+        break;
+      }
 
-  case LOADTYPE:
-    // MIPS load instruction
-
-    // delayed load is completed _before_ istruction execution since
-    // instruction itself produces a delayed load
-    completeLoad();
-
-    error = execLoadInstr(instr);
-    break;
-
-  case STORETYPE:
-    // MIPS store instruction
-
-    // delayed load is completed _before_ istruction execution
-    // since it happens "logically" so in the pipeline
-    completeLoad();
-
-    error = execStoreInstr(instr);
-    break;
-
-  case LOADCOPTYPE:
-  case STORECOPTYPE:
-    if (BitVal(instr, DWCOPBITPOS))
-      // LDC, SDC reserved instructions handling
-      SignalExc(RIEXCEPTION);
-    else
-      SignalExc(CPUEXCEPTION, COPNUM(instr));
-    error = true;
-    break;
-
-  default:
-    // unknown instruction (generic)
-    SignalExc(RIEXCEPTION);
-    error = true;
+      case OP_SUB_func7: {
+        DEBUGMSG("SUB %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        regWrite(rd, regRead(rs1) - regRead(rs2));
+        break;
+      }
+      default: {
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        break;
+      }
+      }
+      break;
+    }
+    case OP_OR: {
+      DEBUGMSG("OR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+      regWrite(rd, regRead(rs1) | regRead(rs2));
+      break;
+    }
+    case OP_XOR: {
+      DEBUGMSG("XOR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+      regWrite(rd, regRead(rs1) ^ regRead(rs2));
+      break;
+    }
+    default: {
+      SignalExc(CPUEXCEPTION, 0);
+      e = true;
+      break;
+    }
+    }
+    setNextPC(getPC() + WORDLEN);
     break;
   }
+  case I_TYPE: {
+    DEBUGMSG("\tI-type | ");
+    int8_t rs1 = RS1(instr);
+    SWord imm = I_IMM(instr);
+    uint8_t rd = RD(instr);
+    switch (func3) {
+    case OP_ADDI: {
+      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+      DEBUGMSG("ADDI %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
+               imm);
+      regWrite(rd, regRead(rs1) + imm);
+      break;
+    }
+    case OP_SLLI: {
+      DEBUGMSG("SLLI %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+               regName[rs1], regRead(rs1), imm);
+      regWrite(rd, regRead(rs1) << imm);
+      break;
+    }
+    case OP_SLTI: {
+      DEBUGMSG("SLTI\n");
+      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+      regWrite(rd, SWord(regRead(rs1)) < SWord(imm) ? 1 : 0);
+      break;
+    }
+    case OP_SLTIU: {
+      DEBUGMSG("SLTIU\n");
+      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+      regWrite(rd, regRead(rs1) < Word(imm) ? 1 : 0);
+      break;
+    }
+    case OP_XORI: {
+      DEBUGMSG("XORI\n");
+      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+      regWrite(rd, SWord(regRead(rs1)) ^ SWord(imm));
+      break;
+    }
+    case OP_SR: {
+      uint8_t func7 = FUNC7(instr);
+      switch (func7) {
+      case OP_SRLI_func7: {
+        DEBUGMSG("SRLI\n");
+        regWrite(rd, regRead(rs1) >> imm);
+        break;
+      }
+      case OP_SRAI_func7: {
+        DEBUGMSG("SRAI\n");
+        uint8_t msb = rs1 & 0x80000000;
+        regWrite(rd, regRead(rs1) >> imm | msb);
+        break;
+      }
+      default:
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        break;
+      }
+      regWrite(rd, SWord(regRead(rs1)) ^ SWord(imm));
+      break;
+    }
+    case OP_ORI: {
+      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+      DEBUGMSG("ORI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+               imm);
+      regWrite(rd, SWord(regRead(rs1)) | SWord(imm));
+      break;
+    }
+    case OP_ANDI: {
+      DEBUGMSG("ANDI\n");
+      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+      regWrite(rd, SWord(regRead(rs1)) & SWord(imm));
+      break;
+    }
+    default: {
+      SignalExc(CPUEXCEPTION, 0);
+      e = true;
+      break;
+    }
+    }
+    setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case I2_TYPE: {
+    DEBUGMSG("\tI2-type | ");
+    uint16_t imm = I_IMM(instr);
+    int8_t rs1 = RS1(instr);
+    uint8_t rd = RD(instr);
+    switch (func3) {
+    case OP_ECALL_EBREAK: {
+      switch (imm) {
+      case ECALL_IMM: {
+        // a7 - syscall number
+        // a0 - result of syscall
+        //
+        // https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/slides/14-ecf-pre.pdf
+        DEBUGMSG("ECALL\n");
+        ERROR("ECALL");
+        // TODO
+        // switch (this->mode) {
+        // case MODE_USER: {
+        //   return EXC_ENV_CALL_U;
+        // }
+        // case MODE_SUPERVISOR: {
+        //   return EXC_ENV_CALL_S;
+        // }
+        // case MODE_MACHINE: {
+        //   return EXC_ENV_CALL_M;
+        // }
+        // }
+        break;
+      }
+      case EBREAK_IMM: {
+        DEBUGMSG("EBREAK\n");
+        ERROR("BREAK");
+        break;
+      }
+      default: {
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        ERROR("not found");
+        break;
+      }
+      }
+      break;
+    }
+    case OP_CSRRW: {
+      std::cout << "CSRRW\n";
+      if (rd != 0x0)
+        regWrite(rd, csrRead(imm));
+      if (rs1 != 0x0)
+        csrWrite(imm, regRead(rs1));
+      setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_CSRRS: {
+      std::cout << "CSRRS\n";
+      regWrite(rd, csrRead(imm));
+      csrWrite(imm, csrRead(imm) | regRead(rs1));
+      setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_CSRRC: {
+      std::cout << "CSRRC\n";
+      regWrite(rd, csrRead(imm));
+      if (rs1 != 0x0)
+        csrWrite(imm, csrRead(imm) & ~regRead(rs1));
+      setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_CSRRWI: {
+      std::cout << "CSRRWI\n";
+      regWrite(rd, csrRead(imm));
+      csrWrite(imm, csrRead(imm) & ~rs1);
+      setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_CSRRSI: {
+      std::cout << "CSRRSI\n";
+      regWrite(rd, csrRead(imm));
+      csrWrite(imm, csrRead(imm) | rs1);
+      setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_CSRRCI: {
+      std::cout << "CSRRCI\n";
+      regWrite(rd, csrRead(imm));
+      csrWrite(imm, csrRead(imm) & ~rs1);
+      setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    default: {
+      SignalExc(CPUEXCEPTION, 0);
+      e = true;
+      ERROR("not found");
+      break;
+    }
+    }
+    break;
+  }
+  case B_TYPE: {
+    DEBUGMSG("\tB-type | ");
+    int8_t rs1 = RS1(instr);
+    int8_t rs2 = RS2(instr);
+    int16_t imm = B_IMM(instr);
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    switch (func3) {
+    case OP_BEQ: {
+      DEBUGMSG("BEQ %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+               regName[rs2], regRead(rs2), imm);
+      if (regRead(rs1) == regRead(rs2))
+        setNextPC((SWord)getPC() + ((SWord)imm));
+      else
+        setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_BNE: {
+      DEBUGMSG("BNE %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
+               regName[rs2], regRead(rs2), imm);
+      if (regRead(rs1) != regRead(rs2))
+        setNextPC((SWord)getPC() + ((SWord)imm));
+      else
+        setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_BLT: {
+      std::cout << "BLT\n";
+      if (regRead(rs1) < regRead(rs2))
+        setNextPC((SWord)getPC() + ((SWord)imm));
+      else
+        setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_BGE: {
+      std::cout << "BGE\n";
+      if (regRead(rs1) >= regRead(rs2)) {
+        setNextPC((SWord)getPC() + ((SWord)imm));
+      } else
+        setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_BLTU: {
+      std::cout << "BLTU\n";
+      if (regRead(rs1) < regRead(rs2))
+        setNextPC(getPC() + (imm));
+      else
+        setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    case OP_BGEU: {
+      std::cout << "BGEU\n";
+      if (regRead(rs1) >= regRead(rs2))
+        setNextPC(getPC() + (imm));
+      else
+        setNextPC(getPC() + WORDLEN);
+      break;
+    }
+    default: {
+      SignalExc(CPUEXCEPTION, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+  case S_TYPE: {
+    DEBUGMSG("\tS-type | ");
+    int8_t rs1 = RS1(instr);
+    int8_t rs2 = RS2(instr);
+    int16_t imm = S_IMM(instr);
+    imm = SIGN_EXTENSION(imm, S_IMM_SIZE);
+    Word vaddr = (SWord)regRead(rs1) + (SWord)imm;
+    Word paddr = 0;
+    Word old = 0;
+    e = this->bus->DataRead(vaddr, &old, this);
+    switch (func3) {
+    case OP_SB: {
+      if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
+          !bus->DataRead(paddr, &old, this)) {
+        old = mergeByte(old, regRead(rs2), BYTEPOS(vaddr));
+        e = this->bus->DataWrite(paddr, old, this);
+        DEBUGMSG("SB %s(%x),%s(%x),%d -> %x\n", regName[rs2], regRead(rs2),
+                 regName[rs1], regRead(rs1), imm, old);
+        setNextPC(getPC() + WORDLEN);
+      } else
+        e = true;
 
-  // Branch delay slot handling: if the instruction generated an
-  // exception, isBranchD is _not_ modified, since the exception
-  // handler needs it; otherwise, the next instruction is a BD slot
-  // if the current instruction is a valid branch.
-  if (!error)
-    isBranchD = isValidBranch;
+      break;
+    }
+    case OP_SH: {
+      if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
+          !bus->DataRead(paddr, &old, this)) {
+        DEBUGMSG("SH %s(%x),%s(%x),%d -> %x\n", regName[rs2], regRead(rs2),
+                 regName[rs1], regRead(rs1), imm, old);
+        old = mergeHWord(old, regRead(rs2), HWORDPOS(vaddr));
+        e = this->bus->DataWrite(paddr, old, this);
+        setNextPC(getPC() + WORDLEN);
+      } else
+        e = true;
+      break;
+    }
+    case OP_SW: {
+      if (!mapVirtual(vaddr, &paddr, WRITE) &&
+          !this->bus->DataWrite(paddr, regRead(rs2), this)) {
+        DEBUGMSG("SW %s(%x),%s(%x),%d\n", regName[rs2], regRead(rs2),
+                 regName[rs1], regRead(rs1), imm);
+        setNextPC(getPC() + WORDLEN);
+      } else
+        e = true;
+      break;
+    }
+    default: {
+      SignalExc(CPUEXCEPTION, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+  case OP_AUIPC: {
+    DEBUGMSG("\tU-type | AUIPC\n");
+    uint8_t rd = RD(instr);
+    SWord imm = U_IMM(instr);
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    regWrite(rd, (SWord)getPC() + imm);
+    setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_LUI: {
+    uint8_t rd = RD(instr);
+    SWord imm = SIGN_EXTENSION(U_IMM(instr), U_IMM_SIZE) << 12;
+    DEBUGMSG("\tU-type | LUI %s,%d\n", regName[rd], imm);
+    this->regWrite(rd, imm);
+    setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_JAL: {
+    uint8_t rd = RD(instr);
+    Word imm = I_IMM(instr);
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE) & 0xfffffffe;
+    DEBUGMSG("\tJ-type | JAL %s,%x\n", regName[rd], getPC() + imm);
+    regWrite(rd, getPC() + WORDLEN);
+    setNextPC(getPC() + imm);
+    break;
+  }
+  case OP_JALR: {
+    // TODO: understand diffs with JAL
+    uint8_t rd = RD(instr);
+    uint8_t rs1 = RS1(instr);
+    Word imm = I_IMM(instr);
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    DEBUGMSG("\tJ-type | JALR %s,%s(%x),%x\n", regName[rd], regName[rs1],
+             regRead(rs1), (regRead(rs1) + imm) & 0xfffffffe);
+    regWrite(rd, getPC() + WORDLEN);
+    setNextPC(((regRead(rs1) + imm) & 0xfffffffe));
+    break;
+  }
+  // case OP_FENCE: {
+  //   DEBUGMSG("FENCE\n!!! Da implementare\n");
+  //   // DEBUGMSG("PR %d ", FENCE_PR(instr));
+  //   // DEBUGMSG("PW %d ", FENCE_PW(instr));
+  //   // DEBUGMSG("PI %d ", FENCE_PI(instr));
+  //   // DEBUGMSG("PO %d ", FENCE_PO(instr));
+  //   // DEBUGMSG("SR %d ", FENCE_SR(instr));
+  //   // DEBUGMSG("SW %d ", FENCE_SW(instr));
+  //   // DEBUGMSG("SI %d ", FENCE_SI(instr));
+  //   // DEBUGMSG("SO %d\n", FENCE_SO(instr));
+  //   setNextPC(getPC() + WORDLEN);
+  //   break;
+  // }
+  default: {
+    DEBUGMSG("OpCode not handled %x\n", instr);
+    SignalExc(CPUEXCEPTION, 0);
+    e = true;
+    ERROR("opcode not handled\n");
+    break;
+  }
+  }
 
-  return error;
-  */
-  return true;
+  return e;
 }
 
 // This method tests for CP0 availability (as set in STATUS register and in
@@ -1079,7 +1440,8 @@ Word Processor::mergeHWord(Word dest, Word src, unsigned int hwp) {
   if (BIGENDIANCPU)
     hwp = 1 - hwp;
 
-  // shifts least significant halfword of src into position and clears around it
+  // shifts least significant halfword of src into position and clears around
+  // it
   src = (src & IMMMASK) << (hwp * HWORDLEN);
 
   // clears specified halfword and overwrites it with src
@@ -1482,8 +1844,8 @@ bool Processor::execLoadInstr(Word instr) {
     // reads the full word from bus and then extracts the byte
     if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
         !bus->DataRead(paddr, &temp, this))
-      setLoad(LOAD_TARGET_GPREG, RT(instr), signExtByte(temp, BYTEPOS(vaddr)));
-    else
+      setLoad(LOAD_TARGET_GPREG, RT(instr), signExtByte(temp,
+  BYTEPOS(vaddr))); else
       // exception signaled: rt not loadable
       error = true;
     break;
@@ -1537,9 +1899,8 @@ bool Processor::execLoadInstr(Word instr) {
 
   case LW:
     vaddr = gpr[RS(instr)] + SignExtImm(instr);
-    if (!mapVirtual(vaddr, &paddr, READ) && !bus->DataRead(paddr, &temp, this))
-      setLoad(LOAD_TARGET_GPREG, RT(instr), (SWord)temp);
-    else
+    if (!mapVirtual(vaddr, &paddr, READ) && !bus->DataRead(paddr, &temp,
+  this)) setLoad(LOAD_TARGET_GPREG, RT(instr), (SWord)temp); else
       // exception signaled: rt not loadable
       error = true;
     break;
@@ -1551,9 +1912,8 @@ bool Processor::execLoadInstr(Word instr) {
     if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
         !bus->DataRead(paddr, &temp, this)) {
       temp =
-          merge((Word)gpr[RT(instr)], temp, BYTEPOS(vaddr), BIGENDIANCPU, true);
-      setLoad(LOAD_TARGET_GPREG, RT(instr), temp);
-    } else
+          merge((Word)gpr[RT(instr)], temp, BYTEPOS(vaddr), BIGENDIANCPU,
+  true); setLoad(LOAD_TARGET_GPREG, RT(instr), temp); } else
       // exception signaled: rt not loadable
       error = true;
     break;
@@ -1640,8 +2000,8 @@ bool Processor::execStoreInstr(Word instr) {
     vaddr = gpr[RS(instr)] + SignExtImm(instr);
     if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
         !bus->DataRead(paddr, &temp, this)) {
-      temp = merge(temp, (Word)gpr[RT(instr)], BYTEPOS(vaddr), !(BIGENDIANCPU),
-                   false);
+      temp = merge(temp, (Word)gpr[RT(instr)], BYTEPOS(vaddr),
+  !(BIGENDIANCPU), false);
 
       if (bus->DataWrite(paddr, temp, this))
         // bus exception
@@ -1655,9 +2015,8 @@ bool Processor::execStoreInstr(Word instr) {
     vaddr = gpr[RS(instr)] + SignExtImm(instr);
     if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
         !bus->DataRead(paddr, &temp, this)) {
-      temp = merge(temp, (Word)gpr[RT(instr)], BYTEPOS(vaddr), !(BIGENDIANCPU),
-                   true);
-      if (bus->DataWrite(paddr, temp, this))
+      temp = merge(temp, (Word)gpr[RT(instr)], BYTEPOS(vaddr),
+  !(BIGENDIANCPU), true); if (bus->DataWrite(paddr, temp, this))
         // bus exception signaled
         error = true;
     } else

@@ -102,12 +102,14 @@
 // word length in bytes, byte length in bits, sign masks, etc.
 #define WORDLEN 4
 #define BYTELEN 8
+#define WORDLENBITS WORDLEN *BYTELEN
 #define WORDSHIFT 2
 #define MINWORDVAL 0x00000000UL
 #define MAXWORDVAL 0xFFFFFFFFUL
 #define MAXSWORDVAL 0x7FFFFFFFUL
 #define SIGNMASK 0x80000000UL
 #define BYTEMASK 0x000000FFUL
+#define HWORDMASK 0x000000FFUL
 
 // immediate/lower halfword part mask
 #define IMMMASK 0x0000FFFFUL

@@ -182,6 +182,8 @@ HIDDEN char strbuf[STRBUFSIZE];
 #define CONFNETTIME 40
 #define POLLNETTIME (READNETTIME / 2)
 
+#define TERMMSG(buf) (printf("[!] TERM (%d) `%s`\n", devNum, buf))
+
 //
 // local functions
 //
@@ -459,6 +461,7 @@ TerminalDevice::TerminalDevice(SystemBus *bus, const MachineConfig *cfg,
   isWorking = true;
   recvBuf = NULL;
   recvBp = 0;
+  tranBuf = "";
   reg[RECVSTATUS] = READY;
   reg[TRANSTATUS] = READY;
   sprintf(recvStatStr, "Idle");
@@ -508,6 +511,8 @@ void TerminalDevice::WriteDevReg(unsigned int regnum, Word data) {
         recvCTime = scheduleIOEvent(TERMRESETTIME * config->getClockRate());
         sprintf(recvStatStr, "Resetting (last op: %s)",
                 isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
+        printf("Resetting (last op: %s)",
+               isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
         reg[RECVSTATUS] = BUSY;
         break;
 
@@ -517,6 +522,8 @@ void TerminalDevice::WriteDevReg(unsigned int regnum, Word data) {
         recvIntPend = false;
         sprintf(recvStatStr, "Idle (last op: %s)",
                 isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
+        printf("Idle (last op: %s)",
+               isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
         reg[RECVSTATUS] = READY;
         break;
 
@@ -526,6 +533,8 @@ void TerminalDevice::WriteDevReg(unsigned int regnum, Word data) {
         recvIntPend = false;
         sprintf(recvStatStr, "Receiving (last op: %s)",
                 isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
+        printf("Receiving (last op: %s)",
+               isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
         recvCTime = scheduleIOEvent(RECVCHRTIME * config->getClockRate());
         reg[RECVSTATUS] = BUSY;
         break;
@@ -533,6 +542,8 @@ void TerminalDevice::WriteDevReg(unsigned int regnum, Word data) {
       default:
         sprintf(recvStatStr, "Unknown command (last op: %s)",
                 isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
+        printf("Unknown command (last op: %s)",
+               isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
         reg[RECVSTATUS] = ILOPERR;
         bus->IntReq(intL, devNum);
         recvIntPend = true;
@@ -571,17 +582,25 @@ void TerminalDevice::WriteDevReg(unsigned int regnum, Word data) {
         reg[TRANSTATUS] = READY;
         break;
 
-      case TRANCHR:
+      case TRANCHR: {
         if (!recvIntPend)
           bus->IntAck(intL, devNum);
         tranIntPend = false;
         sprintf(tranStatStr, "Transm. char 0x%.2X (last op: %s)",
                 (unsigned char)((data >> BYTELEN) & BYTEMASK),
                 isSuccess(dType, reg[TRANSTATUS] & BYTEMASK));
+        char c = (unsigned char)((data >> BYTELEN) & BYTEMASK);
+        if (c == 0x0A) {
+          TERMMSG(tranBuf.c_str());
+          tranBuf = "";
+        } else {
+          tranBuf += c;
+        }
 
         tranCTime = scheduleIOEvent(TRANCHRTIME * config->getClockRate());
         reg[TRANSTATUS] = BUSY;
         break;
+      }
 
       default:
         sprintf(tranStatStr, "Unknown command (last op: %s)",

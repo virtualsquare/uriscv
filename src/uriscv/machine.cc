@@ -30,6 +30,7 @@
 #include "uriscv/machine_config.h"
 #include "uriscv/processor.h"
 #include "uriscv/stoppoint.h"
+#include "uriscv/symbol_table.h"
 #include "uriscv/systembus.h"
 #include "uriscv/types.h"
 
@@ -228,3 +229,7 @@ bool Machine::ReadMemory(Word physAddr, Word *data) {
 bool Machine::WriteMemory(Word paddr, Word data) {
   return bus->WatchWrite(paddr, data);
 }
+
+void Machine::setStab(SymbolTable *stab) { this->stab = stab; }
+
+SymbolTable *Machine::getStab() { return stab; }

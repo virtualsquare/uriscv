@@ -8,9 +8,15 @@
 #include <iostream>
 #include <string>
 
+#define DEBUG 0
+
 #define ERROR(msg)                                                             \
   printf("\n[x] %s\n", msg);                                                   \
   exit(-1);
+
+#define DEBUGMSG(...)                                                          \
+  if (DEBUG)                                                                   \
+    printf(__VA_ARGS__);
 
 namespace Utility {
 void readFile(std::string filename, char *&dst, Word *size);

@@ -314,8 +314,6 @@ bool SystemBus::DMAVarTransfer(Block *blk, Word startAddr, Word byteLength,
 bool SystemBus::InstrRead(Word addr, Word *instrp, Processor *proc) {
   machine->HandleBusAccess(addr, EXEC, proc);
 
-  printf("instr read %x\n", addr);
-
   if (busRead(addr, instrp)) {
     // address invalid: signal exception to processor
     proc->SignalExc(IBEXCEPTION);
@@ -372,24 +370,19 @@ Device *SystemBus::getDev(unsigned int intL, unsigned int dNum) {
 // the datap pointer. It also return FALSE if the addr is valid, and TRUE
 // otherwise
 bool SystemBus::busRead(Word addr, Word *datap, Processor *cpu) {
-  printf("bus read at %x\n", addr);
   if (INBOUNDS(addr, RAMBASE, RAMBASE + ram->Size())) {
-    printf("rambase\n");
     *datap = ram->MemRead(CONVERT(addr, RAMBASE));
+    // if (addr == 0x20000fa4)
+    //   printf("\nread from RAM %x at %x\n", *datap, addr);
   } else if (INBOUNDS(addr, BIOSDATABASE, BIOSDATABASE + biosdata->Size())) {
-    printf("biosdatabase\n");
     *datap = biosdata->MemRead(CONVERT(addr, BIOSDATABASE));
   } else if (INBOUNDS(addr, BIOSBASE, BIOSBASE + bios->Size())) {
-    printf("biosbase\n");
     *datap = bios->MemRead(CONVERT(addr, BIOSBASE));
   } else if (INBOUNDS(addr, BOOTBASE, BOOTBASE + boot->Size())) {
-    printf("bootbase\n");
     *datap = boot->MemRead(CONVERT(addr, BOOTBASE));
   } else if (INBOUNDS(addr, MMIO_BASE, MMIO_END)) {
-    printf("busreg\n");
     *datap = busRegRead(addr, cpu);
   } else {
-    printf("invalid\n");
     // address invalid: data read is out of bounds
     *datap = MAXWORDVAL;
     return true;
@@ -401,7 +394,6 @@ bool SystemBus::busRead(Word addr, Word *datap, Processor *cpu) {
 // This method returns the value for the device field addressed in the "bus
 // register area"
 Word SystemBus::busRegRead(Word addr, Processor *cpu) {
-  printf("bus reg read at %x\n", addr);
   Word data;
 
   if (INBOUNDS(addr, DEV_REG_START, DEV_REG_END)) {
@@ -508,6 +500,8 @@ Device *SystemBus::makeDev(unsigned int intl, unsigned int dnum) {
 // and writable, and TRUE otherwise
 bool SystemBus::busWrite(Word addr, Word data, Processor *cpu) {
   if (INBOUNDS(addr, RAMBASE, RAMBASE + ram->Size())) {
+    // if (addr == 0x20000fa4)
+    //   printf("\nwrite to RAM %x at %x\n", data, addr);
     ram->MemWrite(CONVERT(addr, RAMBASE), data);
   } else if (INBOUNDS(addr, BIOSDATABASE, BIOSDATABASE + biosdata->Size())) {
     biosdata->MemWrite(CONVERT(addr, BIOSDATABASE), data);

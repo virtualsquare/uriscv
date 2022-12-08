@@ -41,6 +41,7 @@ class Processor {
 public:
   // Register file size:
   static const unsigned int kNumCPURegisters = 34;
+  static const unsigned int kNumCSRRegisters = 4096;
   static const unsigned int kNumCP0Registers = 9;
 
   Processor(const MachineConfig *config, Word id, Machine *machine,
@@ -96,6 +97,7 @@ public:
 
   void getPrevStatus(Word *pc, Word *instr);
   const char *getExcCauseStr();
+  Word incrementPC(Word value);
   Word getNextPC(void);
   Word getSuccPC(void);
   Word getPrevPPC(void);
@@ -105,6 +107,11 @@ public:
   void getTLB(unsigned int index, Word *hi, Word *lo) const;
   Word getTLBHi(unsigned int index) const;
   Word getTLBLo(unsigned int index) const;
+
+  Word regRead(Word reg);
+  void regWrite(Word reg, Word value);
+  Word csrRead(Word reg);
+  void csrWrite(Word reg, Word value);
 
   // The following methods allow to change Processor internal status
   // Name & parameters are almost self-explanatory: remember that
@@ -140,8 +147,11 @@ private:
 
   // object references for memory access (bus) and for virtual address
   // accessing (watch)
+  const MachineConfig *config;
   Machine *machine;
   SystemBus *bus;
+
+  std::string prevFunc;
 
   ProcessorStatus status;
 
@@ -166,6 +176,7 @@ private:
 
   // general purpose registers, together with HI and LO registers
   SWord gpr[kNumCPURegisters];
+  csr_t csr[kNumCSRRegisters];
 
   // instruction to be executed
   Word currInstr;
@@ -195,6 +206,8 @@ private:
   scoped_array<TLBEntry> tlb;
 
   Word tlbFloorAddress;
+
+  void initCSR();
 
   // private methods
   void setStatus(ProcessorStatus newStatus);

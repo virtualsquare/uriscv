@@ -1,18 +1,16 @@
 // https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/
 
+#include "uriscv/myprocessor.h"
 #include "uriscv/config.h"
 #include "uriscv/const.h"
 #include "uriscv/hart.h"
 #include "uriscv/mybus.h"
-#include "uriscv/processor.h"
 #include "uriscv/utility.h"
 #include <assert.h>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-
-#define DEBUG 0
 
 #define OP_L 0x3
 #define OP_LB 0x0
@@ -194,9 +192,8 @@ exception_t MyProcessor::Excecute(Word instr) {
     }
     case OP_LW: {
       e = this->bus->Read((SWord)this->GRegRead(rs1) + (SWord)imm, &read);
-      printf("OP_LW %d,%d(%x),%d\n", rd, rs1, this->GRegRead(rs1), (Word)imm);
-      printf("read %x\n", read);
       this->GRegWrite(rd, read);
+      printf("OP_LW %d,%d(%x),%d\n", rd, rs1, this->GRegRead(rs1), (Word)imm);
       this->IncrementPC(WORDLEN);
       break;
     }
@@ -689,9 +686,9 @@ void MyProcessor::Reset(Word pc, Word sp) {
 
   // maps PC to physical address space and fetches first instruction
   // mapVirtual and SystemBus cannot signal TRUE on this call
-  if (mapVirtual(currPC, &currPhysPC, EXEC) ||
-      bus->InstrRead(currPhysPC, &currInstr, this))
-    Panic("Illegal memory access in MyProcessor::Reset");
+  // if (mapVirtual(currPC, &currPhysPC, EXEC) ||
+  //     bus->InstrRead(currPhysPC, &currInstr, this))
+  //   Panic("Illegal memory access in MyProcessor::Reset");
 }
 
 void MyProcessor::Halt() {

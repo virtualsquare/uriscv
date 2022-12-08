@@ -28,6 +28,7 @@
 #include "uriscv/device.h"
 #include "uriscv/machine_config.h"
 #include "uriscv/stoppoint.h"
+#include "uriscv/symbol_table.h"
 #include "uriscv/systembus.h"
 
 enum StopCause {
@@ -77,6 +78,9 @@ public:
   void HandleBusAccess(Word pAddr, Word access, Processor *cpu);
   void HandleVMAccess(Word asid, Word vaddr, Word access, Processor *cpu);
 
+  void setStab(SymbolTable *stab);
+  SymbolTable *getStab();
+
 private:
   struct ProcessorData {
     unsigned int stopCause;
@@ -105,6 +109,8 @@ private:
   StoppointSet *breakpoints;
   StoppointSet *suspects;
   StoppointSet *tracepoints;
+
+  SymbolTable *stab;
 };
 
 #endif // URISCV_MACHINE_H

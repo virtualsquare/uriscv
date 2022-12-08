@@ -20,6 +20,7 @@ add_library(src STATIC
   uriscv/mpic.cc
   uriscv/mp_controller.cc
   uriscv/machine.cc
+  uriscv/symbol_table.cc
   )
 
 set_property(SOURCE support/liburiscv/liburiscv.S PROPERTY LANGUAGE C)

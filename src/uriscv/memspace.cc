@@ -111,7 +111,6 @@ BiosSpace::BiosSpace(const char *fileName) {
 // This method returns the value of Word at ofs address
 // (SystemBus must assure that ofs is in range)
 Word BiosSpace::MemRead(Word ofs) {
-  printf("bios mem read at %x\n", ofs);
   assert(ofs < size);
   return memPtr[ofs];
 }

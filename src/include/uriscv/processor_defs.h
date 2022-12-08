@@ -264,13 +264,116 @@ enum {
 #define HWORDPOS(va) ((va & ALIGNMASK) >> 1)
 
 // instruction fields decoding macros
-#define OPCODE(i) ((i & OPCODEMASK) >> OPCODEOFFS)
-#define FUNCT(i) (i & FUNCTMASK)
-#define SHAMT(i) ((i & SHAMTMASK) >> SHAMTOFFS)
-#define REGSHAMT(r) (r & (SHAMTMASK >> SHAMTOFFS))
-#define RS(i) ((i & RSMASK) >> RSOFFSET)
-#define RT(i) ((i & RTMASK) >> RTOFFSET)
-#define RD(i) ((i & RDMASK) >> RDOFFSET)
+// #define OPCODE(i) ((i & OPCODEMASK) >> OPCODEOFFS)
+// #define FUNCT(i) (i & FUNCTMASK)
+// #define SHAMT(i) ((i & SHAMTMASK) >> SHAMTOFFS)
+// #define REGSHAMT(r) (r & (SHAMTMASK >> SHAMTOFFS))
+// #define RS(i) ((i & RSMASK) >> RSOFFSET)
+// #define RT(i) ((i & RTMASK) >> RTOFFSET)
+// #define RD(i) ((i & RDMASK) >> RDOFFSET)
+#define OP_L 0x3
+#define OP_LB 0x0
+#define OP_LH 0x1
+#define OP_LW 0x2
+#define OP_LBU 0x4
+#define OP_LHU 0x5
+
+#define I_TYPE 0x13
+#define OP_ADDI 0x0
+#define OP_SLLI 0x1
+#define OP_SLTI 0x2
+#define OP_SLTIU 0x3
+#define OP_XORI 0x4
+#define OP_SR 0x05
+#define OP_SRLI_func7 0x00
+#define OP_SRAI_func7 0x20
+#define OP_ORI 0x6
+#define OP_ANDI 0x7
+
+#define I2_TYPE 0x73
+#define OP_ECALL_EBREAK 0x0
+#define ECALL_IMM 0x0
+#define EBREAK_IMM 0x1
+#define OP_CSRRW 0x1
+#define OP_CSRRS 0x2
+#define OP_CSRRC 0x3
+#define OP_CSRRWI 0x5
+#define OP_CSRRSI 0x6
+#define OP_CSRRCI 0x7
+#define R_TYPE 0x33
+#define OP_ADD 0x0
+#define OP_ADD_func7 0x0
+#define OP_SUB 0x0
+#define OP_SUB_func7 0x20
+#define OP_SLL 0x1
+#define OP_SLT 0x2
+#define OP_SLTU 0x3
+#define OP_XOR 0x4
+#define OP_SRL 0x5
+#define OP_SRL_func7 0x0
+#define OP_SRA 0x5
+#define OP_SRA_func7 0x20
+#define OP_OR 0x6
+#define OP_AND 0x7
+
+#define B_TYPE 0x63
+#define OP_BEQ 0x0
+#define OP_BNE 0x1
+#define OP_BLT 0x4
+#define OP_BGE 0x5
+#define OP_BLTU 0x6
+#define OP_BGEU 0x7
+
+#define S_TYPE 0x23
+#define OP_SB 0x0
+#define OP_SH 0x1
+#define OP_SW 0x2
+
+#define OP_AUIPC 0x17
+#define OP_LUI 0x37
+#define OP_JAL 0x6F
+#define OP_JALR 0x67
+
+#define OP_FENCE 0xF
+#define OP_FENCE_TSO 0x8330000F
+#define OP_PAUSE 0x100000F
+#define FENCE_PERM(instr) ((instr >> 20) & 0xFF)
+#define FENCE_SUCC(instr) ((instr >> 20) & 0xF)
+#define FENCE_PRED(instr) ((instr >> 24) & 0xF)
+#define FENCE_PI(instr) (FENCE_PRED(instr) & 0x1)
+#define FENCE_PO(instr) ((FENCE_PRED(instr) >> 1) & 0x1)
+#define FENCE_PR(instr) ((FENCE_PRED(instr) >> 2) & 0x1)
+#define FENCE_PW(instr) ((FENCE_PRED(instr) >> 3) & 0x1)
+#define FENCE_SI(instr) (FENCE_SUCC(instr) & 0x1)
+#define FENCE_SO(instr) ((FENCE_SUCC(instr) >> 1) & 0x1)
+#define FENCE_SR(instr) ((FENCE_SUCC(instr) >> 2) & 0x1)
+#define FENCE_SW(instr) ((FENCE_SUCC(instr) >> 3) & 0x1)
+
+#define OPCODE(instr) (instr & 0x7F)
+#define RD(instr) ((instr >> 7) & 0x1F)
+#define FUNC3(instr) ((instr >> 12) & 0x7)
+#define RS1(instr) ((instr >> 15) & 0x1F)
+#define RS2(instr) ((instr >> 20) & 0x1F)
+#define FUNC7(instr) ((instr >> 25) & 0x7F)
+
+#define I_IMM_SIZE 12
+#define I_IMM(instr) (instr >> 20)
+#define B_IMM(instr)                                                           \
+  (((instr & 0xF00) >> 7) | ((instr & 0x80) << 4) |                            \
+   ((instr & 0x80000000) >> 19) | ((instr & 0x7E000000) >> 20))
+#define U_IMM_SIZE 20
+#define U_IMM(instr) (instr >> 12)
+#define S_IMM_SIZE 12
+#define S_IMM(instr) (RD(instr) | (FUNC7(instr) << 5))
+#define J_IMM_SIZE 20
+#define J_IMM(instr)                                                           \
+  (((instr >> 24) & 0xFF) | (((instr >> 23) & 0x1) << 8) |                     \
+   (((instr >> 13) & 0x1FF) << 9) | ((instr >> 12)))
+
+#define SIGN_BIT(value, bits) (((value) & (1 << (bits - 1))) >> (bits - 1))
+#define SIGN_EXTENSION(value, bits)                                            \
+  (SIGN_BIT(value, bits) ? (((value) | (((1 << (32 - bits)) - 1)) << bits))    \
+                         : value)
 
 // coprocessor instructions decoding macros
 #define COPOPCODE(i) ((i & COPCODEMASK) >> COPCODEOFFS)

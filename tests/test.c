@@ -28,8 +28,6 @@ double divide(int a, int b) {
 }
 
 int main(int argc, char **argv) {
-  divide(20, 10);
-  int i = term0_reg->recv_command;
   term_puts("hello, world\n");
 
   /* Go to sleep and power off the machine if anything wakes us up */
