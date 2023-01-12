@@ -1,0 +1,30 @@
+set(URISCV_INCLUDE_DIR ${CMAKE_INSTALL_INCLUDEDIR}/uriscv)
+set(LIBURISCV_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include/support/liburiscv)
+
+set(LIBURISCV_CFLAGS -ffreestanding -ansi -Wall -c -static -march=rv32imd -mabi=ilp32d -fno-pic)
+set(LIBURISCV_CPPFLAGS -I${PROJECT_SOURCE_DIR}/include)
+
+add_custom_target(liburiscv.o ALL
+	COMMAND ${XCGCC} ${LIBURISCV_CPPFLAGS} ${LIBURISCV_CFLAGS} -o
+		${CMAKE_CURRENT_BINARY_DIR}/liburiscv.o liburiscv.S
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_custom_target(liburiscv.e ALL
+	COMMAND ${CMAKE_COMMAND} -E copy
+  ${LIBURISCV_INCLUDE_DIR}/liburiscv.h
+		${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${LIBURISCV_INCLUDE_DIR}/liburiscv.h liburiscv.e
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
+  liburiscv.o ${LIBURISCV_INCLUDE_DIR}/liburiscv.h liburiscv.e)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/liburiscv.o
+	DESTINATION ${URISCV_LIB_DIR})
+
+install(FILES ${LIBURISCV_INCLUDE_DIR}/liburiscv.h ${CMAKE_CURRENT_BINARY_DIR}/liburiscv.e ${LIBURISCV_INCLUDE_DIR}/const.h ${LIBURISCV_INCLUDE_DIR}/types.h
+	DESTINATION ${URISCV_INCLUDE_DIR})
+
+install(FILES liburiscv.S
+	DESTINATION ${URISCV_DATA_DIR})
+

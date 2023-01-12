@@ -39,7 +39,9 @@ int main(int argc, char **argv) {
   // Processor *processor = new Processor(config, bus);
   // processor->Init(2, ENTRYPOINT, 0);
   bool stopped = false;
+  // for (int i = 0; i < 4460; i++) {
   for (;;) {
+    // printf("%d ", i);
     mac->step(&stopped);
     if (stopped) {
       ERROR("Error in step\n");

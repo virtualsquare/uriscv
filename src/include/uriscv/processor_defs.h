@@ -285,8 +285,8 @@ enum {
 #define OP_SLTIU 0x3
 #define OP_XORI 0x4
 #define OP_SR 0x05
-#define OP_SRLI_func7 0x00
-#define OP_SRAI_func7 0x20
+#define OP_SRLI_FUNC7 0x00
+#define OP_SRAI_FUNC7 0x20
 #define OP_ORI 0x6
 #define OP_ANDI 0x7
 
@@ -302,20 +302,44 @@ enum {
 #define OP_CSRRSI 0x6
 #define OP_CSRRCI 0x7
 #define R_TYPE 0x33
-#define OP_ADD 0x0
-#define OP_ADD_func7 0x0
-#define OP_SUB 0x0
-#define OP_SUB_func7 0x20
-#define OP_SLL 0x1
-#define OP_SLT 0x2
-#define OP_SLTU 0x3
-#define OP_XOR 0x4
-#define OP_SRL 0x5
-#define OP_SRL_func7 0x0
-#define OP_SRA 0x5
-#define OP_SRA_func7 0x20
-#define OP_OR 0x6
-#define OP_AND 0x7
+
+#define OP_MUL_FUNC7 0x1
+#define OP_MUL_FUNC3 0x0
+#define OP_MULH_FUNC3 0x1
+#define OP_MULH_FUNC7 0x1
+#define OP_MULHSU_FUNC3 0x2
+#define OP_MULHSU_FUNC7 0x1
+#define OP_MULHU_FUNC3 0x3
+#define OP_MULHU_FUNC7 0x1
+#define OP_DIV_FUNC3 0x4
+#define OP_DIV_FUNC7 0x1
+#define OP_DIVU_FUNC3 0x5
+#define OP_DIVU_FUNC7 0x1
+#define OP_REM_FUNC3 0x6
+#define OP_REM_FUNC7 0x1
+#define OP_REMU_FUNC3 0x7
+#define OP_REMU_FUNC7 0x1
+
+#define OP_ADD_FUNC3 0x0
+#define OP_ADD_FUNC7 0x0
+#define OP_SUB_FUNC3 0x0
+#define OP_SUB_FUNC7 0x20
+#define OP_SLL_FUNC3 0x1
+#define OP_SLL_FUNC7 0x0
+#define OP_SLT_FUNC3 0x2
+#define OP_SLT_FUNC7 0x0
+#define OP_SLTU_FUNC3 0x3
+#define OP_SLTU_FUNC7 0x0
+#define OP_XOR_FUNC3 0x4
+#define OP_XOR_FUNC7 0x0
+#define OP_SRL_FUNC3 0x5
+#define OP_SRL_FUNC7 0x0
+#define OP_SRA_FUNC3 0x5
+#define OP_SRA_FUNC7 0x20
+#define OP_OR_FUNC3 0x6
+#define OP_OR_FUNC7 0x0
+#define OP_AND_FUNC3 0x7
+#define OP_AND_FUNC7 0x0
 
 #define B_TYPE 0x63
 #define OP_BEQ 0x0
@@ -368,8 +392,8 @@ enum {
 #define S_IMM(instr) (RD(instr) | (FUNC7(instr) << 5))
 #define J_IMM_SIZE 20
 #define J_IMM(instr)                                                           \
-  (((instr >> 24) & 0xFF) | (((instr >> 23) & 0x1) << 8) |                     \
-   (((instr >> 13) & 0x1FF) << 9) | ((instr >> 12)))
+  ((((instr >> 31) & 0x1) << 20) | (((instr >> 21) & 0x3FF) << 1)) |           \
+      (((instr >> 20) & 0x1) << 11) | (((instr >> 12) & 0xFF) << 12)
 
 #define SIGN_BIT(value, bits) (((value) & (1 << (bits - 1))) >> (bits - 1))
 #define SIGN_EXTENSION(value, bits)                                            \

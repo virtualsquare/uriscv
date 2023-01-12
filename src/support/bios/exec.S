@@ -156,6 +156,7 @@ LInitSecondaryProcessor:
 	li	t0, VECTSIZE
 	/* mfc0	t1, CP0_PRID // CP0 not enabled */
 /*	 mult	t0, t1 // TODO: add mult */
+  mul t0,t0,t1
 	/* mflo	t0 // CPO not enabled */
 	 li	t2, BIOS_DATA_PAGE_BASE
 	add	t0, t0, t2
@@ -164,7 +165,7 @@ LInitSecondaryProcessor:
 
 	/* Initialize ptr to PC/SP area */
 	li	t0, 16
-/*	 mult	t0, t1 // TODO: add mult */
+  mul t0,t0,t1 
 	/* mflo	t0 // CPO not enabled */
 	li	t1, BIOS_EXEC_HANDLERS_ADDRS
 	add	t0, t0, t1

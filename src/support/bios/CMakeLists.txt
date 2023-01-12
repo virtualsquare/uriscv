@@ -7,7 +7,7 @@ foreach(TYPE ${ROM_TYPES})
                 DESTINATION ${URISCV_DATA_DIR})
 endforeach()
 
-set(BIOS_CFLAGS -fno-pic -ffreestanding -static -march=rv32id -mabi=ilp32d )
+set(BIOS_CFLAGS -fno-pic -ffreestanding -static -march=rv32imd -mabi=ilp32d )
 set(BIOS_CPPFLAGS -I${PROJECT_SOURCE_DIR}/include)
 
 foreach(TYPE ${ROM_TYPES})
@@ -32,12 +32,11 @@ foreach(TYPE ${ROM_TYPES})
                 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
         add_dependencies(${TYPE}.el.rom.uriscv ${TYPE}.el uriscv-elf2uriscv)
 
-        # TODO: re enable this
-        # set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
-        #         ${TYPE}.eb
-        #         ${TYPE}.el
-        #         ${TYPE}.eb.rom.uriscv
-        #         ${TYPE}.el.rom.uriscv)
+        set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
+                ${TYPE}.eb
+                ${TYPE}.el
+                ${TYPE}.eb.rom.uriscv
+                ${TYPE}.el.rom.uriscv)
 endforeach()
 
 if(${WORDS_BIGENDIAN})

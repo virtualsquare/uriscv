@@ -154,6 +154,36 @@ void SignMult(SWord m1, SWord m2, SWord *hip, SWord *lop) {
   }
 }
 
+// This function multiplies the _signed_ quantities m1 and m2,
+// returning back the high and low part of the signed 64 bit result
+// via hip and lop pointers
+// This too (C) J. Larus (SPIM, 1990)
+void UnsSignMult(Word m1, SWord m2, SWord *hip, SWord *lop) {
+  bool negResult = false;
+
+  // convert negative numbers to positive for unsigned multipl.
+  // and keep track of result sign
+  if (m1 < 0) {
+    negResult = !negResult;
+    m1 = -m1;
+  }
+
+  UnsMult((Word)m1, (Word)m2, (Word *)hip, (Word *)lop);
+
+  if (negResult) {
+    // must 2-complement result (and keep count of *lop -> *hip carry)
+
+    // 1-complement
+    *hip = ~(*hip);
+    *lop = ~(*lop);
+
+    // add 1 to lower word to get 2-complement and check for carry
+    if (UnsAdd((Word *)lop, (Word)(*lop), 1UL))
+      // overflow occurred: carry out to hip
+      (*hip)++;
+  }
+}
+
 // This function prints a variable list of arguments to the standard
 // error, and waits for an input to continue. Used for debugging
 void trace(char *format, ...) {

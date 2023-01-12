@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define ERROR(msg)                                                             \
   printf("\n[x] %s\n", msg);                                                   \
@@ -64,6 +64,11 @@ void SignMult(SWord m1, SWord m2, SWord *hip, SWord *lop);
 // returning back the high and low part of the signed 64 bit result
 // via hip and lop pointers
 void UnsMult(Word m1, Word m2, Word *hip, Word *lop);
+
+// This function multiplies the _unsigned_ quantity m1 and the
+// __signed__quantity m2, returning back the high and low part of the unsigned
+// 64 bit result via hip and lop pointers
+void UnsSignMult(Word m1, SWord m2, SWord *hip, SWord *lop);
 
 // This function prints a variable list of arguments to the standard
 // error, and waits for an input to continue. Used for debugging

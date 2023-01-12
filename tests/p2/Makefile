@@ -7,15 +7,15 @@ OBJCOPY = $(XT_PRG_PREFIX)objcopy
 OBJDUMP = $(XT_PRG_PREFIX)objdump
 
 # uRISCV-related paths
-URISCV_DIR_PREFIX = ..
+URISCV_DIR_PREFIX = ../..
 
 URISCV_DATA_DIR = $(URISCV_DIR_PREFIX)/src/support/ldscripts
 URISCV_LIB_DIR = $(URISCV_DIR_PREFIX)/src/support/liburiscv
 URISCV_CRT_DIR = $(URISCV_DIR_PREFIX)/src/support/crt
-URISCV_INCLUDE_DIR = $(URISCV_DIR_PREFIX)/src/include
+URISCV_INCLUDE_DIR = /usr/local/include
 
 # Compiler options
-CFLAGS_LANG = -ffreestanding -ansi -static -nostartfiles -nostdlib
+CFLAGS_LANG = -ffreestanding -static -nostartfiles -nostdlib
 CFLAGS = $(CFLAGS_LANG) -I$(URISCV_INCLUDE_DIR) -Wall -O0 -march=rv32imd -mabi=ilp32d
 OBJCOPYFLAGS = -O binary
 OBJDUMPFLAGS = -d
@@ -31,13 +31,11 @@ VPATH = $(URISCV_CRT_DIR)  $(URISCV_LIB_DIR)
 all : kernel.core.uriscv
 
 kernel.core.uriscv : kernel
-	# $(OBJCOPY) $(OBJCOPYFLAGS) $< $@
 	uriscv-elf2uriscv -k $<
 
-kernel : test.o crtso.o liburiscv.o
+kernel : p2test.o pcb.o asl.o handlerFunction.o exceptionHandler.o syscall.o scheduler.o crtso.o liburiscv.o initial.o 
 	$(LD) -o $@ $^ $(LDFLAGS)
 
-p1test: p1/p1test.o
 
 dump : all
 	$(OBJDUMP) $(OBJDUMPFLAGS) kernel
@@ -49,10 +47,11 @@ clean :
 	-rm -f *.o kernel kernel.*.uriscv
 
 # dont know why but i have to force it
-test.o:
-	$(CC) $(CFLAGS) -c -o test.o test.c
+p2test.o:
+	$(CC) $(CFLAGS) -c -o p2test.o p2test.c
 
 # Pattern rule for assembly modules
 %.o : %.S
 	$(CC) $(CFLAGS) -c -o $@ $<
+
 

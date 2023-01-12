@@ -43,6 +43,7 @@
 #include "uriscv/machine_config.h"
 #include "uriscv/processor_defs.h"
 #include "uriscv/systembus.h"
+#include "uriscv/types.h"
 #include "uriscv/utility.h"
 
 const char *const regName[] = {
@@ -388,6 +389,7 @@ void Processor::Skip(uint32_t cycles) {
 // Exception processing is done by Processor private method handleExc()
 void Processor::SignalExc(unsigned int exc, Word cpuNum) {
   excCause = exc;
+  csrWrite(MCAUSE, exc);
   SignalException.emit(excCause);
   // used only for CPUEXCEPTION handling
   copENum = cpuNum;
@@ -655,6 +657,9 @@ void Processor::handleExc() {
   } else {
     excVector = KSEG0BASE;
   }
+  // ERRORMSG("eccoci %d\n", excCause);
+  // ERRORMSG("handler %x\n", excVector);
+  // ERROR("eccoci");
 
   pushKUIEStack();
 
@@ -839,14 +844,14 @@ void Processor::setTLBRegs(Word vaddr) {
 bool Processor::execInstr(Word instr) {
   Word e = NOEXCEPTION;
   uint8_t opcode = OPCODE(instr);
-  uint8_t func3 = FUNC3(instr);
+  uint8_t FUNC3 = FUNC3(instr);
   const Symbol *sym =
       machine->getStab()->Probe(config->getSymbolTableASID(), getPC(), true);
   if (sym != NULL && sym->getName() != prevFunc) {
     prevFunc = sym->getName();
     DEBUGMSG("FUN %s\n", sym->getName());
   }
-  DEBUGMSG("[%x] (%08x) ", getPC(), instr);
+  DEBUGMSG("[%08x] (%08x) ", getPC(), instr);
 
   switch (opcode) {
   case OP_L: {
@@ -857,7 +862,7 @@ bool Processor::execInstr(Word instr) {
     imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
     Word read = 0;
     Word vaddr = regRead(rs1) + imm, paddr = 0;
-    switch (func3) {
+    switch (FUNC3) {
     case OP_LB: {
       DEBUGMSG("LB\n");
       // just 8 bits
@@ -928,22 +933,28 @@ bool Processor::execInstr(Word instr) {
     int8_t rs1 = RS1(instr);
     int8_t rs2 = RS2(instr);
     uint8_t rd = RD(instr);
-    uint8_t func7 = FUNC7(instr);
-    switch (func3) {
-    case OP_ADD: {
-      switch (func7) {
-      case OP_ADD_func7: {
+    uint8_t FUNC7 = FUNC7(instr);
+    switch (FUNC3) {
+    /* 0x0 */
+    case OP_ADD_FUNC3: {
+      switch (FUNC7) {
+      case OP_ADD_FUNC7: {
         DEBUGMSG("ADD %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
         regWrite(rd, regRead(rs1) + regRead(rs2));
         break;
       }
-
-      case OP_SUB_func7: {
+      case OP_SUB_FUNC7: {
         DEBUGMSG("SUB %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
         regWrite(rd, regRead(rs1) - regRead(rs2));
         break;
       }
+      case OP_MUL_FUNC7: {
+        DEBUGMSG("MUL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        regWrite(rd, regRead(rs1) * regRead(rs2));
+        break;
+      }
       default: {
+        ERRORMSG("ADD not recognized (%x)\n", FUNC7);
         SignalExc(CPUEXCEPTION, 0);
         e = true;
         break;
@@ -951,14 +962,195 @@ bool Processor::execInstr(Word instr) {
       }
       break;
     }
-    case OP_OR: {
-      DEBUGMSG("OR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-      regWrite(rd, regRead(rs1) | regRead(rs2));
+      /* 0x1 */
+    case OP_MULH_FUNC3 || OP_SLL_FUNC3: {
+      switch (FUNC7) {
+      case OP_MULH_FUNC7: {
+        SWord high = 0, low = 0;
+        SignMult(regRead(rs1), regRead(rs2), &high, &low);
+        DEBUGMSG("MULH %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                 regName[rs2], high);
+        regWrite(rd, high);
+        break;
+      }
+      case OP_SLL_FUNC7: {
+        DEBUGMSG("SLL %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                 regName[rs1], regRead(rs1), regRead(rs2));
+        regWrite(rd, regRead(rs1) << regRead(rs2));
+        break;
+      }
+      default: {
+        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        break;
+      }
+      }
       break;
     }
-    case OP_XOR: {
-      DEBUGMSG("XOR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-      regWrite(rd, regRead(rs1) ^ regRead(rs2));
+      /* 0x2 */
+    case OP_MULHSU_FUNC3 | OP_SLT_FUNC3: {
+      switch (FUNC7) {
+      case OP_MULHSU_FUNC7: {
+        SWord high = 0, low = 0;
+        UnsSignMult((SWord)regRead(rs1), (SWord)regRead(rs2), &high, &low);
+        DEBUGMSG("MULHSU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                 regName[rs2], high);
+        regWrite(rd, high);
+        break;
+      }
+      case OP_SLT_FUNC7: {
+        DEBUGMSG("SLT %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                 regName[rs1], regRead(rs1), regRead(rs2));
+        regWrite(rd, SWord(regRead(rs1)) < SWord(regRead(rs2)) ? 1 : 0);
+        break;
+      }
+      default: {
+        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        break;
+      }
+      }
+      break;
+    }
+      /* 0x3 */
+    case OP_MULHU_FUNC3 | OP_SLTU_FUNC3: {
+      switch (FUNC7) {
+      case OP_MULHU_FUNC7: {
+        Word high = 0, low = 0;
+        UnsMult(regRead(rs1), regRead(rs2), &high, &low);
+        DEBUGMSG("MULHU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                 regName[rs2], high);
+        regWrite(rd, high);
+        break;
+      }
+      case OP_SLTU_FUNC7: {
+        DEBUGMSG("SLTU %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                 regName[rs1], regRead(rs1), regRead(rs2));
+        regWrite(rd, Word(regRead(rs1)) < Word(regRead(rs2)) ? 1 : 0);
+        break;
+      }
+      default: {
+        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        break;
+      }
+      }
+      break;
+    }
+      /* 0x4 */
+    case OP_DIV_FUNC3 | OP_XOR_FUNC3: {
+      switch (FUNC7) {
+      case OP_DIV_FUNC7: {
+        if (regRead(rs2) != 0) {
+          Word r = (Word)regRead(rs1) / (Word)regRead(rs2);
+          DEBUGMSG("DIV %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                   regName[rs2], r);
+          regWrite(rd, r);
+        } else {
+          ERRORMSG("Division by zero detected");
+        }
+        break;
+      }
+      case OP_XOR_FUNC7: {
+        DEBUGMSG("XOR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        regWrite(rd, regRead(rs1) ^ regRead(rs2));
+        break;
+      }
+      default: {
+        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        break;
+      }
+      }
+      break;
+    }
+      /* 0x5 */
+    case OP_DIVU_FUNC3 | OP_SRL_FUNC3 | OP_SRA_FUNC3: {
+      switch (FUNC7) {
+      case OP_DIVU_FUNC7: {
+        if (regRead(rs2) != 0) {
+          SWord r = (SWord)regRead(rs1) / (SWord)regRead(rs2);
+          DEBUGMSG("DIVU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                   regName[rs2], r);
+          regWrite(rd, r);
+        }
+        break;
+      }
+      case OP_SRA_FUNC7: {
+        DEBUGMSG("SRA %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        uint8_t msb = rs1 & 0x80000000;
+        regWrite(rd, regRead(rs1) >> regRead(rs2) | msb);
+        regWrite(rd, regRead(rs1) ^ regRead(rs2));
+        break;
+      }
+      case OP_SRL_FUNC7: {
+        DEBUGMSG("SRL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        regWrite(rd, regRead(rs1) >> regRead(rs2));
+        break;
+      }
+      default: {
+        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        break;
+      }
+      }
+      break;
+    }
+      /* 0x6 */
+    case OP_REM_FUNC3 | OP_OR_FUNC3: {
+      switch (FUNC7) {
+      case OP_REM_FUNC7: {
+        if (regRead(rs2) != 0) {
+          SWord r = (SWord)regRead(rs1) % (SWord)regRead(rs2);
+          DEBUGMSG("REM %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                   regName[rs2], r);
+          regWrite(rd, r);
+        }
+        break;
+      }
+      case OP_OR_FUNC7: {
+        DEBUGMSG("OR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        regWrite(rd, regRead(rs1) | regRead(rs2));
+        break;
+      }
+      default: {
+        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        break;
+      }
+      }
+      break;
+    }
+      /* 0x7 */
+    case OP_REMU_FUNC3 | OP_AND_FUNC3: {
+      switch (FUNC7) {
+      case OP_REMU_FUNC7: {
+        if (regRead(rs2) != 0) {
+          Word r = (Word)regRead(rs1) % (Word)regRead(rs2);
+          DEBUGMSG("REMU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                   regName[rs2], r);
+          regWrite(rd, r);
+        }
+        break;
+      }
+      case OP_AND_FUNC7: {
+        DEBUGMSG("AND %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        regWrite(rd, regRead(rs1) & regRead(rs2));
+        break;
+      }
+      default: {
+        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+        SignalExc(CPUEXCEPTION, 0);
+        e = true;
+        break;
+      }
+      }
       break;
     }
     default: {
@@ -975,7 +1167,7 @@ bool Processor::execInstr(Word instr) {
     int8_t rs1 = RS1(instr);
     SWord imm = I_IMM(instr);
     uint8_t rd = RD(instr);
-    switch (func3) {
+    switch (FUNC3) {
     case OP_ADDI: {
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       DEBUGMSG("ADDI %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
@@ -1008,14 +1200,14 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_SR: {
-      uint8_t func7 = FUNC7(instr);
-      switch (func7) {
-      case OP_SRLI_func7: {
+      uint8_t FUNC7 = FUNC7(instr);
+      switch (FUNC7) {
+      case OP_SRLI_FUNC7: {
         DEBUGMSG("SRLI\n");
         regWrite(rd, regRead(rs1) >> imm);
         break;
       }
-      case OP_SRAI_func7: {
+      case OP_SRAI_FUNC7: {
         DEBUGMSG("SRAI\n");
         uint8_t msb = rs1 & 0x80000000;
         regWrite(rd, regRead(rs1) >> imm | msb);
@@ -1056,7 +1248,7 @@ bool Processor::execInstr(Word instr) {
     uint16_t imm = I_IMM(instr);
     int8_t rs1 = RS1(instr);
     uint8_t rd = RD(instr);
-    switch (func3) {
+    switch (FUNC3) {
     case OP_ECALL_EBREAK: {
       switch (imm) {
       case ECALL_IMM: {
@@ -1064,8 +1256,12 @@ bool Processor::execInstr(Word instr) {
         // a0 - result of syscall
         //
         // https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/slides/14-ecf-pre.pdf
-        DEBUGMSG("ECALL\n");
-        ERROR("ECALL");
+        DEBUGMSG("ECALL %d\n", regRead(REG_A0));
+        setNextPC(getPC() + WORDLEN);
+        SignalExc(SYSEXCEPTION);
+        e = true;
+
+        // ERROR("ECALL");
         // TODO
         // switch (this->mode) {
         // case MODE_USER: {
@@ -1082,7 +1278,8 @@ bool Processor::execInstr(Word instr) {
       }
       case EBREAK_IMM: {
         DEBUGMSG("EBREAK\n");
-        ERROR("BREAK");
+        SignalExc(BPEXCEPTION);
+        e = true;
         break;
       }
       case EWFI_IMM: {
@@ -1159,7 +1356,7 @@ bool Processor::execInstr(Word instr) {
     int8_t rs2 = RS2(instr);
     int16_t imm = B_IMM(instr);
     imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-    switch (func3) {
+    switch (FUNC3) {
     case OP_BEQ: {
       DEBUGMSG("BEQ %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
                regName[rs2], regRead(rs2), imm);
@@ -1179,7 +1376,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BLT: {
-      std::cout << "BLT\n";
+      DEBUGMSG("BLT %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
+               regName[rs2], regRead(rs2), imm);
       if (regRead(rs1) < regRead(rs2))
         setNextPC((SWord)getPC() + ((SWord)imm));
       else
@@ -1187,7 +1385,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BGE: {
-      std::cout << "BGE\n";
+      DEBUGMSG("BGE %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
+               regName[rs2], regRead(rs2), imm);
       if (regRead(rs1) >= regRead(rs2)) {
         setNextPC((SWord)getPC() + ((SWord)imm));
       } else
@@ -1195,7 +1394,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BLTU: {
-      std::cout << "BLTU\n";
+      DEBUGMSG("BLTU %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
+               regName[rs2], regRead(rs2), imm);
       if (regRead(rs1) < regRead(rs2))
         setNextPC(getPC() + (imm));
       else
@@ -1203,7 +1403,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BGEU: {
-      std::cout << "BGEU\n";
+      DEBUGMSG("BGEU %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
+               regName[rs2], regRead(rs2), imm);
       if (regRead(rs1) >= regRead(rs2))
         setNextPC(getPC() + (imm));
       else
@@ -1228,7 +1429,7 @@ bool Processor::execInstr(Word instr) {
     Word paddr = 0;
     Word old = 0;
     e = this->bus->DataRead(vaddr, &old, this);
-    switch (func3) {
+    switch (FUNC3) {
     case OP_SB: {
       if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
           !bus->DataRead(paddr, &old, this)) {
@@ -1284,15 +1485,14 @@ bool Processor::execInstr(Word instr) {
   case OP_LUI: {
     uint8_t rd = RD(instr);
     SWord imm = SIGN_EXTENSION(U_IMM(instr), U_IMM_SIZE) << 12;
-    DEBUGMSG("\tU-type | LUI %s,%d\n", regName[rd], imm);
+    DEBUGMSG("\tU-type | LUI %s,%x\n", regName[rd], imm);
     this->regWrite(rd, imm);
     setNextPC(getPC() + WORDLEN);
     break;
   }
   case OP_JAL: {
     uint8_t rd = RD(instr);
-    Word imm = I_IMM(instr);
-    imm = SIGN_EXTENSION(imm, I_IMM_SIZE) & 0xfffffffe;
+    Word imm = SIGN_EXTENSION(J_IMM(instr), J_IMM_SIZE) & 0xfffffffe;
     DEBUGMSG("\tJ-type | JAL %s,%x\n", regName[rd], getPC() + imm);
     regWrite(rd, getPC() + WORDLEN);
     setNextPC(getPC() + imm);
@@ -1302,8 +1502,7 @@ bool Processor::execInstr(Word instr) {
     // TODO: understand diffs with JAL
     uint8_t rd = RD(instr);
     uint8_t rs1 = RS1(instr);
-    Word imm = I_IMM(instr);
-    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    Word imm = SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE);
     DEBUGMSG("\tJ-type | JALR %s,%s(%x),%x\n", regName[rd], regName[rs1],
              regRead(rs1), (regRead(rs1) + imm) & 0xfffffffe);
     regWrite(rd, getPC() + WORDLEN);
