@@ -13,15 +13,17 @@ To compile the phase 1 use
 ```bash
 make
 ```
-Then copy the kernel into the build directory
-```bash
-cp kernel* ../../build
-```
 
 To compile emulator use
 ```bash
 cd build
 ```
 ```bash
-cmake .. && sudo make && sudo make install && ./app/./emu
+cmake .. && make && sudo make install 
 ```
+
+To run emulator use inside this folder
+```bash
+uriscv 
+```
+

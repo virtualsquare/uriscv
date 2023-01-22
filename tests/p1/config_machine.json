@@ -1,0 +1,23 @@
+{
+    "boot": {
+        "core-file": "kernel.core.uriscv",
+        "load-core-file": true
+    },
+    "bootstrap-rom": "/usr/local/share/uriscv/coreboot.rom.uriscv",
+    "clock-rate": 1,
+    "devices": {
+        "terminal0": {
+            "enabled": true,
+            "file": "term0.uriscv"
+        }
+    },
+    "execution-rom": "/usr/local/share/uriscv/exec.rom.uriscv",
+    "num-processors": 1,
+    "num-ram-frames": 64,
+    "symbol-table": {
+        "asid": 64,
+        "file": "kernel.stab.uriscv"
+    },
+    "tlb-floor-address": "0xffffffff",
+    "tlb-size": 16
+}

@@ -4,7 +4,12 @@
 ### Compilare l'emulatore
 ```bash
 mkdir -p build && cd build
-cmake .. && make && ./app/./emu
+cmake .. && make && sudo make install 
+```
+
+### Eseguire l'emulatore
+```bash
+uriscv
 ```
 
 ### Compilare i test
