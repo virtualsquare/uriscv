@@ -337,29 +337,45 @@ const char *CP0RegName(unsigned int index) {
 
 HIDDEN const char *const IInstrName[] = {
 	"addi",
+	"slli",
 	"slti",
 	"sltiu",
 	"xori",
+	"",
 	"ori",
 	"andi",
 	"slli"
 };
 
 HIDDEN void StrIInstr(Word instr) {
-	switch (FUNC3(instr)) {
+	uint8_t func3 = FUNC3(instr);
+
+	switch (func3) {
 		case OP_ADDI:
-		case OP_SLLI:
 		case OP_SLTI:
 		case OP_SLTIU:
 		case OP_XORI:
-		case OP_SR:
 		case OP_ORI:
 		case OP_ANDI: {
             sprintf(strbuf, "%s\t%s,%s,%d",
-				IInstrName[FUNC3(instr)],
+				IInstrName[func3],
 				regName[RD(instr)],
 				regName[RS1(instr)],
 				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE)
+			);
+		}
+		break;
+
+		case OP_SLLI:
+		case OP_SR: {
+			sprintf(strbuf, "%s\t%s,%s,0x%x",
+				(func3 == OP_SLLI ? 
+					"slli" :
+					(FUNC7(instr) == 0 ? "srli" : "srai")
+				),
+				regName[RD(instr)],
+				regName[RS1(instr)],
+				RS2(instr) // shamt
 			);
 		}
 		break;
