@@ -357,8 +357,8 @@ HIDDEN void StrIInstr(Word instr) {
 		case OP_ANDI: {
             sprintf(strbuf, "%s\t%s,%s,%d",
 				IInstrName[FUNC3(instr)],
-				regName[RS1(instr)],
 				regName[RD(instr)],
+				regName[RS1(instr)],
 				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE)
 			);
 		}
