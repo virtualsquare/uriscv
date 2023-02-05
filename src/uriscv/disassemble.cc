@@ -335,38 +335,133 @@ const char *CP0RegName(unsigned int index) {
     return "";
 }
 
+HIDDEN const char *const IInstrName[] = {
+	"addi",
+	"slti",
+	"sltiu",
+	"xori",
+	"ori",
+	"andi",
+	"slli"
+};
+
+HIDDEN void StrIInstr(Word instr) {
+	switch (FUNC3(instr)) {
+		case OP_ADDI:
+		case OP_SLLI:
+		case OP_SLTI:
+		case OP_SLTIU:
+		case OP_XORI:
+		case OP_SR:
+		case OP_ORI:
+		case OP_ANDI: {
+            sprintf(strbuf, "%s\t%s,%s,%d",
+				IInstrName[FUNC3(instr)],
+				regName[RS1(instr)],
+				regName[RD(instr)],
+				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE)
+			);
+		}
+		break;
+
+    	default: {
+			sprintf(strbuf, "%s", IInstrName[FUNC3(instr)]);
+		}
+		break;
+
+
+	}
+}
+
 // this function returns the pointer to a static buffer which contains
 // the instruction translation into readable form
 const char *StrInstr(Word instr) {
-  switch (OpType(instr)) {
-  case REGTYPE:
-    strRegInstr(instr);
-    break;
+    switch (OPCODE(instr)) {
+        case OP_L: {
+            
+        }
+		break;
 
-  case IMMTYPE:
-    strImmInstr(instr);
-    break;
+        case R_TYPE: {
+        
+        }
+		break;
 
-  case BRANCHTYPE:
-    strBranchInstr(instr);
-    break;
+        case I_TYPE: {
+			StrIInstr(instr);
+        }
+		break;
 
-  case LOADCOPTYPE:
-  case STORECOPTYPE:
-  case COPTYPE:
-    strCopInstr(instr);
-    break;
+        case I2_TYPE: {
+        
+        }
+		break;
 
-  case LOADTYPE:
-  case STORETYPE:
-    strLSInstr(instr);
-    break;
+        case B_TYPE: {
+        
+        }
+		break;
 
-  default:
-    // unknown instruction (generic)
-    sprintf(strbuf, "%s", iName[RIUNKINAME]);
-    break;
-  }
+        case S_TYPE: {
+        
+        }
+		break;
+
+        case OP_AUIPC: {
+        
+        }
+		break;
+
+        case OP_LUI: {
+        
+        }
+		break;
+
+        case OP_JAL: {
+        
+        }
+		break;
+
+        case OP_JALR: {
+        
+        }
+		break;
+
+        default: {
+        
+        }
+		break;
+    }
+
+    // switch (OpType(instr)) {
+    //     case REGTYPE:
+    //         // strRegInstr(instr);
+    //         break;
+
+    //     case IMMTYPE:
+    //         // strImmInstr(instr);
+    //         break;
+
+    //     case BRANCHTYPE:
+    //         // strBranchInstr(instr);
+    //         break;
+
+    //     case LOADCOPTYPE:
+    //     case STORECOPTYPE:
+    //     case COPTYPE:
+    //         // strCopInstr(instr);
+    //         break;
+
+    //     case LOADTYPE:
+    //     case STORETYPE:
+    //         // strLSInstr(instr);
+    //         break;
+
+    //     default:
+    //         // unknown instruction (generic)
+    //         // sprintf(strbuf, "%s", iName[RIUNKINAME]);
+    //         break;
+    // }
 
   return strbuf;
 }
