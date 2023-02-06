@@ -415,6 +415,28 @@ HIDDEN void StrIInstr(Word instr) {
 	}
 }
 
+HIDDEN const char *const BInstrName[] = {
+	"beq",
+	"bne",
+	"",
+	"",
+	"blt",
+	"bge",
+	"bltu",
+	"bgeu",
+};
+
+HIDDEN void StrBInstr(Word instr) {
+	// TODO wrong immediate output
+	uint16_t func3 = FUNC3(instr);
+	
+	sprintf(strbuf, "%s\t%s,%s,%x",
+			BInstrName[func3],
+			regName[RS1(instr)],
+			regName[RS2(instr)],
+			SIGN_EXTENSION(B_IMM(instr), I_IMM_SIZE));
+}
+
 // this function returns the pointer to a static buffer which contains
 // the instruction translation into readable form
 const char *StrInstr(Word instr) {
@@ -440,7 +462,7 @@ const char *StrInstr(Word instr) {
 		break;
 
         case B_TYPE: {
-        
+			StrBInstr(instr);
         }
 		break;
 
