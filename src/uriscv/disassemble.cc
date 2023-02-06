@@ -335,6 +335,32 @@ const char *CP0RegName(unsigned int index) {
     return "";
 }
 
+HIDDEN const char *const RInstrName[][3] = {
+	{"add", "mul", "sub"},
+	{"sll", "mulh"},
+	{"slt", "mulhsu"},
+	{"sltu", "mulhu"},
+	{"xor", "div"},
+	{"srl", "divu", "sra"},
+	{"or", "rem"},
+	{"and", "remu"}
+};
+
+HIDDEN void StrRInstr(Word instr) {
+	uint8_t func3 = FUNC3(instr);
+	uint8_t func7 = FUNC7(instr);
+
+	if (func7 == 0b0100000) func7 = 2;
+	if (func7 > 2) sprintf(strbuf, "");
+
+	sprintf(strbuf, "%s\t%s,%s,%s",
+			RInstrName[func3][func7],
+			regName[RD(instr)],
+			regName[RS1(instr)],
+			regName[RS2(instr)]
+	);
+}
+
 HIDDEN const char *const IInstrName[] = {
 	"addi",
 	"slli",
@@ -399,7 +425,7 @@ const char *StrInstr(Word instr) {
 		break;
 
         case R_TYPE: {
-        
+			StrRInstr(instr);
         }
 		break;
 

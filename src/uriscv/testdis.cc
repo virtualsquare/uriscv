@@ -3,25 +3,30 @@
 #include "uriscv/disassemble.h"
 
 const unsigned int testInstrs[] = {
-	0x7676bc93,
-	0x41635613,
-	0x88f48613,
-	0xc79f0e93,
-	0xbcd07313,
-	0x19dfee13,
-	0x01fd9b93,
-	0x01bfd593,
-	0x5ba2fe93,
-	0x7131fa13,
-	0x01b39113,
-	0xd37f2e93,
-	0xefe3e813,
-	0x9047f493,
-	0x003c9493
+	0x03298bb3,
+	0x026210b3,
+	0x030ca333,
+	0x02eeb933,
+	0x0320c1b3,
+	0x03fe5e33,
+	0x02eee333,
+	0x0361f133,
+	0x02b644b3,
+	0x024404b3,
+	0x402655b3,
+	0x00982eb3,
+	0x41308233,
+	0x00744b33,
+	0x407b08b3,
+	0x01d18c33,
+	0x41070cb3,
+	0x00a015b3,
+	0x00fb94b3,
+	0x41ea8c33
 };
 
 int main(int argc, char **argv) {
-	for(int i = 0; i < 15; i++) {
+	for(int i = 0; i < 20; i++) {
 		printf("%s\n", StrInstr(testInstrs[i])); 
 	} 
 }
