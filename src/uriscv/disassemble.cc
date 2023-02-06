@@ -407,7 +407,7 @@ HIDDEN void StrIInstr(Word instr) {
 		break;
 
     	default: {
-			sprintf(strbuf, "%s", IInstrName[FUNC3(instr)]);
+			sprintf(strbuf, "");
 		}
 		break;
 
