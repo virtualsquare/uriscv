@@ -361,6 +361,25 @@ HIDDEN void StrRInstr(Word instr) {
 	);
 }
 
+HIDDEN const char *const loadInstrName[] = {
+	"lb",
+	"lh",
+	"lw",
+	"",
+	"lbu",
+	"lhu"
+};
+
+HIDDEN void StrLoadInstr(Word instr) {
+	uint8_t func3 = FUNC3(instr);
+
+	sprintf(strbuf, "%s\t%s,%d(%s)",
+		loadInstrName[func3],
+		regName[RD(instr)],
+		SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE),
+		regName[RS1(instr)]);
+}
+
 HIDDEN const char *const IInstrName[] = {
 	"addi",
 	"slli",
@@ -373,7 +392,7 @@ HIDDEN const char *const IInstrName[] = {
 	"slli"
 };
 
-HIDDEN void StrIInstr(Word instr) {
+HIDDEN void StrNonLoadIInstr(Word instr) {
 	uint8_t func3 = FUNC3(instr);
 
 	switch (func3) {
@@ -442,7 +461,7 @@ HIDDEN void StrBInstr(Word instr) {
 const char *StrInstr(Word instr) {
     switch (OPCODE(instr)) {
         case OP_L: {
-            
+            StrLoadInstr(instr);
         }
 		break;
 
@@ -452,7 +471,7 @@ const char *StrInstr(Word instr) {
 		break;
 
         case I_TYPE: {
-			StrIInstr(instr);
+			StrNonLoadIInstr(instr);
         }
 		break;
 
