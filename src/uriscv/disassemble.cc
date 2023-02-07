@@ -434,6 +434,23 @@ HIDDEN void StrNonLoadIInstr(Word instr) {
 	}
 }
 
+HIDDEN const char *const SInstrName[] = {
+	"sb",
+	"sh",
+	"sw"
+};
+
+HIDDEN void StrSInstr(Word instr) {
+	uint8_t func3 = FUNC3(instr);
+
+	sprintf(strbuf, "%s\t%s,%d(%s)",
+		SInstrName[func3],
+		regName[RS2(instr)],
+		SIGN_EXTENSION(S_IMM(instr), S_IMM_SIZE),
+		regName[RS1(instr)]);
+}
+
+
 HIDDEN const char *const BInstrName[] = {
 	"beq",
 	"bne",
@@ -486,7 +503,7 @@ const char *StrInstr(Word instr) {
 		break;
 
         case S_TYPE: {
-        
+			StrSInstr(instr);
         }
 		break;
 
