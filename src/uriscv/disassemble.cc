@@ -466,7 +466,7 @@ HIDDEN void StrBInstr(Word instr) {
 	// TODO wrong immediate output
 	uint16_t func3 = FUNC3(instr);
 	
-	sprintf(strbuf, "%s\t%s,%s,%x",
+	sprintf(strbuf, "%s\t%s,%s,%d",
 			BInstrName[func3],
 			regName[RS1(instr)],
 			regName[RS2(instr)],
@@ -476,7 +476,9 @@ HIDDEN void StrBInstr(Word instr) {
 // this function returns the pointer to a static buffer which contains
 // the instruction translation into readable form
 const char *StrInstr(Word instr) {
-    switch (OPCODE(instr)) {
+	uint8_t opcode = OPCODE(instr);
+
+    switch (opcode) {
         case OP_L: {
             StrLoadInstr(instr);
         }
@@ -507,28 +509,35 @@ const char *StrInstr(Word instr) {
         }
 		break;
 
-        case OP_AUIPC: {
-        
-        }
-		break;
-
+        case OP_AUIPC:
         case OP_LUI: {
-        
+			sprintf(strbuf, "%s\t%s,0x%x",
+				opcode == OP_LUI ? "lui" : "auipc",
+				regName[RD(instr)],
+				U_IMM(instr)
+			);
         }
 		break;
 
         case OP_JAL: {
-        
+			sprintf(strbuf, "jal\t%s,%d",
+				regName[RD(instr)],
+				SIGN_EXTENSION(J_IMM(instr), J_IMM_SIZE)
+			);
         }
 		break;
 
         case OP_JALR: {
-        
+			sprintf(strbuf, "jalr\t%s,%d(%s)",
+				regName[RD(instr)],
+				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE),
+				regName[RS1(instr)]
+			);
         }
 		break;
 
         default: {
-        
+			sprintf(strbuf, "");
         }
 		break;
     }
