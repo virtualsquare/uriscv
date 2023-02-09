@@ -463,7 +463,6 @@ HIDDEN const char *const BInstrName[] = {
 };
 
 HIDDEN void StrBInstr(Word instr) {
-	// TODO wrong immediate output
 	uint16_t func3 = FUNC3(instr);
 	
 	sprintf(strbuf, "%s\t%s,%s,%d",
@@ -471,6 +470,40 @@ HIDDEN void StrBInstr(Word instr) {
 			regName[RS1(instr)],
 			regName[RS2(instr)],
 			SIGN_EXTENSION(B_IMM(instr), I_IMM_SIZE));
+}
+
+HIDDEN const char *const CSRInstrName[] = {
+	"",
+	"cssrw",
+	"csrrs",
+	"csrrc",
+	"",
+	"csrrwi",
+	"csrrsi",
+	"cssrci"
+};
+
+HIDDEN void StrCSRInstr(Word instr) {
+	uint16_t func3 = FUNC3(instr);
+
+	if(func3 < 4) {
+		// Non immediate variants
+		sprintf(strbuf, "%s\t%s,0x%x,%s",
+			CSRInstrName[func3],
+			regName[RD(instr)],
+			I_IMM(instr),
+			regName[RS1(instr)]
+		);
+	}
+	else {
+		// Immediate variants
+		sprintf(strbuf, "%s\t%s,0x%x,%d",
+			CSRInstrName[func3],
+			regName[RD(instr)],
+			I_IMM(instr),
+			RS1(instr)
+		);
+	}
 }
 
 // this function returns the pointer to a static buffer which contains
@@ -495,7 +528,10 @@ const char *StrInstr(Word instr) {
 		break;
 
         case I2_TYPE: {
-        
+			if(opcode == OP_ECALL_EBREAK)
+				sprintf(strbuf, "");
+			else
+				StrCSRInstr(instr);
         }
 		break;
 
