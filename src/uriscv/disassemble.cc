@@ -504,6 +504,26 @@ HIDDEN void StrCSRInstr(Word instr, uint8_t func3) {
 	}
 }
 
+HIDDEN const char *const FenceOperandMnemonic[] = {
+	"",
+	"w",
+	"r",
+	"rw",
+	"o",
+	"ow",
+	"or",
+	"orw",
+	"i",
+	"iw",
+	"ir",
+	"irw",
+	"io",
+	"iow",
+	"ior",
+	"iorw",
+};
+
+
 // this function returns the pointer to a static buffer which contains
 // the instruction translation into readable form
 const char *StrInstr(Word instr) {
@@ -572,6 +592,18 @@ const char *StrInstr(Word instr) {
 				regName[RS1(instr)]
 			);
         }
+		break;
+
+		case OP_FENCE: {
+			if(instr == 0x8330000f) sprintf(strbuf, "fence.tso");
+			else if(instr == 0x0100000f) sprintf(strbuf, "pause");
+			else {
+				sprintf(strbuf, "fence\t%s,%s",
+					FenceOperandMnemonic[FENCE_PRED(instr)],
+					FenceOperandMnemonic[FENCE_SUCC(instr)]
+				);
+			}
+		}
 		break;
 
         default: {
