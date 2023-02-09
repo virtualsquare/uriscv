@@ -483,9 +483,7 @@ HIDDEN const char *const CSRInstrName[] = {
 	"cssrci"
 };
 
-HIDDEN void StrCSRInstr(Word instr) {
-	uint16_t func3 = FUNC3(instr);
-
+HIDDEN void StrCSRInstr(Word instr, uint8_t func3) {
 	if(func3 < 4) {
 		// Non immediate variants
 		sprintf(strbuf, "%s\t%s,0x%x,%s",
@@ -528,10 +526,14 @@ const char *StrInstr(Word instr) {
 		break;
 
         case I2_TYPE: {
-			if(opcode == OP_ECALL_EBREAK)
-				sprintf(strbuf, "");
+			uint8_t func3 = FUNC3(instr);
+
+			if(func3 == OP_ECALL_EBREAK)
+				sprintf(strbuf, "%s",
+					I_IMM(instr) == 0 ? "ecall" : "ebreak"
+				);
 			else
-				StrCSRInstr(instr);
+				StrCSRInstr(instr, func3);
         }
 		break;
 
