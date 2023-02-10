@@ -561,6 +561,17 @@ HIDDEN void StrFloatArithmInstr(Word instr, char *name, uint8_t func3) {
 	);
 }
 
+HIDDEN void StrFloatArithmMInstr(Word instr, char *name) {
+	sprintf(strbuf, "%s\t%s,%s,%s,%s,%s",
+		name,
+		floatRegName[RD(instr)],
+		floatRegName[RS1(instr)],
+		floatRegName[RS2(instr)],
+		floatRegName[RS3(instr)],
+		roundingModeNames[FUNC3(instr)]
+	);
+}
+
 HIDDEN void StrFloatOpInstr(Word instr) {
 	// func3 can represent Rounding Mode in some cases
 	uint8_t func3 = FUNC3(instr);
@@ -763,6 +774,44 @@ const char *StrInstr(Word instr) {
 
 		case OP_FLOAT_OP: {
 			StrFloatOpInstr(instr);
+		}
+		break;
+
+		case OP_FLW: {
+			sprintf(strbuf, "flw\t%s,%d(%s)",
+				floatRegName[RD(instr)],
+				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE),
+				regName[RS1(instr)]
+			);
+		}
+		break;
+
+		case OP_FSW: {
+			sprintf(strbuf, "fsw\t%s,%d(%s)",
+				floatRegName[RS2(instr)],
+				SIGN_EXTENSION(S_IMM(instr), S_IMM_SIZE),
+				regName[RS1(instr)]
+			);
+		}
+		break;
+
+		case OP_FMADDS: {
+			StrFloatArithmMInstr(instr, "fmadd.s");
+		}
+		break;
+
+		case OP_FMSUBS: {
+			StrFloatArithmMInstr(instr, "fmsub.s");
+		}
+		break;
+
+		case OP_FNMSUBS: {
+			StrFloatArithmMInstr(instr, "fnmsub.s");
+		}
+		break;
+
+		case OP_FNMADDS: {
+			StrFloatArithmMInstr(instr, "fnmadd.s");
 		}
 		break;
 

@@ -27,11 +27,17 @@ const unsigned int testInstrs[] = {
 	0xd01694d3,
 	0xf00984d3,
 	0xf00f8553,
-	0xf0000e53
+	0xf0000e53,
+	0xff472607,
+	0xfe4420a7,
+	0x29b387c3,
+	0x701f7a47,
+	0xa12b374b,
+	0x7965a94f
 };
 
 int main(int argc, char **argv) {
-	for(int i = 0; i < 25; i++) {
+	for(int i = 0; i < 31; i++) {
 		printf("%s\n", StrInstr(testInstrs[i])); 
 	} 
 }

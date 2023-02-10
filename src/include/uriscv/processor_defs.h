@@ -374,6 +374,12 @@ enum {
 #define FENCE_SR(instr) ((FENCE_SUCC(instr) >> 2) & 0x1)
 #define FENCE_SW(instr) ((FENCE_SUCC(instr) >> 3) & 0x1)
 
+#define OP_FLW 0x7
+#define OP_FSW 0x27
+#define OP_FMADDS 0x43
+#define OP_FMSUBS 0x47
+#define OP_FNMSUBS 0x4B
+#define OP_FNMADDS 0x4F
 #define OP_FLOAT_OP 0x53
 #define OP_FADDS_FUNC7 0x0
 #define OP_FSUBS_FUNC7 0x4
@@ -407,6 +413,7 @@ enum {
 #define FUNC3(instr) ((instr >> 12) & 0x7)
 #define RS1(instr) ((instr >> 15) & 0x1F)
 #define RS2(instr) ((instr >> 20) & 0x1F)
+#define RS3(instr) ((instr >> 27) & 0x1F)
 #define FUNC7(instr) ((instr >> 25) & 0x7F)
 
 #define I_IMM_SIZE 12
