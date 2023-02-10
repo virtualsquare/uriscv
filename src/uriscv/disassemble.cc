@@ -542,7 +542,10 @@ HIDDEN const char *const roundingModeNames[] = {
 HIDDEN const char *const fsgnjsInstrNames[] = {
 	"fsgnj.s",
 	"fsgnjn.s",
-	"fsgnjx.s"
+	"fsgnjx.s",
+	"fsgnj.d",
+	"fsgnjn.d",
+	"fsgnjx.d"
 };
 
 HIDDEN const char *const fCompareInstrNames[] = {
@@ -551,7 +554,7 @@ HIDDEN const char *const fCompareInstrNames[] = {
 	"feq.s"
 };
 
-HIDDEN void StrFloatArithmInstr(Word instr, char *name, uint8_t func3) {
+HIDDEN void StrFloatArithmInstr(Word instr, char const *name, uint8_t func3) {
 	sprintf(strbuf, "%s\t%s,%s,%s,%s",
 		name,
 		floatRegName[RD(instr)],
@@ -561,7 +564,7 @@ HIDDEN void StrFloatArithmInstr(Word instr, char *name, uint8_t func3) {
 	);
 }
 
-HIDDEN void StrFloatArithmMInstr(Word instr, char *name) {
+HIDDEN void StrFloatArithmMInstr(Word instr, const char *name) {
 	sprintf(strbuf, "%s\t%s,%s,%s,%s,%s",
 		name,
 		floatRegName[RD(instr)],
@@ -578,28 +581,34 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 	uint8_t func7 = FUNC7(instr);
 
 	switch (func7) {
-		case OP_FADDS_FUNC7: {
-			StrFloatArithmInstr(instr, "fadd.s", func3);
+		case OP_FADDS_FUNC7:
+		case OP_FADDD_FUNC7: {
+			StrFloatArithmInstr(instr, func7 == OP_FADDS_FUNC7 ? "fadd.s" : "fadd.d", func3);
 		}
 		break;
 
-		case OP_FSUBS_FUNC7: {
-			StrFloatArithmInstr(instr, "fsub.s", func3);
+		case OP_FSUBS_FUNC7:
+		case OP_FSUBD_FUNC7: {
+			StrFloatArithmInstr(instr, func7 == OP_FSUBS_FUNC7 ? "fsub.s" : "fsub.d", func3);
 		}
 		break;
 
-		case OP_FMULS_FUNC7: {
-			StrFloatArithmInstr(instr, "fmul.s", func3);
+		case OP_FMULS_FUNC7: 
+		case OP_FMULD_FUNC7: {
+			StrFloatArithmInstr(instr, func7 == OP_FMULS_FUNC7 ? "fmul.s" : "fmul.d", func3);
 		}
 		break;
 
-		case OP_FDIVS_FUNC7: {
-			StrFloatArithmInstr(instr, "fdiv.s", func3);
+		case OP_FDIVS_FUNC7: 
+		case OP_FDIVD_FUNC7: {
+			StrFloatArithmInstr(instr, func7 == OP_FDIVS_FUNC7 ? "fdiv.s" : "fdiv.d", func3);
 		}
 		break;
 
-		case OP_FSQRTS_FUNC7: {
-			sprintf(strbuf, "fsqrt.s\t%s,%s,%s",
+		case OP_FSQRTS_FUNC7:
+		case OP_FSQRTD_FUNC7: {
+			sprintf(strbuf, "%s\t%s,%s,%s",
+				func7 == OP_FSQRTS_FUNC7 ? "fsqrt.s" : "fsqrt.d",
 				floatRegName[RD(instr)],
 				floatRegName[RS1(instr)],
 				roundingModeNames[func3]
@@ -607,9 +616,10 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 		}
 		break;
 
-		case OP_FSGNJ_FUNC7: {
+		case OP_FSGNJS_FUNC7: 
+		case OP_FSGNJD_FUNC7: {
 			sprintf(strbuf, "%s\t%s,%s,%s",
-				fsgnjsInstrNames[func3],
+				fsgnjsInstrNames[func3 + (func7 == OP_FSGNJS_FUNC7 ? 0 : 3)],
 				floatRegName[RD(instr)],
 				floatRegName[RS1(instr)],
 				floatRegName[RS2(instr)]
@@ -617,11 +627,21 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 		}
 		break;
 
-		case OP_FMINMAX_FUNC7: {
-			sprintf(strbuf, "%s\t%s,%s,%s",
-				func3 == OP_FMINS_FUNC3 || func3 == OP_FMAXS_FUNC3 ?
-					func3 == OP_FMINS_FUNC3 ?  "fmin.s" : "fmax.s"
-				: "unknown instruction",
+		case OP_FMINMAXS_FUNC7: 
+		case OP_FMINMAXD_FUNC7: {
+			char const *precision = func7 == OP_FMINMAXS_FUNC7 ? "s" : "d";
+			char const *instrName;
+			if (func3 != OP_FMIN_FUNC3 && func3 != OP_FMAX_FUNC3) {
+				instrName = "unknown instruction";
+				precision = "";
+			}
+			else {
+				instrName = func3 == OP_FMIN_FUNC3 ? "fmin." : "fmax.";
+			}
+
+			sprintf(strbuf, "%s%s\t%s,%s,%s",
+				instrName,
+				precision,
 				floatRegName[RD(instr)],
 				floatRegName[RS1(instr)],
 				floatRegName[RS2(instr)]
@@ -629,11 +649,20 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 		}
 		break;
 
-		case OP_FCVTW_FUNC7: {
-			sprintf(strbuf, "%s\t%s,%s,%s",
-				func3 == OP_FCVTWS_FUNCRS2 || func3 == OP_FCVTWUS_FUNCRS2 ?
-					func3 == OP_FCVTWS_FUNCRS2 ?  "fcvt.w.s" : "fcvt.wu.s"
-				: "unknown instruction",
+		case OP_FCVTWS_FUNC7: 
+		case OP_FCVTWD_FUNC7: {
+			char const *precision = func7 == OP_FCVTWS_FUNC7 ? "s" : "d";
+			char const *instrName;
+			if (RS2(instr) != OP_FCVTWS_FUNCRS2 && RS2(instr) != OP_FCVTWUS_FUNCRS2) {
+				instrName = "unknown instruction";
+				precision = "";
+			}
+			else {
+				instrName = RS2(instr) == OP_FCVTWS_FUNCRS2 ? "fcvt.w." : "fcvt.wu.";
+			}
+			sprintf(strbuf, "%s%s\t%s,%s,%s",
+				instrName,
+				precision,
 				regName[RD(instr)],
 				floatRegName[RS1(instr)],
 				roundingModeNames[func3]
@@ -777,8 +806,9 @@ const char *StrInstr(Word instr) {
 		}
 		break;
 
-		case OP_FLW: {
-			sprintf(strbuf, "flw\t%s,%d(%s)",
+		case OP_FLOAD: {
+			sprintf(strbuf, "%s\t%s,%d(%s)",
+				FUNC3(instr) == OP_FLW_FUNC3 ? "flw" : "fld",
 				floatRegName[RD(instr)],
 				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE),
 				regName[RS1(instr)]
@@ -786,8 +816,9 @@ const char *StrInstr(Word instr) {
 		}
 		break;
 
-		case OP_FSW: {
-			sprintf(strbuf, "fsw\t%s,%d(%s)",
+		case OP_FSAVE: {
+			sprintf(strbuf, "%s\t%s,%d(%s)",
+				FUNC3(instr) == OP_FSW_FUNC3 ? "fsw" : "fsd",
 				floatRegName[RS2(instr)],
 				SIGN_EXTENSION(S_IMM(instr), S_IMM_SIZE),
 				regName[RS1(instr)]
@@ -796,22 +827,22 @@ const char *StrInstr(Word instr) {
 		break;
 
 		case OP_FMADDS: {
-			StrFloatArithmMInstr(instr, "fmadd.s");
+			StrFloatArithmMInstr(instr, FUNC2(instr) == 0 ? "fmadd.s" : "fmadd.d");
 		}
 		break;
 
 		case OP_FMSUBS: {
-			StrFloatArithmMInstr(instr, "fmsub.s");
+			StrFloatArithmMInstr(instr, FUNC2(instr) == 0 ? "fmsub.s" : "fmsub.d");
 		}
 		break;
 
 		case OP_FNMSUBS: {
-			StrFloatArithmMInstr(instr, "fnmsub.s");
+			StrFloatArithmMInstr(instr, FUNC2(instr) == 0 ? "fnmsub.s" : "fnmsub.d");
 		}
 		break;
 
 		case OP_FNMADDS: {
-			StrFloatArithmMInstr(instr, "fnmadd.s");
+			StrFloatArithmMInstr(instr, FUNC2(instr) == 0 ? "fnmadd.s" : "fnmadd.d");
 		}
 		break;
 

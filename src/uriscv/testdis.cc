@@ -33,11 +33,31 @@ const unsigned int testInstrs[] = {
 	0x29b387c3,
 	0x701f7a47,
 	0xa12b374b,
-	0x7965a94f
+	0x7965a94f,
+	0xfe143207,
+	0x069b3fa7,
+	0x7b65a943,
+	0x721f7a47,
+	0xa32b374b,
+	0x7b65a94f,
+	0x023120d3,
+	0x0a3110d3,
+	0x123170d3,
+	0x1a3130d3,
+	0x5a02c653,
+	0x234584d3,
+	0x234594d3,
+	0x2345a4d3,
+	0x283100d3,
+	0x283110d3,
+	0x2a3100d3,
+	0x2a3110d3,
+	0xc20130d3,
+	0xc211c153
 };
 
 int main(int argc, char **argv) {
-	for(int i = 0; i < 31; i++) {
+	for(int i = 0; i < 51; i++) {
 		printf("%s\n", StrInstr(testInstrs[i])); 
 	} 
 }
