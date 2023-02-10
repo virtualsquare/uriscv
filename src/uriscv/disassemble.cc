@@ -44,6 +44,11 @@ HIDDEN const char *const regName[CPUREGNUM] = {
     "a2", "a3", "a4", "a5", "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
 
+HIDDEN const char *const floatRegName[CPUREGNUM] = {
+    "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7", "fs0", "fs1", "fa0", "fa1",
+    "fa2", "fa3", "fa4", "fa5", "fa6", "fa7", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7",
+    "fs8", "fs9", "fs10", "fs11", "ft8", "ft9", "ft10", "ft11", "fcsr"};
+
 // CP0 register names
 HIDDEN const char *const cp0RegName[CP0REGNUM] = {
     "Index",   "Random", "EntryLo", "BadVAddr", "Timer",
@@ -523,6 +528,156 @@ HIDDEN const char *const FenceOperandMnemonic[] = {
 	"iorw",
 };
 
+HIDDEN const char *const roundingModeNames[] = {
+	"rne",
+	"rtz",
+	"rdn",
+	"rup",
+	"rmm",
+	"illegal rounding mode",
+	"illegal rounding mode",
+	"dyn"
+};
+
+HIDDEN const char *const fsgnjsInstrNames[] = {
+	"fsgnj.s",
+	"fsgnjn.s",
+	"fsgnjx.s"
+};
+
+HIDDEN const char *const fCompareInstrNames[] = {
+	"fle.s",
+	"flt.s",
+	"feq.s"
+};
+
+HIDDEN void StrFloatArithmInstr(Word instr, char *name, uint8_t func3) {
+	sprintf(strbuf, "%s\t%s,%s,%s,%s",
+		name,
+		floatRegName[RD(instr)],
+		floatRegName[RS1(instr)],
+		floatRegName[RS2(instr)],
+		roundingModeNames[func3]
+	);
+}
+
+HIDDEN void StrFloatOpInstr(Word instr) {
+	// func3 can represent Rounding Mode in some cases
+	uint8_t func3 = FUNC3(instr);
+	uint8_t func7 = FUNC7(instr);
+
+	switch (func7) {
+		case OP_FADDS_FUNC7: {
+			StrFloatArithmInstr(instr, "fadd.s", func3);
+		}
+		break;
+
+		case OP_FSUBS_FUNC7: {
+			StrFloatArithmInstr(instr, "fsub.s", func3);
+		}
+		break;
+
+		case OP_FMULS_FUNC7: {
+			StrFloatArithmInstr(instr, "fmul.s", func3);
+		}
+		break;
+
+		case OP_FDIVS_FUNC7: {
+			StrFloatArithmInstr(instr, "fdiv.s", func3);
+		}
+		break;
+
+		case OP_FSQRTS_FUNC7: {
+			sprintf(strbuf, "fsqrt.s\t%s,%s,%s",
+				floatRegName[RD(instr)],
+				floatRegName[RS1(instr)],
+				roundingModeNames[func3]
+			);
+		}
+		break;
+
+		case OP_FSGNJ_FUNC7: {
+			sprintf(strbuf, "%s\t%s,%s,%s",
+				fsgnjsInstrNames[func3],
+				floatRegName[RD(instr)],
+				floatRegName[RS1(instr)],
+				floatRegName[RS2(instr)]
+			);
+		}
+		break;
+
+		case OP_FMINMAX_FUNC7: {
+			sprintf(strbuf, "%s\t%s,%s,%s",
+				func3 == OP_FMINS_FUNC3 || func3 == OP_FMAXS_FUNC3 ?
+					func3 == OP_FMINS_FUNC3 ?  "fmin.s" : "fmax.s"
+				: "unknown instruction",
+				floatRegName[RD(instr)],
+				floatRegName[RS1(instr)],
+				floatRegName[RS2(instr)]
+			);
+		}
+		break;
+
+		case OP_FCVTW_FUNC7: {
+			sprintf(strbuf, "%s\t%s,%s,%s",
+				func3 == OP_FCVTWS_FUNCRS2 || func3 == OP_FCVTWUS_FUNCRS2 ?
+					func3 == OP_FCVTWS_FUNCRS2 ?  "fcvt.w.s" : "fcvt.wu.s"
+				: "unknown instruction",
+				regName[RD(instr)],
+				floatRegName[RS1(instr)],
+				roundingModeNames[func3]
+			);
+		}
+		break;
+
+		case OP_FMVCLASS_FUNC7: {
+			sprintf(strbuf, "%s\t%s,%s",
+				func3 == OP_FMVXW_FUNC3 || func3 == OP_FCLASSS_FUNC3 ?
+					func3 == OP_FMVXW_FUNC3 ?  "fmv.x.w" : "fclass.s"
+				: "unknown instruction",
+				regName[RD(instr)],
+				floatRegName[RS1(instr)]
+			);
+		}
+		break;
+
+		case OP_FCOMPARE_FUNC7: {
+			sprintf(strbuf, "%s\t%s,%s,%s",
+				fCompareInstrNames[func3],
+				regName[RD(instr)],
+				floatRegName[RS1(instr)],
+				floatRegName[RS2(instr)]
+			);
+		}
+		break;
+
+		case OP_FCVTS_FUNC7: {
+			sprintf(strbuf, "%s\t%s,%s,%s",
+				func3 == OP_FCVTSW_FUNCRS2 || func3 == OP_FCVTSWU_FUNCRS2 ?
+					func3 == OP_FCVTWS_FUNCRS2 ?  "fcvt.s.w" : "fcvt.s.wu"
+				: "unknown instruction",
+				floatRegName[RD(instr)],
+				regName[RS1(instr)],
+				roundingModeNames[func3]
+			);
+		}
+		break;
+
+		case OP_FMVWX_FUNC7: {
+			sprintf(strbuf, "fmv.w.x\t%s,%s",
+				floatRegName[RD(instr)],
+				regName[RS1(instr)]
+			);
+		}
+		break;
+
+		default: {
+			sprintf(strbuf, "");
+		}
+		break;
+	}
+}
+
 
 // this function returns the pointer to a static buffer which contains
 // the instruction translation into readable form
@@ -603,6 +758,11 @@ const char *StrInstr(Word instr) {
 					FenceOperandMnemonic[FENCE_SUCC(instr)]
 				);
 			}
+		}
+		break;
+
+		case OP_FLOAT_OP: {
+			StrFloatOpInstr(instr);
 		}
 		break;
 

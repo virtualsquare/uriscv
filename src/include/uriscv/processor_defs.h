@@ -374,6 +374,34 @@ enum {
 #define FENCE_SR(instr) ((FENCE_SUCC(instr) >> 2) & 0x1)
 #define FENCE_SW(instr) ((FENCE_SUCC(instr) >> 3) & 0x1)
 
+#define OP_FLOAT_OP 0x53
+#define OP_FADDS_FUNC7 0x0
+#define OP_FSUBS_FUNC7 0x4
+#define OP_FMULS_FUNC7 0x8
+#define OP_FDIVS_FUNC7 0xC
+#define OP_FSQRTS_FUNC7 0x2C
+#define OP_FSGNJ_FUNC7 0x10
+#define OP_FSGNJS_FUNC3 0x0
+#define OP_FSGNJNS_FUNC3 0x1
+#define OP_FSGNJXS_FUNC3 0x2
+#define OP_FMINMAX_FUNC7 0x14
+#define OP_FMINS_FUNC3 0x0
+#define OP_FMAXS_FUNC3 0x1
+#define OP_FCVTW_FUNC7 0x60
+#define OP_FCVTWS_FUNCRS2 0x0
+#define OP_FCVTWUS_FUNCRS2 0x1
+#define OP_FMVCLASS_FUNC7 0x70
+#define OP_FMVXW_FUNC3 0x0
+#define OP_FCLASSS_FUNC3 0x1
+#define OP_FCOMPARE_FUNC7 0x50
+#define OP_FEQS_FUNC3 0x2
+#define OP_FLTS_FUNC3 0x1
+#define OP_FLES_FUNC3 0x0
+#define OP_FCVTS_FUNC7 0x68
+#define OP_FCVTSW_FUNCRS2 0x0
+#define OP_FCVTSWU_FUNCRS2 0x1
+#define OP_FMVWX_FUNC7 0x78
+
 #define OPCODE(instr) (instr & 0x7F)
 #define RD(instr) ((instr >> 7) & 0x1F)
 #define FUNC3(instr) ((instr >> 12) & 0x7)
