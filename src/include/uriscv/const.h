@@ -44,11 +44,11 @@
 #define MTVAL 0x343
 
 // general configuration constants
-#define MPSFILETYPE ".umps"
-#define AOUTFILETYPE ".aout.umps"
-#define BIOSFILETYPE ".rom.umps"
-#define COREFILETYPE ".core.umps"
-#define STABFILETYPE ".stab.umps"
+#define MPSFILETYPE ".uriscv"
+#define AOUTFILETYPE ".aout.uriscv"
+#define BIOSFILETYPE ".rom.uriscv"
+#define COREFILETYPE ".core.uriscv"
+#define STABFILETYPE ".stab.uriscv"
 
 // maximum area size for trace ranges: a little more than 4KB
 // to avoid troubles in browser refresh if area is too large

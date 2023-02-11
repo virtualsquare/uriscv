@@ -45,6 +45,12 @@ target_include_directories(testdis
     )
 target_link_libraries(testdis)
 
+add_executable(uriscv-objdump uriscv/objdump.cc uriscv/disassemble.cc)
+target_include_directories(uriscv-objdump
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
+    )
+target_link_libraries(uriscv-objdump)
+
 install(TARGETS testdis RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_subdirectory(support)
