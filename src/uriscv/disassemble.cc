@@ -356,7 +356,10 @@ HIDDEN void StrRInstr(Word instr) {
 	uint8_t func7 = FUNC7(instr);
 
 	if (func7 == 0b0100000) func7 = 2;
-	if (func7 > 2) sprintf(strbuf, "");
+	if (func7 > 2) {
+		sprintf(strbuf, "");
+		return;
+	}
 
 	sprintf(strbuf, "%s\t%s,%s,%s",
 			RInstrName[func3][func7],
@@ -448,6 +451,11 @@ HIDDEN const char *const SInstrName[] = {
 HIDDEN void StrSInstr(Word instr) {
 	uint8_t func3 = FUNC3(instr);
 
+	if(func3 > 2) {
+		sprintf(strbuf, "");
+		return;
+	}
+
 	sprintf(strbuf, "%s\t%s,%d(%s)",
 		SInstrName[func3],
 		regName[RS2(instr)],
@@ -528,6 +536,7 @@ HIDDEN const char *const FenceOperandMnemonic[] = {
 	"iorw",
 };
 
+HIDDEN uint8_t NO_ROUNDING_MODE = 8;
 HIDDEN const char *const roundingModeNames[] = {
 	"rne",
 	"rtz",
@@ -536,7 +545,8 @@ HIDDEN const char *const roundingModeNames[] = {
 	"rmm",
 	"illegal rounding mode",
 	"illegal rounding mode",
-	"dyn"
+	"dyn",
+	""
 };
 
 HIDDEN const char *const fsgnjsInstrNames[] = {
@@ -551,7 +561,10 @@ HIDDEN const char *const fsgnjsInstrNames[] = {
 HIDDEN const char *const fCompareInstrNames[] = {
 	"fle.s",
 	"flt.s",
-	"feq.s"
+	"feq.s",
+	"fle.d",
+	"flt.d",
+	"feq.d"
 };
 
 HIDDEN void StrFloatArithmInstr(Word instr, char const *name, uint8_t func3) {
@@ -618,6 +631,11 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 
 		case OP_FSGNJS_FUNC7: 
 		case OP_FSGNJD_FUNC7: {
+			if(func3 > 2) {
+				sprintf(strbuf, "");
+				return;
+			}
+			
 			sprintf(strbuf, "%s\t%s,%s,%s",
 				fsgnjsInstrNames[func3 + (func7 == OP_FSGNJS_FUNC7 ? 0 : 3)],
 				floatRegName[RD(instr)],
@@ -651,18 +669,27 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 
 		case OP_FCVTWS_FUNC7: 
 		case OP_FCVTWD_FUNC7: {
-			char const *precision = func7 == OP_FCVTWS_FUNC7 ? "s" : "d";
 			char const *instrName;
-			if (RS2(instr) != OP_FCVTWS_FUNCRS2 && RS2(instr) != OP_FCVTWUS_FUNCRS2) {
-				instrName = "unknown instruction";
-				precision = "";
+
+			switch (func7) {
+				case OP_FCVTWS_FUNC7: {
+					instrName = RS2(instr) == OP_FCVTWS_FUNCRS2 ? "fcvt.w.s" : "fcvt.wu.s";
+				}
+				break;
+
+				case OP_FCVTWD_FUNC7: {
+					instrName = RS2(instr) == OP_FCVTWD_FUNCRS2 ? "fcvt.w.d" : "fcvt.wu.d";
+				}
+				break;
+
+				default: {
+					instrName = "unknown instruction";
+				}
+				break;
 			}
-			else {
-				instrName = RS2(instr) == OP_FCVTWS_FUNCRS2 ? "fcvt.w." : "fcvt.wu.";
-			}
-			sprintf(strbuf, "%s%s\t%s,%s,%s",
+
+			sprintf(strbuf, "%s\t%s,%s,%s",
 				instrName,
-				precision,
 				regName[RD(instr)],
 				floatRegName[RS1(instr)],
 				roundingModeNames[func3]
@@ -670,20 +697,34 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 		}
 		break;
 
-		case OP_FMVCLASS_FUNC7: {
+		case OP_FMVCLASSS_FUNC7: 
+		case OP_FCLASSD_FUNC7: {
+			char const *instrName;
+			if(func7 == OP_FCLASSD_FUNC7) {
+				instrName = "fclass.d";
+			}
+			else {
+				instrName = func3 == OP_FMVXW_FUNC3 || func3 == OP_FCLASSS_FUNC3 ?
+								func3 == OP_FMVXW_FUNC3 ?  "fmv.x.w" : "fclass.s"
+							: "unknown instruction";
+			}
 			sprintf(strbuf, "%s\t%s,%s",
-				func3 == OP_FMVXW_FUNC3 || func3 == OP_FCLASSS_FUNC3 ?
-					func3 == OP_FMVXW_FUNC3 ?  "fmv.x.w" : "fclass.s"
-				: "unknown instruction",
+				instrName,
 				regName[RD(instr)],
 				floatRegName[RS1(instr)]
 			);
 		}
 		break;
 
-		case OP_FCOMPARE_FUNC7: {
+		case OP_FCOMPARES_FUNC7: 
+		case OP_FCOMPARED_FUNC7: {
+			if(func3 > 2) {
+				sprintf(strbuf, "");
+				return;
+			}
+
 			sprintf(strbuf, "%s\t%s,%s,%s",
-				fCompareInstrNames[func3],
+				fCompareInstrNames[func3 + (func7 == OP_FCOMPARES_FUNC7 ? 0 : 3)],
 				regName[RD(instr)],
 				floatRegName[RS1(instr)],
 				floatRegName[RS2(instr)]
@@ -691,14 +732,49 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 		}
 		break;
 
-		case OP_FCVTS_FUNC7: {
-			sprintf(strbuf, "%s\t%s,%s,%s",
-				func3 == OP_FCVTSW_FUNCRS2 || func3 == OP_FCVTSWU_FUNCRS2 ?
-					func3 == OP_FCVTWS_FUNCRS2 ?  "fcvt.s.w" : "fcvt.s.wu"
-				: "unknown instruction",
+		case OP_FCVTSW_FUNC7:
+		case OP_FCVTSD_FUNC7:
+		case OP_FCVTDS_FUNC7:
+		case OP_FCVTDW_FUNC7: {
+			char const *instrName;
+			int roundingModeIndex = func3;
+			int comma = 1;
+
+			switch (func7) {
+				case OP_FCVTSW_FUNC7: {
+					instrName = RS2(instr) == OP_FCVTSW_FUNCRS2 ?  "fcvt.s.w" : "fcvt.s.wu";
+				}
+				break;
+
+				case OP_FCVTDW_FUNC7: {
+					instrName = RS2(instr) == OP_FCVTDW_FUNCRS2 ?  "fcvt.d.w" : "fcvt.d.wu";
+					roundingModeIndex = NO_ROUNDING_MODE;
+				}
+				break;
+				
+				case OP_FCVTSD_FUNC7: {
+					instrName = "fcvt.s.d";
+				}
+				break;
+				case OP_FCVTDS_FUNC7: {
+					instrName = "fcvt.d.s";
+					roundingModeIndex = NO_ROUNDING_MODE;
+				}
+				break;
+
+				default: {
+					instrName = "unknown instruction";
+					roundingModeIndex = NO_ROUNDING_MODE;
+				}
+				break;
+			}
+
+			sprintf(strbuf, "%s\t%s,%s%s%s",
+				instrName,
 				floatRegName[RD(instr)],
 				regName[RS1(instr)],
-				roundingModeNames[func3]
+				roundingModeIndex != 8 ? "," : "",
+				roundingModeNames[roundingModeIndex]
 			);
 		}
 		break;
