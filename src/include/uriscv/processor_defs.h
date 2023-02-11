@@ -374,11 +374,68 @@ enum {
 #define FENCE_SR(instr) ((FENCE_SUCC(instr) >> 2) & 0x1)
 #define FENCE_SW(instr) ((FENCE_SUCC(instr) >> 3) & 0x1)
 
+#define OP_FLOAD 0x7
+#define OP_FLW_FUNC3 0x2
+#define OP_FLD_FUNC3 0x3
+#define OP_FSAVE 0x27
+#define OP_FSW_FUNC3 0x2
+#define OP_FSD_FUNC3 0x3
+#define OP_FMADDS 0x43
+#define OP_FMSUBS 0x47
+#define OP_FNMSUBS 0x4B
+#define OP_FNMADDS 0x4F
+#define OP_FLOAT_OP 0x53
+#define OP_FADDS_FUNC7 0x0
+#define OP_FADDD_FUNC7 0x1
+#define OP_FSUBS_FUNC7 0x4
+#define OP_FSUBD_FUNC7 0x5
+#define OP_FMULS_FUNC7 0x8
+#define OP_FMULD_FUNC7 0x9
+#define OP_FDIVS_FUNC7 0xC
+#define OP_FDIVD_FUNC7 0xD
+#define OP_FSQRTS_FUNC7 0x2C
+#define OP_FSQRTD_FUNC7 0x2D
+#define OP_FSGNJS_FUNC7 0x10
+#define OP_FSGNJD_FUNC7 0x11
+#define OP_FSGNJ_FUNC3 0x0
+#define OP_FSGNJN_FUNC3 0x1
+#define OP_FSGNJX_FUNC3 0x2
+#define OP_FMINMAXS_FUNC7 0x14
+#define OP_FMINMAXD_FUNC7 0x15
+#define OP_FMIN_FUNC3 0x0
+#define OP_FMAX_FUNC3 0x1
+#define OP_FCVTWS_FUNC7 0x60
+#define OP_FCVTWD_FUNC7 0x61
+#define OP_FCVTWS_FUNCRS2 0x0
+#define OP_FCVTWUS_FUNCRS2 0x1
+#define OP_FCVTWD_FUNCRS2 0x0
+#define OP_FCVTWUD_FUNCRS2 0x1
+#define OP_FMVCLASSS_FUNC7 0x70
+#define OP_FCLASSD_FUNC7 0x71
+#define OP_FMVXW_FUNC3 0x0
+#define OP_FCLASSS_FUNC3 0x1
+#define OP_FCOMPARES_FUNC7 0x50
+#define OP_FCOMPARED_FUNC7 0x51
+#define OP_FEQS_FUNC3 0x2
+#define OP_FLTS_FUNC3 0x1
+#define OP_FLES_FUNC3 0x0
+#define OP_FCVTSW_FUNC7 0x68
+#define OP_FCVTSD_FUNC7 0x20
+#define OP_FCVTDS_FUNC7 0x21
+#define OP_FCVTDW_FUNC7 0x69
+#define OP_FCVTSW_FUNCRS2 0x0
+#define OP_FCVTSWU_FUNCRS2 0x1
+#define OP_FCVTDW_FUNCRS2 0x0
+#define OP_FCVTDWU_FUNCRS2 0x1
+#define OP_FMVWX_FUNC7 0x78
+
 #define OPCODE(instr) (instr & 0x7F)
 #define RD(instr) ((instr >> 7) & 0x1F)
+#define FUNC2(instr) ((instr >> 25) & 0x3)
 #define FUNC3(instr) ((instr >> 12) & 0x7)
 #define RS1(instr) ((instr >> 15) & 0x1F)
 #define RS2(instr) ((instr >> 20) & 0x1F)
+#define RS3(instr) ((instr >> 27) & 0x1F)
 #define FUNC7(instr) ((instr >> 25) & 0x7F)
 
 #define I_IMM_SIZE 12
