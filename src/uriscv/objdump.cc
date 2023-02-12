@@ -222,9 +222,6 @@ HIDDEN int hdrDump(const char * prgName, const char * fileName)
 			}
 			else
 			{
-				printf("HDR SEEK: ((%x - %x) + %x) + %x = %x\n", aoutHdr[AOUT_HE_ENTRY], aoutHdr[AOUT_HE_TEXT_VADDR], aoutHdr[AOUT_HE_TEXT_OFFSET], offs, (SWord) offs);
-				printf("VIRT ENTRY: %.8x\nTEXT SIZE: %.8x\n", aoutHdr[AOUT_HE_TEXT_VADDR], aoutHdr[AOUT_HE_TEXT_MEMSZ]);
-
 				// print header
 				for (i = 1; i < AOUTENTNUM; i++)
 					printf("%-35.35s: 0x%.8X\n", aoutName[i], aoutHdr[i]);
