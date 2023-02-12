@@ -82,7 +82,7 @@ HIDDEN const char* const aoutName[] = {
 HIDDEN void showHelp(const char * prgName);
 HIDDEN int hdrDump(const char * prgName, const char * fileName);
 HIDDEN int disAsm(const char * prgName, const char * fileName);
-HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, Word asmStart, Word asmSize);
+HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmStart, int asmSize);
 HIDDEN int xDump(const char * prgName, const char * fileName);
 HIDDEN int bDump(const char * prgName, const char * fileName);
 
@@ -222,6 +222,9 @@ HIDDEN int hdrDump(const char * prgName, const char * fileName)
 			}
 			else
 			{
+				printf("HDR SEEK: ((%x - %x) + %x) + %x = %x\n", aoutHdr[AOUT_HE_ENTRY], aoutHdr[AOUT_HE_TEXT_VADDR], aoutHdr[AOUT_HE_TEXT_OFFSET], offs, (SWord) offs);
+				printf("VIRT ENTRY: %.8x\nTEXT SIZE: %.8x\n", aoutHdr[AOUT_HE_TEXT_VADDR], aoutHdr[AOUT_HE_TEXT_MEMSZ]);
+
 				// print header
 				for (i = 1; i < AOUTENTNUM; i++)
 					printf("%-35.35s: 0x%.8X\n", aoutName[i], aoutHdr[i]);
@@ -242,7 +245,8 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 	FILE * inFile = NULL;
 	Word tag, size;
 	Word aoutHdr[AOUTENTNUM];
-	SWord offs;
+	Word phdrOffs;
+	Word textOffs;
 
 	if ((inFile = fopen(fileName, "r")) == NULL)
 	{
@@ -271,21 +275,23 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 			else
 			{
 				if (tag == AOUTFILEID)
-					offs = 0L;
+					phdrOffs = 0;
 				else
-					offs = CORE_HDR_SIZE * WORDLEN;
+					phdrOffs = CORE_HDR_SIZE * WORDLEN;
 
-				// load header
-				if (fseek(inFile, offs, SEEK_SET) == EOF || \
-				    fread((void *) aoutHdr, WORDLEN, AOUTENTNUM, inFile) != AOUTENTNUM || \
-				    fseek(inFile, (SWord) ((aoutHdr[AOUT_HE_ENTRY] - aoutHdr[AOUT_HE_TEXT_VADDR]) + aoutHdr[AOUT_HE_TEXT_OFFSET]) + offs, SEEK_SET) == EOF)
+				textOffs = phdrOffs + AOUT_PHDR_SIZE;
 
-				{
+				int offsetSeek = fseek(inFile, phdrOffs, SEEK_SET) == EOF;
+				int headerRead = fread((void *) aoutHdr, WORDLEN, AOUTENTNUM, inFile) != AOUTENTNUM; // load header
+				int textSeek = fseek(inFile, (SWord) textOffs, SEEK_SET) == EOF;
+
+				if (offsetSeek || headerRead || textSeek) {
 					fprintf(stderr, "%s : Error reading file %s : invalid/corrupted file\n", prgName, fileName);
 					ret = EXIT_FAILURE;
 				}
-				else
-					ret = asmPrint(prgName, fileName, inFile, aoutHdr[AOUT_HE_ENTRY], aoutHdr[AOUT_HE_TEXT_MEMSZ]);
+				else {
+					ret = asmPrint(prgName, fileName, inFile, aoutHdr[AOUT_HE_TEXT_VADDR] + AOUT_PHDR_SIZE, aoutHdr[AOUT_HE_TEXT_FILESZ] - textOffs);
+				}
 			}
 		}
 		fclose(inFile);
@@ -297,30 +303,20 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 // from current position, and prints a readable machine listing for
 // instructions contained there (up to asmSize) numbering them by beginning
 // with asmStart.
-// It skips blocks of NOPs after finding NOPSMIN ones.
-// Returns an EXIT_SUCCESS/FAILURE code
-HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, Word asmStart, Word asmSize)
+// .text seems to also contain data (??? todo), so if that isn't solved
+// the StrInstr signature could be modified to return validity of the
+// instruction passed, and stop the disassembling after the first invalid
+// instruction, which should (??? todo) indicate the end of the proper .text
+// segment
+HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmStart, int asmSize)
 {
 	Word instr;
-	unsigned int nops = 0;
 
 	for (; asmSize > 0 && !feof(inF) && !ferror(inF); asmStart += WORDLEN, asmSize -= WORDLEN)
 	{
 		// read one instruction
-		if (fread((void *) &instr, WORDLEN, 1, inF) == 1)
-		{
-			if (instr == NOP)
-				// count NOPs for skipping
-				nops++;
-			else
-				nops = 0;
-
-			if (nops < NOPSMIN)
-				printf("0x%.8X : %s\n", asmStart, StrInstr(instr));
-			else
-			if (nops == NOPSMIN)
-				// tries to skip a NOPs block
-				printf("*\n");
+		if (fread((void *) &instr, WORDLEN, 1, inF) == 1) {
+			printf("%.8x:\t%.8x\t%s\n", asmStart, instr, StrInstr(instr));
 		}
 	}
 	if (ferror(inF))
