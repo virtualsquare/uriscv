@@ -41,13 +41,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <uriscv/const.h>
 #include "uriscv/types.h"
 #include "uriscv/blockdev_params.h"
 #include "uriscv/aout.h"
-
 #include "uriscv/disassemble.h"
+#include "uriscv/symbol_table.h"
 
 static const size_t AOUTENTNUM = 10;
 
@@ -82,7 +83,7 @@ HIDDEN const char* const aoutName[] = {
 HIDDEN void showHelp(const char * prgName);
 HIDDEN int hdrDump(const char * prgName, const char * fileName);
 HIDDEN int disAsm(const char * prgName, const char * fileName);
-HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmStart, int asmSize);
+HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmStart, int asmSize, bool coreAoutFile);
 HIDDEN int xDump(const char * prgName, const char * fileName);
 HIDDEN int bDump(const char * prgName, const char * fileName);
 
@@ -265,7 +266,7 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 			{
 				if (fread((void *) &size, WORDLEN, 1, inFile) == 1)
 					// size read correctly
-					ret = asmPrint(prgName, fileName, inFile, 0, size * WORDLEN);
+					ret = asmPrint(prgName, fileName, inFile, 0, size * WORDLEN, false);
 				else
 					ret = EXIT_FAILURE;
 			}
@@ -287,7 +288,7 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 					ret = EXIT_FAILURE;
 				}
 				else {
-					ret = asmPrint(prgName, fileName, inFile, aoutHdr[AOUT_HE_TEXT_VADDR] + AOUT_PHDR_SIZE, aoutHdr[AOUT_HE_TEXT_FILESZ] - textOffs);
+					ret = asmPrint(prgName, fileName, inFile, aoutHdr[AOUT_HE_TEXT_VADDR] + AOUT_PHDR_SIZE, aoutHdr[AOUT_HE_TEXT_FILESZ] - textOffs, true);
 				}
 			}
 		}
@@ -305,15 +306,47 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 // instruction passed, and stop the disassembling after the first invalid
 // instruction, which should (??? todo) indicate the end of the proper .text
 // segment
-HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmStart, int asmSize)
+HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmStart, int asmSize, bool coreAoutFile)
 {
+	SymbolTable *symt = 0;
+
+	if(coreAoutFile) {
+		if(!access("./kernel.stab.uriscv", F_OK)) {
+			symt = new SymbolTable(0, "./kernel.stab.uriscv");
+		}
+		else {
+			printf("No stab file found, function names will not be printed\n\n");
+		}
+	}
+	printf("Disassembly of section .text:\n%s", symt == 0 ? "\n" : "");
+
 	Word instr;
 
+	const char *currentFunction = 0;
 	for (; asmSize > 0 && !feof(inF) && !ferror(inF); asmStart += WORDLEN, asmSize -= WORDLEN)
 	{
+		if(symt != 0)
+		{
+			const Symbol *newSym = symt->Probe(0, asmStart, true);
+			if(newSym != 0) {
+				if(currentFunction == 0 ||
+				strcmp(currentFunction, symt->Probe(0, asmStart, true)->getName()))
+				{
+					currentFunction = newSym->getName();
+					printf("\n%.8x <%s>:\n", asmStart, currentFunction);
+				}
+			}
+			else {
+				if(currentFunction != 0) {
+					printf("\n%.8x <\?\?\?>:\n", asmStart);
+				}
+				currentFunction = 0;
+			}
+
+		}
 		// read one instruction
 		if (fread((void *) &instr, WORDLEN, 1, inF) == 1) {
-			printf("%.8x:\t%.8x\t%s\n", asmStart, instr, StrInstr(instr));
+			printf("%.8x:\t%.8x\t\t%s\n", asmStart, instr, StrInstr(instr));
 		}
 	}
 	if (ferror(inF))

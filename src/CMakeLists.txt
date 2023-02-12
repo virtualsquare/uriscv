@@ -45,7 +45,7 @@ target_include_directories(testdis
     )
 target_link_libraries(testdis)
 
-add_executable(uriscv-objdump uriscv/objdump.cc uriscv/disassemble.cc)
+add_executable(uriscv-objdump uriscv/objdump.cc uriscv/disassemble.cc uriscv/symbol_table.cc uriscv/utility.cc)
 target_include_directories(uriscv-objdump
         PUBLIC ${PROJECT_SOURCE_DIR}/include
     )
