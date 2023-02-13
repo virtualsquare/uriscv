@@ -313,9 +313,12 @@ HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmSta
 	SymbolTable *symt = 0;
 
 	if(coreAoutFile) {
+		char localFname[4096];
+		strcpy(localFname, fname);
+
 		// Look for .stab file in the fname file dir
-		char *inputFileBaseName = basename((char *) fname);
-		char *inputFilePath = dirname((char *) fname);
+		char *inputFileBaseName = basename((char *) localFname);
+		char *inputFilePath = dirname((char *) localFname);
 
 		char prefix[256];
 		char *suffix = strstr(inputFileBaseName, ".uriscv");
@@ -408,7 +411,7 @@ HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmSta
 	}
 	if (ferror(inF))
 	{
-		fprintf(stderr, "%s: Error	disassembling: %s\n", prg, strerror(errno));
+		fprintf(stderr, "%s: Error	disassembling file %s: %s\n", prg, fname, strerror(errno));
 		return(EXIT_FAILURE);
 	}
 	else
