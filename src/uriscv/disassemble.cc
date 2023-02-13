@@ -49,6 +49,14 @@ HIDDEN const char *const floatRegName[CPUREGNUM] = {
     "fa2", "fa3", "fa4", "fa5", "fa6", "fa7", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7",
     "fs8", "fs9", "fs10", "fs11", "ft8", "ft9", "ft10", "ft11", "fcsr"};
 
+const char* RegName(unsigned int index)
+{
+	if (index < CPUREGNUM)
+		return regName[index];
+	else
+		return EMPTYSTR;
+}
+
 // static string buffer size and definition
 #define STRBUFSIZE 64
 HIDDEN char strbuf[STRBUFSIZE];
@@ -659,4 +667,23 @@ const char *StrInstr(Word instr) {
     }
 
   return strbuf;
+}
+
+const char* InstructionMnemonic(Word ins)
+{
+	// if (OpType(ins) == REGTYPE)
+	// 	return regIName[FUNCT(ins)];
+	// else
+	// 	return iName[OPCODE(ins)];
+	return NULL;
+}
+
+// This function returns CP0 register name indexed by position
+const char* CP0RegName(unsigned int index)
+{
+	// if (index < CP0REGNUM)
+	// 	return cp0RegName[index];
+	// else
+	// 	return "";
+	return NULL;
 }

@@ -2,8 +2,8 @@
 #define UMPS_PROCESSOR_RISCV_H
 
 #include "base/lang.h"
-#include "umps/const.h"
-#include "umps/types.h"
+#include "uriscv/const.h"
+#include "uriscv/types.h"
 
 class MachineConfig;
 class Machine;

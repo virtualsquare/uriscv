@@ -1,6 +1,6 @@
 project(src)
 
-add_library(src STATIC
+add_library(uriscv STATIC
   base/json.cc
   base/trackable_mixin.cc
   uriscv/time_stamp.cc
@@ -22,12 +22,12 @@ add_library(src STATIC
   uriscv/mp_controller.cc
   uriscv/machine.cc
   uriscv/symbol_table.cc
-  )
+)
 
 set_property(SOURCE support/liburiscv/liburiscv.S PROPERTY LANGUAGE C)
 set(URISCV_DATA_DIR ${CMAKE_INSTALL_FULL_DATADIR}/uriscv)
-target_compile_definitions(src PRIVATE -DPACKAGE_DATA_DIR="${URISCV_DATA_DIR}")
-target_include_directories(src
+target_compile_definitions(uriscv PRIVATE -DPACKAGE_DATA_DIR="${URISCV_DATA_DIR}")
+target_include_directories(uriscv
         PUBLIC ${PROJECT_SOURCE_DIR}/include
     )
 
@@ -53,6 +53,7 @@ target_link_libraries(uriscv-objdump)
 
 install(TARGETS testdis RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+add_subdirectory(frontends)
 add_subdirectory(support)
 
 set(URISCV_INCLUDE_DIR ${CMAKE_INSTALL_INCLUDEDIR}/uriscv)

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+
+Name=µMPS3
+Comment=Virtual machine simulator based around the MIPS R2/3000 microprocessor
+Categories=Education;Emulator;
+
+Icon=org.virtualsquare.umps3
+Exec=umps3
+Terminal=false
+Keywords=umps;umps3

@@ -45,6 +45,7 @@ include(FindPkgConfig)
 pkg_check_modules(SIGCPP REQUIRED sigc++-2.0)
 
 find_package(Boost 1.34 REQUIRED)
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 add_subdirectory(src)
 add_subdirectory(app)

@@ -1,0 +1,40 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+  <qresource>
+    <file>icons/create-22.svg</file>
+    <file>icons/open-22.svg</file>
+
+    <file>icons/system-22.svg</file>
+    <file>icons/processor-22.svg</file>
+    <file>icons/memory-22.svg</file>
+    <file>icons/flash-22.svg</file>
+
+    <file>icons/start-22.svg</file>
+    <file>icons/halt-22.svg</file>
+    <file>icons/reset-22.svg</file>
+    <file>icons/settings-22.svg</file>
+
+    <file>icons/continue-22.svg</file>
+    <file>icons/step-22.svg</file>
+    <file>icons/stop-22.svg</file>
+
+    <file>icons/disk-22.svg</file>
+    <file>icons/disk-32.svg</file>
+    <file>icons/flash-32.svg</file>
+    <file>icons/network-22.svg</file>
+    <file>icons/network-32.svg</file>
+    <file>icons/printer-22.svg</file>
+    <file>icons/printer-32.svg</file>
+    <file>icons/terminal-22.svg</file>
+    <file>icons/terminal-32.svg</file>
+
+    <file>icons/up-16.svg</file>
+    <file>icons/down-16.svg</file>
+
+    <file>icons/pc-16.svg</file>
+    <file>icons/breakpoint_enabled-16.svg</file>
+    <file>icons/breakpoint_disabled-16.svg</file>
+
+    <file>icons/umps3-48.svg</file>
+  </qresource>
+</RCC>
