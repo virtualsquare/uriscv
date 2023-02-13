@@ -117,7 +117,16 @@ HIDDEN void StrNonLoadIInstr(Word instr) {
 	uint8_t func3 = FUNC3(instr);
 
 	switch (func3) {
-		case OP_ADDI:
+		case OP_ADDI: {
+			if(instr == INSTR_NOP) {
+				sprintf(strbuf, "nop");
+				return;
+			}
+			else if(SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE) == 0) {
+				sprintf(strbuf, "mv\t%s,%s", regName[RD(instr)], regName[RS1(instr)]);
+				return;
+			}
+		}
 		case OP_SLTI:
 		case OP_SLTIU:
 		case OP_XORI:
@@ -561,19 +570,28 @@ const char *StrInstr(Word instr) {
 		break;
 
         case OP_JAL: {
-			sprintf(strbuf, "jal\t%s,%d",
-				regName[RD(instr)],
-				SIGN_EXTENSION(J_IMM(instr), J_IMM_SIZE)
-			);
+			uint8_t rd = RD(instr);
+			int32_t offs = SIGN_EXTENSION(J_IMM(instr), J_IMM_SIZE);
+			if(rd == 0)
+				sprintf(strbuf, "j\t%s%d", offs > 0 ? "+" : "", offs);
+			else if(rd == 1)
+				sprintf(strbuf, "jal\t%s%d", offs > 0 ? "+" : "", offs);
+			else
+				sprintf(strbuf, "jal\t%s,%d", regName[rd], offs);
         }
 		break;
 
         case OP_JALR: {
-			sprintf(strbuf, "jalr\t%s,%d(%s)",
-				regName[RD(instr)],
-				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE),
-				regName[RS1(instr)]
-			);
+			if(instr == INSTR_RET) {
+				sprintf(strbuf, "ret");
+			}
+			else {
+				sprintf(strbuf, "jalr\t%s,%d(%s)",
+					regName[RD(instr)],
+					SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE),
+					regName[RS1(instr)]
+				);
+			}
         }
 		break;
 

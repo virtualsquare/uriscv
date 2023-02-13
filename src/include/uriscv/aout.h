@@ -27,4 +27,6 @@
 
 #define N_AOUT_HDR_ENT 43
 
+#define AOUT_PHDR_SIZE 0xB0
+
 #endif

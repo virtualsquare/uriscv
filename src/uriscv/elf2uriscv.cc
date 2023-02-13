@@ -490,8 +490,7 @@ static void createSymbolTable() {
     Symbol s = *it;
     unsigned char type = ELF32_ST_TYPE(s.details->st_info);
     unsigned char binding = ELF32_ST_BIND(s.details->st_info);
-    if (!s.name.empty() && (type == STT_FUNC || type == STT_OBJECT) &&
-        (s.name[0] != '_' || s.name == "__start")) {
+    if (!s.name.empty() && (type == STT_FUNC || type == STT_OBJECT)) {
       rc = fprintf(file, "%-32.32s :%s:0x%.8lX:0x%.8lX:%s\n", s.name.c_str(),
                    typeName[type], (unsigned long)s.details->st_value,
                    (unsigned long)s.details->st_size, bindingName[binding]);
