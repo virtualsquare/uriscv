@@ -49,6 +49,7 @@
 #include "uriscv/aout.h"
 #include "uriscv/disassemble.h"
 #include "uriscv/symbol_table.h"
+#include "uriscv/processor_defs.h"
 
 static const size_t AOUTENTNUM = 10;
 
@@ -74,6 +75,8 @@ HIDDEN const char* const aoutName[] = {
 	".data file start offset",
 	".data file size"
 };
+
+HIDDEN bool forceTextOverflow = false;
 
 
 //
@@ -124,6 +127,9 @@ int main(int argc, char * argv[])
 			if (SAMESTRING("-b", argv[i]))
 				bdump = true;
 			else
+			if (SAMESTRING("-f", argv[i]))
+				forceTextOverflow = true;
+			else
 			if (SAMESTRING("-a", argv[i]))
 			{
 				hdr = true;
@@ -167,9 +173,9 @@ int main(int argc, char * argv[])
 // This function prints a warning/help message on standard error
 HIDDEN void showHelp(const char * prgName)
 {
-	fprintf(stderr, "%s syntax : %s [-h] [-d] [-x] [-b] [-a] <file>%s\n\n", prgName, prgName, MPSFILETYPE);
+	fprintf(stderr, "%s syntax : %s [-h] [-d] [-x] [-b] [-a] [-f] <file>%s\n\n", prgName, prgName, MPSFILETYPE);
 	fprintf(stderr, "where:\n\t-h\tshow file header\n\t-d\tdisassemble .text area\n");
-	fprintf(stderr, "\t-b\tfull byte dump\n\t-x\tfull word dump\n\t-a\tall of the above\n\n");
+	fprintf(stderr, "\t-b\tfull byte dump\n\t-x\tfull word dump\n\t-a\tall of the above\n\t-f\tforce proper .text area overflow\n\t\tuse if the stab file does not contain all function symbols\n");
 }
 
 
@@ -288,7 +294,7 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 					ret = EXIT_FAILURE;
 				}
 				else {
-					ret = asmPrint(prgName, fileName, inFile, aoutHdr[AOUT_HE_TEXT_VADDR] + AOUT_PHDR_SIZE, aoutHdr[AOUT_HE_TEXT_FILESZ] - textOffs, true);
+					ret = asmPrint(prgName, fileName, inFile, aoutHdr[AOUT_HE_TEXT_VADDR] + AOUT_PHDR_SIZE, aoutHdr[AOUT_HE_TEXT_MEMSZ], true);
 				}
 			}
 		}
@@ -301,11 +307,6 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 // from current position, and prints a readable machine listing for
 // instructions contained there (up to asmSize) numbering them by beginning
 // with asmStart.
-// .text seems to also contain data (??? todo), so if that isn't solved
-// the StrInstr signature could be modified to return validity of the
-// instruction passed, and stop the disassembling after the first invalid
-// instruction, which should (??? todo) indicate the end of the proper .text
-// segment
 HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmStart, int asmSize, bool coreAoutFile)
 {
 	SymbolTable *symt = 0;
@@ -321,28 +322,63 @@ HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmSta
 	printf("Disassembly of section .text:\n%s", symt == 0 ? "\n" : "");
 
 	Word instr;
+	bool lastInstrRet;
 
 	const char *currentFunction = 0;
+	uint32_t currentFunctionSize = 1;
 	for (; asmSize > 0 && !feof(inF) && !ferror(inF); asmStart += WORDLEN, asmSize -= WORDLEN)
 	{
+		if(instr == INSTR_RET) lastInstrRet = true;
+		else lastInstrRet = false;
+
 		if(symt != 0)
 		{
 			const Symbol *newSym = symt->Probe(0, asmStart, true);
 			if(newSym != 0) {
-				if(currentFunction == 0 ||
-				strcmp(currentFunction, symt->Probe(0, asmStart, true)->getName()))
+				if(currentFunction == 0 || strcmp(currentFunction, newSym->getName()))
 				{
 					currentFunction = newSym->getName();
+					currentFunctionSize = newSym->getEnd() - newSym->getStart();
 					printf("\n%.8x <%s>:\n", asmStart, currentFunction);
 				}
 			}
-			else {
+			// If for some reason the .stab file does not contain all symbols, the
+			// forceTextOverflow option allows for printing even after
+			// finding memory sections not associated with any known symbol,
+			// albeit at the cost of not stopping at the end of the instructions,
+			// thereby skeweing the last part of the output
+			//
+			// If the option is not set, the invariant that needs to be upheld
+			// to ensure correct execution is that all of the function symbols
+			// are mapped into the .stab file
+			else if(forceTextOverflow) {
 				if(currentFunction != 0) {
 					printf("\n%.8x <\?\?\?>:\n", asmStart);
 				}
 				currentFunction = 0;
 			}
+			else {
+				// If the current function has a proper size in the .stab file,
+				// the symbol table correctly identified an unknown section and
+				// there is no risk of skipping real instructions
+				if(currentFunctionSize != 0) break;
 
+				// Last instruction was ret, therefore we can assume
+				// we have reached the end of the proper .text section
+				if(lastInstrRet) break;
+				// Last instruction wasn't ret and we're in a function without
+				// a size definition in the .stab file, disassemble until
+				// ret is found
+				else {
+					for (; asmSize > 0 && !feof(inF) && !ferror(inF); asmStart += WORDLEN, asmSize -= WORDLEN) {
+						if (fread((void *) &instr, WORDLEN, 1, inF) == 1)
+							printf("%.8x:\t%.8x\t\t%s\n", asmStart, instr, StrInstr(instr));
+						if(instr == INSTR_RET)
+							break;
+					}
+					break;
+				}
+			}
 		}
 		// read one instruction
 		if (fread((void *) &instr, WORDLEN, 1, inF) == 1) {
