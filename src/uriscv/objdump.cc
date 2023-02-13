@@ -42,6 +42,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <uriscv/const.h>
 #include "uriscv/types.h"
@@ -312,11 +313,31 @@ HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmSta
 	SymbolTable *symt = 0;
 
 	if(coreAoutFile) {
-		if(!access("./kernel.stab.uriscv", F_OK)) {
-			symt = new SymbolTable(0, "./kernel.stab.uriscv");
+		// Look for .stab file in the fname file dir
+		char *inputFileBaseName = basename((char *) fname);
+		char *inputFilePath = dirname((char *) fname);
+
+		char prefix[256];
+		char *suffix = strstr(inputFileBaseName, ".uriscv");
+
+		if(suffix == 0) {
+			printf("No .stab file found, function names will not be printed\n\n");
 		}
 		else {
-			printf("No stab file found, function names will not be printed\n\n");
+			char stabFilePath[4096];
+
+			// Terminate basename before .aout/core.uriscv
+			// .core = 5 chars = .aout
+			*(suffix - 5) = '\0';
+			strcpy(prefix, inputFileBaseName);
+
+			sprintf(stabFilePath, "%s/%s.stab.uriscv", inputFilePath, prefix);
+			if(!access(stabFilePath, F_OK)) {
+				symt = new SymbolTable(0, stabFilePath);
+			}
+			else {
+				printf("No .stab file found, function names will not be printed\n\n");
+			}
 		}
 	}
 	printf("Disassembly of section .text:\n%s", symt == 0 ? "\n" : "");
@@ -387,7 +408,7 @@ HIDDEN int asmPrint(const char * prg, const char * fname, FILE * inF, int asmSta
 	}
 	if (ferror(inF))
 	{
-		fprintf(stderr, "%s : Error	disassembling file %s : %s\n", prg, fname, strerror(errno));
+		fprintf(stderr, "%s: Error	disassembling: %s\n", prg, strerror(errno));
 		return(EXIT_FAILURE);
 	}
 	else
