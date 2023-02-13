@@ -158,7 +158,7 @@ int main(int argc, char * argv[])
 		}
 		else
 		{
-			fprintf(stderr, "%s : Wrong/unknown argument(s)\n", argv[0]);
+			fprintf(stderr, "%s: Wrong/unknown argument(s)\n", argv[0]);
 			showHelp(argv[0]);
 			ret = EXIT_FAILURE;
 		}
@@ -174,7 +174,7 @@ int main(int argc, char * argv[])
 // This function prints a warning/help message on standard error
 HIDDEN void showHelp(const char * prgName)
 {
-	fprintf(stderr, "%s syntax : %s [-h] [-d] [-x] [-b] [-a] [-f] <file>%s\n\n", prgName, prgName, MPSFILETYPE);
+	fprintf(stderr, "%s syntax: %s [-h] [-d] [-x] [-b] [-a] [-f] <file>%s\n\n", prgName, prgName, MPSFILETYPE);
 	fprintf(stderr, "where:\n\t-h\tshow file header\n\t-d\tdisassemble .text area\n");
 	fprintf(stderr, "\t-b\tfull byte dump\n\t-x\tfull word dump\n\t-a\tall of the above\n\t-f\tforce proper .text area overflow\n\t\tuse if the stab file does not contain all function symbols\n");
 }
@@ -193,31 +193,31 @@ HIDDEN int hdrDump(const char * prgName, const char * fileName)
 
 	if ((inFile = fopen(fileName, "r")) == NULL)
 	{
-		fprintf(stderr, "%s : Error opening file %s : %s\n", prgName, fileName, strerror(errno));
+		fprintf(stderr, "%s: Error opening file %s: %s\n", prgName, fileName, strerror(errno));
 		ret = EXIT_FAILURE;
 	}
 	else
 	if (fread((void *) &tag, WORDLEN, 1, inFile) != 1 || !(tag == AOUTFILEID || tag == COREFILEID || tag == BIOSFILEID))
 	{
-		fprintf(stderr, "%s : Error opening file %s : invalid/corrupted file\n", prgName, fileName);
+		fprintf(stderr, "%s: Error opening file %s: invalid/corrupted file\n", prgName, fileName);
 		ret = EXIT_FAILURE;
 	}
 	else
 	{
 		// file is of correct type
 		if (tag == BIOSFILEID)
-			printf("%s : ROM file type : it has no a.out header\n\n", fileName);
+			printf("%s: ROM file type: it has no a.out header\n\n", fileName);
 		else
 		{
 			if (tag == AOUTFILEID)
 			{
 				offs = 0L;
-				printf("%s : a.out file type\n\n", fileName);
+				printf("%s: a.out file type\n\n", fileName);
 			}
 			else
 			{
 				offs = CORE_HDR_SIZE * WORDLEN;
-				printf("%s : core file type\n\n", fileName);
+				printf("%s: core file type\n\n", fileName);
 			}
 			// load header
 
@@ -225,14 +225,14 @@ HIDDEN int hdrDump(const char * prgName, const char * fileName)
 			    fread((void *) aoutHdr, WORDLEN, AOUTENTNUM, inFile) != AOUTENTNUM || \
 			    fclose(inFile) == EOF)
 			{
-				fprintf(stderr, "%s : Error opening file %s : invalid/corrupted file\n", prgName, fileName);
+				fprintf(stderr, "%s: Error opening file %s: invalid/corrupted file\n", prgName, fileName);
 				ret = EXIT_FAILURE;
 			}
 			else
 			{
 				// print header
 				for (i = 1; i < AOUTENTNUM; i++)
-					printf("%-35.35s: 0x%.8X\n", aoutName[i], aoutHdr[i]);
+					printf("%-35.35s %.8x\n", aoutName[i], aoutHdr[i]);
 				printf("\n");
 			}
 		}
@@ -255,7 +255,7 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 
 	if ((inFile = fopen(fileName, "r")) == NULL)
 	{
-		fprintf(stderr, "%s : Error opening file %s : %s\n", prgName, fileName, strerror(errno));
+		fprintf(stderr, "%s: Error opening file %s: %s\n", prgName, fileName, strerror(errno));
 		ret = EXIT_FAILURE;
 	}
 	else
@@ -263,7 +263,7 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 		// file exists
 		if (fread((void *) &tag, WORDLEN, 1, inFile) != 1 || !(tag == AOUTFILEID || tag == COREFILEID || tag == BIOSFILEID))
 		{
-			fprintf(stderr, "%s : Error opening file %s : invalid/corrupted file\n", prgName, fileName);
+			fprintf(stderr, "%s: Error opening file %s: invalid/corrupted file\n", prgName, fileName);
 			ret = EXIT_FAILURE;
 		}
 		else
@@ -291,7 +291,7 @@ HIDDEN int disAsm(const char * prgName, const char * fileName)
 				int textSeek = fseek(inFile, (SWord) textOffs, SEEK_SET) == EOF;
 
 				if (offsetSeek || headerRead || textSeek) {
-					fprintf(stderr, "%s : Error reading file %s : invalid/corrupted file\n", prgName, fileName);
+					fprintf(stderr, "%s: Error reading file %s: invalid/corrupted file\n", prgName, fileName);
 					ret = EXIT_FAILURE;
 				}
 				else {
@@ -440,7 +440,7 @@ HIDDEN int xDump(const char * prgName, const char * fileName)
 
 	if ((inFile = fopen(fileName, "r")) == NULL)
 	{
-		fprintf(stderr, "%s : Error opening file %s : %s\n", prgName, fileName, strerror(errno));
+		fprintf(stderr, "%s: Error opening file %s: %s\n", prgName, fileName, strerror(errno));
 		ret = EXIT_FAILURE;
 	}
 	else
@@ -448,7 +448,7 @@ HIDDEN int xDump(const char * prgName, const char * fileName)
 		// identifies file type
 		if (fread((void *) &tag, WORDLEN, 1, inFile) != 1 || !(tag == AOUTFILEID || tag == COREFILEID || tag == BIOSFILEID))
 		{
-			fprintf(stderr, "%s : Error opening file %s : invalid/corrupted file\n", prgName, fileName);
+			fprintf(stderr, "%s: Error opening file %s: invalid/corrupted file\n", prgName, fileName);
 			ret = EXIT_FAILURE;
 		}
 		else
@@ -464,7 +464,7 @@ HIDDEN int xDump(const char * prgName, const char * fileName)
 				if (fread((void *) &size, WORDLEN, 1, inFile) != 1)
 					if (ferror(inFile))
 					{
-						fprintf(stderr, "%s : Error	reading file %s : %s\n", prgName, fileName, strerror(errno));
+						fprintf(stderr, "%s: Error	reading file %s: %s\n", prgName, fileName, strerror(errno));
 						ret = EXIT_FAILURE;
 					}
 			// else all is ok
@@ -486,9 +486,9 @@ HIDDEN int xDump(const char * prgName, const char * fileName)
 
 					if (emptyl < EMPTYWMIN)
 					{
-						printf ("0x%.8X : ", idx);
+						printf ("%.8x: ", idx);
 						for (i = 0; i < words; i++)
-							printf("0x%.8X  ", buf[i]);
+							printf("%.8x  ", buf[i]);
 						printf("\n");
 					}
 					else
@@ -523,7 +523,7 @@ HIDDEN int bDump(const char * prgName, const char * fileName)
 
 	if ((inFile = fopen(fileName, "r")) == NULL)
 	{
-		fprintf(stderr, "%s : Error opening file %s : %s\n", prgName, fileName, strerror(errno));
+		fprintf(stderr, "%s: Error opening file %s: %s\n", prgName, fileName, strerror(errno));
 		ret = EXIT_FAILURE;
 	}
 	else
@@ -531,7 +531,7 @@ HIDDEN int bDump(const char * prgName, const char * fileName)
 		// tries file recognition
 		if (fread((void *) &tag, WORDLEN, 1, inFile) != 1 || !(tag == AOUTFILEID || tag == COREFILEID || tag == BIOSFILEID))
 		{
-			fprintf(stderr, "%s : Error opening file %s : invalid/corrupted file\n", prgName, fileName);
+			fprintf(stderr, "%s: Error opening file %s: invalid/corrupted file\n", prgName, fileName);
 			ret = EXIT_FAILURE;
 		}
 		else
@@ -547,7 +547,7 @@ HIDDEN int bDump(const char * prgName, const char * fileName)
 				if (fread((void *) &size, WORDLEN, 1, inFile) != 1)
 					if (ferror(inFile))
 					{
-						fprintf(stderr, "%s : Error	reading file %s : %s\n", prgName, fileName, strerror(errno));
+						fprintf(stderr, "%s: Error	reading file %s: %s\n", prgName, fileName, strerror(errno));
 						ret = EXIT_FAILURE;
 					}
 			// else all is ok
@@ -567,9 +567,9 @@ HIDDEN int bDump(const char * prgName, const char * fileName)
 
 					if (emptyl < EMPTYCMIN)
 					{
-						printf ("0x%.8X : ", idx);
+						printf ("%.8x: ", idx);
 						for (i = 0; i < chars; i++)
-							printf("%.2X  ", buf[i]);
+							printf("%.2x  ", buf[i]);
 						printf("\n");
 					}
 					else
