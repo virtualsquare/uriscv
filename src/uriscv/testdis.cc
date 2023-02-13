@@ -63,11 +63,16 @@ const unsigned int testInstrs[] = {
 	0x404100b3,
 	0x004100b3,
 	0x004150b3,
-	0x404150b3
+	0x404150b3,
+	0x00000013,
+	0x00917093,
+	0x00a1c113,
+	0xf31ff06f,
+	0xf95ff06f
 };
 
 int main(int argc, char **argv) {
-	for(int i = 0; i < 61; i++) {
+	for(int i = 0; i < 66; i++) {
 		printf("%s\n", StrInstr(testInstrs[i])); 
 	} 
 }

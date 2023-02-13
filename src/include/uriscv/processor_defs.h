@@ -280,6 +280,7 @@ enum {
 
 #define I_TYPE 0x13
 #define OP_ADDI 0x0
+#define INSTR_NOP 0x00000013
 #define OP_SLLI 0x1
 #define OP_SLTI 0x2
 #define OP_SLTIU 0x3
@@ -358,6 +359,7 @@ enum {
 #define OP_LUI 0x37
 #define OP_JAL 0x6F
 #define OP_JALR 0x67
+#define INSTR_RET 0x00008067
 
 #define OP_FENCE 0xF
 #define OP_FENCE_TSO 0x8330000F
