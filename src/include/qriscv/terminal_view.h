@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_TERMINAL_VIEW_H
-#define QMPS_TERMINAL_VIEW_H
+#ifndef QRISCV_TERMINAL_VIEW_H
+#define QRISCV_TERMINAL_VIEW_H
 
 #include <sigc++/sigc++.h>
 
@@ -51,4 +51,4 @@ TerminalDevice* const terminal;
 QByteArray input;
 };
 
-#endif // QMPS_TERMINAL_VIEW_H
+#endif // QRISCV_TERMINAL_VIEW_H

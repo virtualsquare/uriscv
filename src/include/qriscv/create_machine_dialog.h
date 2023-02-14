@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_CREATE_MACHINE_DIALOG_H
-#define QMPS_CREATE_MACHINE_DIALOG_H
+#ifndef QRISCV_CREATE_MACHINE_DIALOG_H
+#define QRISCV_CREATE_MACHINE_DIALOG_H
 
 #include <QDialog>
 
@@ -46,4 +46,4 @@ void validate();
 void browseDir();
 };
 
-#endif // QMPS_CREATE_MACHINE_DIALOG_H
+#endif // QRISCV_CREATE_MACHINE_DIALOG_H

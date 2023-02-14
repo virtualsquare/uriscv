@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_SYMBOL_TABLE_MODEL_H
-#define QMPS_SYMBOL_TABLE_MODEL_H
+#ifndef QRISCV_SYMBOL_TABLE_MODEL_H
+#define QRISCV_SYMBOL_TABLE_MODEL_H
 
 #include <QAbstractTableModel>
 #include <QSortFilterProxyModel>
@@ -67,4 +67,4 @@ const SymbolTable* const table;
 const Symbol::Type tableType;
 };
 
-#endif // QMPS_SYMBOL_TABLE_MODEL_H
+#endif // QRISCV_SYMBOL_TABLE_MODEL_H

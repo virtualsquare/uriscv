@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_DEBUG_SESSION_H
-#define QMPS_DEBUG_SESSION_H
+#ifndef QRISCV_DEBUG_SESSION_H
+#define QRISCV_DEBUG_SESSION_H
 
 #include <QObject>
 
@@ -192,4 +192,4 @@ private Q_SLOTS:
 	void skip();
 };
 
-#endif // QMPS_DEBUG_SESSION_H
+#endif // QRISCV_DEBUG_SESSION_H

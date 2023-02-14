@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_MONITOR_WINDOW_H
-#define QMPS_MONITOR_WINDOW_H
+#ifndef QRISCV_MONITOR_WINDOW_H
+#define QRISCV_MONITOR_WINDOW_H
 
 #include <map>
 #include <QMainWindow>
@@ -176,4 +176,4 @@ private Q_SLOTS:
 	void onAddTracepoint();
 };
 
-#endif // QMPS_MONITOR_WINDOW_H
+#endif // QRISCV_MONITOR_WINDOW_H

@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_PROCESSOR_LIST_MODEL_H
-#define QMPS_PROCESSOR_LIST_MODEL_H
+#ifndef QRISCV_PROCESSOR_LIST_MODEL_H
+#define QRISCV_PROCESSOR_LIST_MODEL_H
 
 #include <QModelIndex>
 #include <QAbstractTableModel>
@@ -58,4 +58,4 @@ private Q_SLOTS:
 void notifyStatusChanged();
 };
 
-#endif // QMPS_PROCESSOR_LIST_MODEL_H
+#endif // QRISCV_PROCESSOR_LIST_MODEL_H

@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_APPLICATION_H
-#define QMPS_APPLICATION_H
+#ifndef QRISCV_APPLICATION_H
+#define QRISCV_APPLICATION_H
 
 #include <QApplication>
 #include <QFont>
@@ -81,4 +81,4 @@ Application* Appl();
 
 #define debugSession (Appl()->getDebugSession())
 
-#endif // QMPS_APPLICATION_H
+#endif // QRISCV_APPLICATION_H

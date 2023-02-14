@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_DEVICE_TREE_VIEW_H
-#define QMPS_DEVICE_TREE_VIEW_H
+#ifndef QRISCV_DEVICE_TREE_VIEW_H
+#define QRISCV_DEVICE_TREE_VIEW_H
 
 #include <QTreeView>
 
@@ -36,4 +36,4 @@ private Q_SLOTS:
 void sectionResized(int logicalIndex, int oldSize, int newSize);
 };
 
-#endif // QMPS_DEVICE_TREE_VIEW_H
+#endif // QRISCV_DEVICE_TREE_VIEW_H

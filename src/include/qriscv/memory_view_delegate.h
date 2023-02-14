@@ -18,12 +18,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_MEMORY_VIEW_DELEGATE_H
-#define QMPS_MEMORY_VIEW_DELEGATE_H
+#ifndef QRISCV_MEMORY_VIEW_DELEGATE_H
+#define QRISCV_MEMORY_VIEW_DELEGATE_H
 
 class MemoryViewDelegate {
 public:
 virtual void Refresh() = 0;
 };
 
-#endif // QMPS_MEMORY_VIEW_DELEGATE_H
+#endif // QRISCV_MEMORY_VIEW_DELEGATE_H

@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_MACHINE_CONFIG_DIALOG_H
-#define QMPS_MACHINE_CONFIG_DIALOG_H
+#ifndef QRISCV_MACHINE_CONFIG_DIALOG_H
+#define QRISCV_MACHINE_CONFIG_DIALOG_H
 
 #include <QDialog>
 
@@ -76,4 +76,4 @@ void onDeviceClassChanged();
 void saveConfigChanges();
 };
 
-#endif // QMPS_MACHINE_CONFIG_DIALOG_H
+#endif // QRISCV_MACHINE_CONFIG_DIALOG_H

@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_MONITOR_WINDOW_PRIV_H
-#define QMPS_MONITOR_WINDOW_PRIV_H
+#ifndef QRISCV_MONITOR_WINDOW_PRIV_H
+#define QRISCV_MONITOR_WINDOW_PRIV_H
 
 #include <QWidget>
 
@@ -42,4 +42,4 @@ QLabel* statusLabel;
 QLabel* todLabel;
 };
 
-#endif // QMPS_MONITOR_WINDOW_PRIV_H
+#endif // QRISCV_MONITOR_WINDOW_PRIV_H

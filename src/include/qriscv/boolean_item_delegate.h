@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_BOOLEAN_ITEM_DELEGATE_H
-#define QMPS_BOOLEAN_ITEM_DELEGATE_H
+#ifndef QRISCV_BOOLEAN_ITEM_DELEGATE_H
+#define QRISCV_BOOLEAN_ITEM_DELEGATE_H
 
 #include <QStyledItemDelegate>
 
@@ -45,4 +45,4 @@ private:
 static QRect buttonGeometry(const QRect& viewItemRect);
 };
 
-#endif // QMPS_BOOLEAN_ITEM_DELEGATE_H
+#endif // QRISCV_BOOLEAN_ITEM_DELEGATE_H

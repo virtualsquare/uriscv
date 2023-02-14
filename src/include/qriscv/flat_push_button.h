@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QUMPS_FLAT_PUSH_BUTTON_H
-#define QUMPS_FLAT_PUSH_BUTTON_H
+#ifndef QRISCV_FLAT_PUSH_BUTTON_H
+#define QRISCV_FLAT_PUSH_BUTTON_H
 
 #include <QPushButton>
 
@@ -36,4 +36,4 @@ virtual void enterEvent(QEvent* event);
 virtual void leaveEvent(QEvent* event);
 };
 
-#endif // QUMPS_FLAT_PUSH_BUTTON_H
+#endif // QRISCV_FLAT_PUSH_BUTTON_H

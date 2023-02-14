@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_ADD_TRACEPOINT_DIALOG_H
-#define QMPS_ADD_TRACEPOINT_DIALOG_H
+#ifndef QRISCV_ADD_TRACEPOINT_DIALOG_H
+#define QRISCV_ADD_TRACEPOINT_DIALOG_H
 
 #include <QDialog>
 
@@ -61,4 +61,4 @@ void validate();
 void onSelectionChanged(const QItemSelection& selected);
 };
 
-#endif // QMPS_ADD_TRACEPOINT_DIALOG_H
+#endif // QRISCV_ADD_TRACEPOINT_DIALOG_H

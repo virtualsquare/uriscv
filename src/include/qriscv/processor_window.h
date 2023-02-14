@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_PROCESSOR_WINDOW_H
-#define QMPS_PROCESSOR_WINDOW_H
+#ifndef QRISCV_PROCESSOR_WINDOW_H
+#define QRISCV_PROCESSOR_WINDOW_H
 
 #include <QMainWindow>
 
@@ -75,4 +75,4 @@ void updateStatusInfo();
 void updateTLBViewTitle(bool topLevel);
 };
 
-#endif // QMPS_PROCESSOR_WINDOW_H
+#endif // QRISCV_PROCESSOR_WINDOW_H

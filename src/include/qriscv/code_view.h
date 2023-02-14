@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_CODE_VIEW_H
-#define QMPS_CODE_VIEW_H
+#ifndef QRISCV_CODE_VIEW_H
+#define QRISCV_CODE_VIEW_H
 
 #include <map>
 #include <boost/function.hpp>
@@ -95,4 +95,4 @@ DisasmMap disasmMap;
 friend class CodeViewMargin;
 };
 
-#endif // QMPS_CODE_VIEW_H
+#endif // QRISCV_CODE_VIEW_H

@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_SUSPECT_TYPE_DELEGATE_H
-#define QMPS_SUSPECT_TYPE_DELEGATE_H
+#ifndef QRISCV_SUSPECT_TYPE_DELEGATE_H
+#define QRISCV_SUSPECT_TYPE_DELEGATE_H
 
 #include <QStyledItemDelegate>
 
@@ -54,4 +54,4 @@ struct ItemInfo {
 static ItemInfo valueMap[kValidTypes];
 };
 
-#endif // QMPS_SUSPECT_TYPE_DELEGATE_H
+#endif // QRISCV_SUSPECT_TYPE_DELEGATE_H

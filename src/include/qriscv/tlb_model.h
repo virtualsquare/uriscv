@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_TLB_MODEL_H
-#define QMPS_TLB_MODEL_H
+#ifndef QRISCV_TLB_MODEL_H
+#define QRISCV_TLB_MODEL_H
 
 #include <sigc++/sigc++.h>
 
@@ -66,4 +66,4 @@ const Word cpuId;
 Processor* cpu;
 };
 
-#endif // QMPS_TLB_MODEL_H
+#endif // QRISCV_TLB_MODEL_H

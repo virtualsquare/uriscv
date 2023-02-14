@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_TRACE_BROWSER_H
-#define QMPS_TRACE_BROWSER_H
+#ifndef QRISCV_TRACE_BROWSER_H
+#define QRISCV_TRACE_BROWSER_H
 
 #include <boost/function.hpp>
 
@@ -96,4 +96,4 @@ private:
 	std::vector<ViewDelegateType> delegateFactory;
 };
 
-#endif // QMPS_TRACE_BROWSER_H
+#endif // QRISCV_TRACE_BROWSER_H

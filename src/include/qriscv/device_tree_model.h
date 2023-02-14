@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_DEVICE_TREE_MODEL_H
-#define QMPS_DEVICE_TREE_MODEL_H
+#ifndef QRISCV_DEVICE_TREE_MODEL_H
+#define QRISCV_DEVICE_TREE_MODEL_H
 
 #include <sigc++/sigc++.h>
 #include <QAbstractItemModel>
@@ -69,4 +69,4 @@ QIcon deviceTypeIcons[N_EXT_IL];
 static const char* const iconMap[N_EXT_IL];
 };
 
-#endif // QMPS_DEVICE_TREE_MODEL_H
+#endif // QRISCV_DEVICE_TREE_MODEL_H

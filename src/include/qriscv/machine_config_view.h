@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_MACHINE_CONFIG_VIEW_H
-#define QMPS_MACHINE_CONFIG_VIEW_H
+#ifndef QRISCV_MACHINE_CONFIG_VIEW_H
+#define QRISCV_MACHINE_CONFIG_VIEW_H
 
 #include <QWidget>
 
@@ -55,4 +55,4 @@ QLabel* stabLabel;
 QLabel* stabAsidLabel;
 };
 
-#endif // QMPS_MACHINE_CONFIG_VIEW_H
+#endif // QRISCV_MACHINE_CONFIG_VIEW_H

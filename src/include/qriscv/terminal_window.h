@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_TERMINAL_WINDOW_H
-#define QMPS_TERMINAL_WINDOW_H
+#ifndef QRISCV_TERMINAL_WINDOW_H
+#define QRISCV_TERMINAL_WINDOW_H
 
 #include <QMainWindow>
 
@@ -54,4 +54,4 @@ TerminalView* terminalView;
 TerminalStatusWidget* statusWidget;
 };
 
-#endif // QMPS_TERMINAL_WINDOW_H
+#endif // QRISCV_TERMINAL_WINDOW_H

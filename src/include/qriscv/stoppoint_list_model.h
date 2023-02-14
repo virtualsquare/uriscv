@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_STOPPINT_LIST_MODEL_H
-#define QMPS_STOPPINT_LIST_MODEL_H
+#ifndef QRISCV_STOPPINT_LIST_MODEL_H
+#define QRISCV_STOPPINT_LIST_MODEL_H
 
 #include <vector>
 #include <sigc++/sigc++.h>
@@ -115,4 +115,4 @@ private Q_SLOTS:
 	void onMachineRan();
 };
 
-#endif // QMPS_STOPPINT_LIST_MODEL_H
+#endif // QRISCV_STOPPINT_LIST_MODEL_H

@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_STOP_MASK_VIEW_H
-#define QMPS_STOP_MASK_VIEW_H
+#ifndef QRISCV_STOP_MASK_VIEW_H
+#define QRISCV_STOP_MASK_VIEW_H
 
 #include <QGroupBox>
 #include <map>
@@ -36,4 +36,4 @@ public:
 StopMaskView(const std::map<StopCause, QAction*>& actions, QWidget* parent = 0);
 };
 
-#endif // QMPS_STOP_MASK_VIEW_H
+#endif // QRISCV_STOP_MASK_VIEW_H

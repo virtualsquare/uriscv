@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_UI_UTILS_H
-#define QMPS_UI_UTILS_H
+#ifndef QRISCV_UI_UTILS_H
+#define QRISCV_UI_UTILS_H
 
 #include <QString>
 
@@ -38,4 +38,4 @@ QString FormatAddress(Word address);
 
 void SetFirstColumnSpanned(QTreeView* treeView, bool setting = true);
 
-#endif // QMPS_UI_UTILS_H
+#endif // QRISCV_UI_UTILS_H

@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef QMPS_ADDRESS_LINE_EDIT_H
-#define QMPS_ADDRESS_LINE_EDIT_H
+#ifndef QRISCV_ADDRESS_LINE_EDIT_H
+#define QRISCV_ADDRESS_LINE_EDIT_H
 
 #include <QLineEdit>
 
@@ -43,4 +43,4 @@ Word getAsid() const;
 void setAsid(Word asid);
 };
 
-#endif // QMPS_ADDRESS_LINE_EDIT_H
+#endif // QRISCV_ADDRESS_LINE_EDIT_H
