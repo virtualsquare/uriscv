@@ -1,1 +1,1 @@
-add_subdirectory(qmps)
+add_subdirectory(qriscv)
