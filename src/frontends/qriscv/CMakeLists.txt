@@ -4,7 +4,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 add_executable(uriscv
-        qmps.qrc
+        qriscv.qrc
         main.cc
         ../../include/qriscv/application.h
         application.cc
