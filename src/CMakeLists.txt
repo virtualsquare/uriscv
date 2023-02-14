@@ -51,6 +51,12 @@ target_include_directories(uriscv-objdump
     )
 target_link_libraries(uriscv-objdump)
 
+add_executable(uriscv-mkdev uriscv/mkdev.cc)
+target_include_directories(uriscv-mkdev
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
+    )
+target_link_libraries(uriscv-objdump)
+
 install(TARGETS testdis RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_subdirectory(frontends)
