@@ -120,7 +120,7 @@ netinterface::netinterface(const char *name, const char *addr, int intnum) {
     name = name2;
   }
 
-  vdeconn = vdepluglib.vde_open(name, (char *)"uMPS", NULL);
+  vdeconn = vdepluglib.vde_open(name, (char *)"uRISCV", NULL);
   queue = NULL;
   polldata.fd = vdepluglib.vde_datafd(vdeconn);
   polldata.events = POLLIN | POLLOUT | POLLERR | POLLHUP | POLLNVAL;

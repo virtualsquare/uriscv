@@ -71,7 +71,7 @@ MonitorWindow::MonitorWindow()
 	: QMainWindow(),
 	dbgSession(Appl()->getDebugSession())
 {
-	setWindowTitle("uMPS");
+	setWindowTitle("uRISCV");
 
 	QVariant savedGeometry = Appl()->settings.value("MonitorWindow/geometry");
 	if (savedGeometry.isValid())
@@ -396,7 +396,7 @@ QWidget* MonitorWindow::createWelcomeTab()
 	layout->setColumnStretch(2, 1);
 	layout->setContentsMargins(11, 22, 11, 11);
 
-	QLabel* heading = new QLabel(QString("Welcome to %1MPS").arg(QChar(0x00b5)));
+	QLabel* heading = new QLabel(QString("Welcome to %1RISCV").arg(QChar(0x00b5)));
 	QFont font = heading->font();
 	font.setPointSizeF(font.pointSizeF() * 1.3);
 	font.setBold(true);

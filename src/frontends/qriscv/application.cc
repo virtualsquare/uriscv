@@ -34,7 +34,7 @@ Application::Application(int& argc, char** argv)
 	settings("umps3", "umps"),
 	config(NULL)
 {
-	setApplicationName("uMPS");
+	setApplicationName("uRISCV");
 	setWindowIcon(QIcon(":/icons/umps3-48.svg"));
 
 	dbgSession.reset(new DebugSession);
