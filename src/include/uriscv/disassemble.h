@@ -24,6 +24,8 @@
 #ifndef URISCV_DISASSEMBLE_H
 #define URISCV_DISASSEMBLE_H
 
+void setDisassembleSep(const char *newSep);
+
 // This function decodes and returns the opcode type for an instruction
 unsigned int OpType(Word instr);
 
@@ -45,6 +47,8 @@ const char *RegName(unsigned int index);
 
 // This function returns CP0 register name indexed by position
 const char *CP0RegName(unsigned int index);
+
+const char *getBInstrName(Word instr);
 
 // this function returns the pointer to a static buffer which contains
 // the instruction translation into readable form
