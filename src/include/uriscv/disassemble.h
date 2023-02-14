@@ -24,6 +24,8 @@
 #ifndef URISCV_DISASSEMBLE_H
 #define URISCV_DISASSEMBLE_H
 
+void setDisassembleSep(const char *newSep);
+
 // This function decodes and returns the opcode type for an instruction
 unsigned int OpType(Word instr);
 

@@ -42,8 +42,9 @@
 HIDDEN const char *const regName[CPUREGNUM] = {
     "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1", "a0", "a1",
     "a2", "a3", "a4", "a5", "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
-    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
+    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6", "HI", "LO"};
 
+// float register names
 HIDDEN const char *const floatRegName[CPUREGNUM] = {
     "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7", "fs0", "fs1", "fa0", "fa1",
     "fa2", "fa3", "fa4", "fa5", "fa6", "fa7", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7",
@@ -55,6 +56,12 @@ const char* RegName(unsigned int index)
 		return regName[index];
 	else
 		return EMPTYSTR;
+}
+
+const char *sep = " ";
+
+void setDisassembleSep(const char *newSep) {
+	sep = newSep;
 }
 
 // static string buffer size and definition
@@ -82,10 +89,10 @@ HIDDEN void StrRInstr(Word instr) {
 		return;
 	}
 
-	sprintf(strbuf, "%s\t%s,%s,%s",
+	sprintf(strbuf, "%s\t%s,%s%s,%s%s",
 			RInstrName[func3][func7],
-			regName[RD(instr)],
-			regName[RS1(instr)],
+			regName[RD(instr)], sep,
+			regName[RS1(instr)], sep,
 			regName[RS2(instr)]
 	);
 }
@@ -102,10 +109,10 @@ HIDDEN const char *const loadInstrName[] = {
 HIDDEN void StrLoadInstr(Word instr) {
 	uint8_t func3 = FUNC3(instr);
 
-	sprintf(strbuf, "%s\t%s,%d(%s)",
+	sprintf(strbuf, "%s\t%s,%s%d%s(%s)",
 		loadInstrName[func3],
-		regName[RD(instr)],
-		SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE),
+		regName[RD(instr)], sep,
+		SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE), sep,
 		regName[RS1(instr)]);
 }
 
@@ -131,7 +138,7 @@ HIDDEN void StrNonLoadIInstr(Word instr) {
 				return;
 			}
 			else if(SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE) == 0) {
-				sprintf(strbuf, "mv\t%s,%s", regName[RD(instr)], regName[RS1(instr)]);
+				sprintf(strbuf, "mv\t%s,%s%s", regName[RD(instr)], sep, regName[RS1(instr)]);
 				return;
 			}
 		}
@@ -140,10 +147,10 @@ HIDDEN void StrNonLoadIInstr(Word instr) {
 		case OP_XORI:
 		case OP_ORI:
 		case OP_ANDI: {
-            sprintf(strbuf, "%s\t%s,%s,%d",
+            sprintf(strbuf, "%s\t%s,%s%s,%s%d",
 				IInstrName[func3],
-				regName[RD(instr)],
-				regName[RS1(instr)],
+				regName[RD(instr)], sep,
+				regName[RS1(instr)], sep,
 				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE)
 			);
 		}
@@ -151,13 +158,13 @@ HIDDEN void StrNonLoadIInstr(Word instr) {
 
 		case OP_SLLI:
 		case OP_SR: {
-			sprintf(strbuf, "%s\t%s,%s,0x%x",
+			sprintf(strbuf, "%s\t%s,%s%s,%s0x%x",
 				(func3 == OP_SLLI ? 
 					"slli" :
 					(FUNC7(instr) == 0 ? "srli" : "srai")
 				),
-				regName[RD(instr)],
-				regName[RS1(instr)],
+				regName[RD(instr)], sep,
+				regName[RS1(instr)], sep,
 				RS2(instr) // shamt
 			);
 		}
@@ -186,10 +193,10 @@ HIDDEN void StrSInstr(Word instr) {
 		return;
 	}
 
-	sprintf(strbuf, "%s\t%s,%d(%s)",
+	sprintf(strbuf, "%s\t%s,%s%d%s(%s)",
 		SInstrName[func3],
-		regName[RS2(instr)],
-		SIGN_EXTENSION(S_IMM(instr), S_IMM_SIZE),
+		regName[RS2(instr)], sep,
+		SIGN_EXTENSION(S_IMM(instr), S_IMM_SIZE), sep,
 		regName[RS1(instr)]);
 }
 
@@ -213,10 +220,10 @@ const char *getBInstrName(Word instr) {
 HIDDEN void StrBInstr(Word instr) {
 	uint16_t func3 = FUNC3(instr);
 	
-	sprintf(strbuf, "%s\t%s,%s,%d",
+	sprintf(strbuf, "%s\t%s,%s%s,%s%d",
 			BInstrName[func3],
-			regName[RS1(instr)],
-			regName[RS2(instr)],
+			regName[RS1(instr)], sep,
+			regName[RS2(instr)], sep,
 			SIGN_EXTENSION(B_IMM(instr), I_IMM_SIZE));
 }
 
@@ -234,19 +241,19 @@ HIDDEN const char *const CSRInstrName[] = {
 HIDDEN void StrCSRInstr(Word instr, uint8_t func3) {
 	if(func3 < 4) {
 		// Non immediate variants
-		sprintf(strbuf, "%s\t%s,0x%x,%s",
+		sprintf(strbuf, "%s\t%s,%s0x%x,%s%s",
 			CSRInstrName[func3],
-			regName[RD(instr)],
-			I_IMM(instr),
+			regName[RD(instr)], sep,
+			I_IMM(instr), sep,
 			regName[RS1(instr)]
 		);
 	}
 	else {
 		// Immediate variants
-		sprintf(strbuf, "%s\t%s,0x%x,%d",
+		sprintf(strbuf, "%s\t%s,%s0x%x,%s%d",
 			CSRInstrName[func3],
-			regName[RD(instr)],
-			I_IMM(instr),
+			regName[RD(instr)], sep,
+			I_IMM(instr), sep,
 			RS1(instr)
 		);
 	}
@@ -303,22 +310,22 @@ HIDDEN const char *const fCompareInstrNames[] = {
 };
 
 HIDDEN void StrFloatArithmInstr(Word instr, char const *name, uint8_t func3) {
-	sprintf(strbuf, "%s\t%s,%s,%s,%s",
+	sprintf(strbuf, "%s\t%s,%s%s,%s%s,%s%s",
 		name,
-		floatRegName[RD(instr)],
-		floatRegName[RS1(instr)],
-		floatRegName[RS2(instr)],
+		floatRegName[RD(instr)], sep,
+		floatRegName[RS1(instr)], sep,
+		floatRegName[RS2(instr)], sep,
 		roundingModeNames[func3]
 	);
 }
 
 HIDDEN void StrFloatArithmMInstr(Word instr, const char *name) {
-	sprintf(strbuf, "%s\t%s,%s,%s,%s,%s",
+	sprintf(strbuf, "%s\t%s,%s%s,%s%s,%s%s,%s%s",
 		name,
-		floatRegName[RD(instr)],
-		floatRegName[RS1(instr)],
-		floatRegName[RS2(instr)],
-		floatRegName[RS3(instr)],
+		floatRegName[RD(instr)], sep,
+		floatRegName[RS1(instr)], sep,
+		floatRegName[RS2(instr)], sep,
+		floatRegName[RS3(instr)], sep,
 		roundingModeNames[FUNC3(instr)]
 	);
 }
@@ -355,10 +362,10 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 
 		case OP_FSQRTS_FUNC7:
 		case OP_FSQRTD_FUNC7: {
-			sprintf(strbuf, "%s\t%s,%s,%s",
+			sprintf(strbuf, "%s\t%s,%s%s,%s%s",
 				func7 == OP_FSQRTS_FUNC7 ? "fsqrt.s" : "fsqrt.d",
-				floatRegName[RD(instr)],
-				floatRegName[RS1(instr)],
+				floatRegName[RD(instr)], sep,
+				floatRegName[RS1(instr)], sep,
 				roundingModeNames[func3]
 			);
 		}
@@ -371,10 +378,10 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 				return;
 			}
 			
-			sprintf(strbuf, "%s\t%s,%s,%s",
+			sprintf(strbuf, "%s\t%s,%s%s,%s%s",
 				fsgnjsInstrNames[func3 + (func7 == OP_FSGNJS_FUNC7 ? 0 : 3)],
-				floatRegName[RD(instr)],
-				floatRegName[RS1(instr)],
+				floatRegName[RD(instr)], sep,
+				floatRegName[RS1(instr)], sep,
 				floatRegName[RS2(instr)]
 			);
 		}
@@ -392,11 +399,11 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 				instrName = func3 == OP_FMIN_FUNC3 ? "fmin." : "fmax.";
 			}
 
-			sprintf(strbuf, "%s%s\t%s,%s,%s",
+			sprintf(strbuf, "%s%s\t%s,%s%s,%s%s",
 				instrName,
 				precision,
-				floatRegName[RD(instr)],
-				floatRegName[RS1(instr)],
+				floatRegName[RD(instr)], sep,
+				floatRegName[RS1(instr)], sep,
 				floatRegName[RS2(instr)]
 			);
 		}
@@ -423,10 +430,10 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 				break;
 			}
 
-			sprintf(strbuf, "%s\t%s,%s,%s",
+			sprintf(strbuf, "%s\t%s,%s%s,%s%s",
 				instrName,
-				regName[RD(instr)],
-				floatRegName[RS1(instr)],
+				regName[RD(instr)], sep,
+				floatRegName[RS1(instr)], sep,
 				roundingModeNames[func3]
 			);
 		}
@@ -443,9 +450,9 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 								func3 == OP_FMVXW_FUNC3 ?  "fmv.x.w" : "fclass.s"
 							: "unknown instruction";
 			}
-			sprintf(strbuf, "%s\t%s,%s",
+			sprintf(strbuf, "%s\t%s,%s%s",
 				instrName,
-				regName[RD(instr)],
+				regName[RD(instr)], sep,
 				floatRegName[RS1(instr)]
 			);
 		}
@@ -458,10 +465,10 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 				return;
 			}
 
-			sprintf(strbuf, "%s\t%s,%s,%s",
+			sprintf(strbuf, "%s\t%s,%s%s,%s%s",
 				fCompareInstrNames[func3 + (func7 == OP_FCOMPARES_FUNC7 ? 0 : 3)],
-				regName[RD(instr)],
-				floatRegName[RS1(instr)],
+				regName[RD(instr)], sep,
+				floatRegName[RS1(instr)], sep,
 				floatRegName[RS2(instr)]
 			);
 		}
@@ -503,19 +510,20 @@ HIDDEN void StrFloatOpInstr(Word instr) {
 				break;
 			}
 
-			sprintf(strbuf, "%s\t%s,%s%s%s",
+			sprintf(strbuf, "%s\t%s,%s%s%s%s%s",
 				instrName,
-				floatRegName[RD(instr)],
+				floatRegName[RD(instr)], sep,
 				regName[RS1(instr)],
 				roundingModeIndex != 8 ? "," : "",
+				roundingModeIndex != 8 ? sep : "",
 				roundingModeNames[roundingModeIndex]
 			);
 		}
 		break;
 
 		case OP_FMVWX_FUNC7: {
-			sprintf(strbuf, "fmv.w.x\t%s,%s",
-				floatRegName[RD(instr)],
+			sprintf(strbuf, "fmv.w.x\t%s,%s%s",
+				floatRegName[RD(instr)], sep,
 				regName[RS1(instr)]
 			);
 		}
@@ -574,9 +582,9 @@ const char *StrInstr(Word instr) {
 
         case OP_AUIPC:
         case OP_LUI: {
-			sprintf(strbuf, "%s\t%s,0x%x",
+			sprintf(strbuf, "%s\t%s,%s0x%x",
 				opcode == OP_LUI ? "lui" : "auipc",
-				regName[RD(instr)],
+				regName[RD(instr)], sep,
 				U_IMM(instr)
 			);
         }
@@ -590,7 +598,7 @@ const char *StrInstr(Word instr) {
 			else if(rd == 1)
 				sprintf(strbuf, "jal\t%s%d", offs > 0 ? "+" : "", offs);
 			else
-				sprintf(strbuf, "jal\t%s,%d", regName[rd], offs);
+				sprintf(strbuf, "jal\t%s,%s%d", regName[rd], sep, offs);
         }
 		break;
 
@@ -599,9 +607,9 @@ const char *StrInstr(Word instr) {
 				sprintf(strbuf, "ret");
 			}
 			else {
-				sprintf(strbuf, "jalr\t%s,%d(%s)",
-					regName[RD(instr)],
-					SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE),
+				sprintf(strbuf, "jalr\t%s,%s%d%s(%s)",
+					regName[RD(instr)], sep,
+					SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE), sep,
 					regName[RS1(instr)]
 				);
 			}
@@ -612,8 +620,8 @@ const char *StrInstr(Word instr) {
 			if(instr == 0x8330000f) sprintf(strbuf, "fence.tso");
 			else if(instr == 0x0100000f) sprintf(strbuf, "pause");
 			else {
-				sprintf(strbuf, "fence\t%s,%s",
-					FenceOperandMnemonic[FENCE_PRED(instr)],
+				sprintf(strbuf, "fence\t%s,%s%s",
+					FenceOperandMnemonic[FENCE_PRED(instr)], sep,
 					FenceOperandMnemonic[FENCE_SUCC(instr)]
 				);
 			}
@@ -626,20 +634,20 @@ const char *StrInstr(Word instr) {
 		break;
 
 		case OP_FLOAD: {
-			sprintf(strbuf, "%s\t%s,%d(%s)",
+			sprintf(strbuf, "%s\t%s,%s%d%s(%s)",
 				FUNC3(instr) == OP_FLW_FUNC3 ? "flw" : "fld",
-				floatRegName[RD(instr)],
-				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE),
+				floatRegName[RD(instr)], sep,
+				SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE), sep,
 				regName[RS1(instr)]
 			);
 		}
 		break;
 
 		case OP_FSAVE: {
-			sprintf(strbuf, "%s\t%s,%d(%s)",
+			sprintf(strbuf, "%s\t%s,%s%d%s(%s)",
 				FUNC3(instr) == OP_FSW_FUNC3 ? "fsw" : "fsd",
-				floatRegName[RS2(instr)],
-				SIGN_EXTENSION(S_IMM(instr), S_IMM_SIZE),
+				floatRegName[RS2(instr)], sep,
+				SIGN_EXTENSION(S_IMM(instr), S_IMM_SIZE), sep,
 				regName[RS1(instr)]
 			);
 		}

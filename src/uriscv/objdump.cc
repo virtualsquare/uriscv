@@ -246,6 +246,8 @@ HIDDEN int hdrDump(const char * prgName, const char * fileName)
 // Returns an EXIT_SUCCESS/FAILURE code
 HIDDEN int disAsm(const char * prgName, const char * fileName)
 {
+	setDisassembleSep("");
+
 	int ret = EXIT_SUCCESS;
 	FILE * inFile = NULL;
 	Word tag, size;
