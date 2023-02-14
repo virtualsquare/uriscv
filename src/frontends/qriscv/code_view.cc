@@ -180,16 +180,16 @@ QString CodeView::disasmBranch(Word instr, Word pc) const
 	// Word target = pc + WS + (SignExtImm(instr) << 2);
 
 #if 0
-	// // Resolve symbol, if possible
-	// SWord offset;
-	// const char* symbol = GetSymbolicAddress(symbolTable, MachineConfig::MAX_ASID, target, true, &offset);
+	// Resolve symbol, if possible
+	SWord offset;
+	const char* symbol = GetSymbolicAddress(symbolTable, MachineConfig::MAX_ASID, target, true, &offset);
 
-	// return (QString("%1\t$%2, $%3, %4%5")
-	//         .arg(InstructionMnemonic(instr))
-	//         .arg(RegName(RS1(instr)))
-	//         .arg(RegName(RAND_MAX(instr)))
-	//         .arg(target, 8, 16, QChar('0'))
-	//         .arg(symbol ? QString(" <%1+0x%2>").arg(symbol).arg(offset, 0, 16) : QString()));
+	return (QString("%1\t%2,%3,%4%5")
+	        .arg(getBInstrName(instr))
+	        .arg(RegName(RS1(instr)))
+	        .arg(RegName(RS2(instr)))
+	        .arg(target, 8, 16, QChar('0'))
+	        .arg(symbol ? QString(" <%1+0x%2>").arg(symbol).arg(offset, 0, 16) : QString()));
 #else
 	return (QString("%1\t%2,%3,0x%4")
 	        .arg(getBInstrName(instr))
