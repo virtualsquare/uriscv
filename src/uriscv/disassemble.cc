@@ -137,6 +137,13 @@ HIDDEN void StrNonLoadIInstr(Word instr) {
 				sprintf(strbuf, "nop");
 				return;
 			}
+			else if(RS1(instr) == 0) {
+				sprintf(strbuf, "li\t%s,%s%d",
+					regName[RD(instr)], sep,
+					SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE)
+				);
+				return;
+			}
 			else if(SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE) == 0) {
 				sprintf(strbuf, "mv\t%s,%s%s", regName[RD(instr)], sep, regName[RS1(instr)]);
 				return;
