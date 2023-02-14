@@ -205,6 +205,11 @@ HIDDEN const char *const BInstrName[] = {
 	"bgeu",
 };
 
+const char *getBInstrName(Word instr) {
+	uint8_t func3 = FUNC3(instr);
+	return func3 <= 7 ? BInstrName[func3] : "";
+}
+
 HIDDEN void StrBInstr(Word instr) {
 	uint16_t func3 = FUNC3(instr);
 	

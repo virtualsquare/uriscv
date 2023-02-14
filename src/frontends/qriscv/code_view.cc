@@ -82,10 +82,9 @@ CodeView::CodeView(Word cpuId)
 	connect(dbgSession, SIGNAL(MachineRan()), this, SLOT(update()));
 	connect(dbgSession, SIGNAL(MachineReset()), this, SLOT(reset()));
 
-	disasmMap[BEQ] = boost::bind(&CodeView::disasmBranch, this, _1, _2);
-	disasmMap[BNE] = boost::bind(&CodeView::disasmBranch, this, _1, _2);
-	disasmMap[JAL] = boost::bind(&CodeView::disasmJump, this, _1, _2);
-	disasmMap[J] = boost::bind(&CodeView::disasmJump, this, _1, _2);
+	disasmMap[B_TYPE] = boost::bind(&CodeView::disasmBranch, this, _1, _2);
+	disasmMap[OP_JAL] = boost::bind(&CodeView::disasmJump, this, _1, _2);
+	disasmMap[OP_JALR] = boost::bind(&CodeView::disasmJump, this, _1, _2);
 
 	reset();
 }
@@ -192,21 +191,29 @@ QString CodeView::disasmBranch(Word instr, Word pc) const
 	//         .arg(target, 8, 16, QChar('0'))
 	//         .arg(symbol ? QString(" <%1+0x%2>").arg(symbol).arg(offset, 0, 16) : QString()));
 #else
-	return (QString("%1\t$%2, $%3, %4")
-	        .arg(InstructionMnemonic(instr))
+	return (QString("%1\t%2,%3,0x%4")
+	        .arg(getBInstrName(instr))
 	        .arg(RegName(RS1(instr)))
-	        .arg(RegName(RD(instr)))
+	        .arg(RegName(RS2(instr)))
 	        .arg(target, 8, 16, QChar('0')));
 #endif
 }
 
 QString CodeView::disasmJump(Word instr, Word pc) const
 {
-	Word target = JUMPTO(pc, instr);
+	if(instr == INSTR_RET) return QString("ret");
+
+	Word immediate = OPCODE(instr) == OP_JAL ?
+					 SIGN_EXTENSION(J_IMM(instr), J_IMM_SIZE)
+					 :
+					 SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE);
+	const char *instrName = OPCODE(instr) == OP_JAL ? "jal" : "jalr";
+	Word target = pc + immediate;
+
 	SWord offset;
 	const char* symbol = GetSymbolicAddress(symbolTable, MachineConfig::MAX_ASID, target, true, &offset);
-	return (QString("%1\t%2%3")
-	        .arg(InstructionMnemonic(instr))
+	return (QString("%1\t0x%2%3")
+	        .arg(instrName)
 	        .arg(target, 8, 16, QChar('0'))
 	        .arg(symbol ? QString(" <%1+0x%2>").arg(symbol).arg(offset, 0, 16) : QString()));
 }
