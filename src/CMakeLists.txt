@@ -59,7 +59,7 @@ target_link_libraries(uriscv-objdump)
 
 install(TARGETS testdis RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-add_subdirectory(frontends)
+# add_subdirectory(frontends)
 add_subdirectory(support)
 
 set(URISCV_INCLUDE_DIR ${CMAKE_INSTALL_INCLUDEDIR}/uriscv)

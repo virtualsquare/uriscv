@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 
-#define DEBUG 0
+extern bool DEBUG;
 
 #define ERROR(msg)                                                             \
   printf("\n[x] %s\n", msg);                                                   \

@@ -34,7 +34,9 @@
 
 #include <cassert>
 #include <complex>
+#include <cstdio>
 
+#include "uriscv/arch.h"
 #include "uriscv/const.h"
 #include "uriscv/cp0.h"
 #include "uriscv/disassemble.h"
@@ -273,6 +275,10 @@ void Processor::Reset(Word pc, Word sp) {
   cpreg[STATUS] = STATUSRESET;
   cpreg[PRID] = id;
 
+  csrWrite(MSTATUS, 0);
+  csrWrite(MCAUSE, 0);
+  // TODO: set misa and PC
+
   currPC = pc;
 
   // maps PC to physical address space and fetches first instruction
@@ -311,10 +317,11 @@ void Processor::Cycle() {
     return;
 
   // Update internal timer
-  if (cpreg[STATUS] & STATUS_TE) {
-    if (cpreg[CP0REG_TIMER] == 0)
+  // read MIE bit
+  if (csrRead(MSTATUS) & STATUS_MIE_MASK && csrRead(MIE) & MIE_MTIE_MASK) {
+    if (csrRead(TIME) == 0)
       AssertIRQ(IL_CPUTIMER);
-    cpreg[CP0REG_TIMER]--;
+    csrWrite(TIME, csrRead(TIME));
   } else {
     DeassertIRQ(IL_CPUTIMER);
   }
@@ -362,20 +369,22 @@ void Processor::Cycle() {
     handleExc();
   }
 }
-
-uint32_t Processor::IdleCycles() const {
+uint32_t Processor::IdleCycles() {
   if (isHalted())
     return (uint32_t)-1;
   else if (isIdle())
-    return (cpreg[STATUS] & STATUS_TE) ? cpreg[CP0REG_TIMER] : (uint32_t)-1;
+    return (csrRead(MSTATUS) & STATUS_MIE_MASK & csrRead(MIE) & MIE_MTIE_MASK)
+               ? csrRead(TIME)
+               : (uint32_t)-1;
   else
     return 0;
 }
 
 void Processor::Skip(uint32_t cycles) {
   assert(isIdle() && cycles <= IdleCycles());
-  if (cpreg[STATUS] & STATUS_TE)
-    cpreg[CP0REG_TIMER] -= cycles;
+
+  if (csrRead(MSTATUS) & STATUS_MIE_MASK & csrRead(MIE) & MIE_MTIE_MASK)
+    csrWrite(TIME, csrRead(TIME) - cycles);
 }
 
 // This method allows SystemBus and Processor itself to signal Processor
@@ -389,9 +398,8 @@ void Processor::Skip(uint32_t cycles) {
 // Exception processing is done by Processor private method handleExc()
 void Processor::SignalExc(unsigned int exc, Word cpuNum) {
   excCause = exc;
-  csrWrite(MCAUSE, exc);
   SignalException.emit(excCause);
-  // used only for CPUEXCEPTION handling
+  // used only for EXC_CPU handling
   copENum = cpuNum;
 }
 
@@ -618,7 +626,8 @@ bool Processor::checkForInt() {
  * Try to enter standby mode
  */
 void Processor::suspend() {
-  if (!(cpreg[CAUSE] & CAUSE_IP_MASK))
+  // if (!(cpreg[CAUSE] & CAUSE_IP_MASK))
+  if (!(csrRead(MCAUSE) >> 31))
     setStatus(PS_IDLE);
 }
 
@@ -628,45 +637,54 @@ void Processor::suspend() {
 void Processor::handleExc() {
   // If there is a load pending, it is completed while the processor
   // prepares for exception handling (a small bubble...).
-  completeLoad();
+  // completeLoad();
+
+  DEBUGMSG("EXCEPTIONSSS\n");
+  csrWrite(MCAUSE, excCause);
+  csrWrite(MEPC, currPC + 4);
+  DEBUGMSG("MCAUSE %d\n", csrRead(MCAUSE));
 
   // set the excCode into CAUSE reg
-  cpreg[CAUSE] = IM(cpreg[CAUSE]) | (excCode[excCause] << CAUSE_EXCCODE_BIT);
-
-  if (isBranchD) {
-    // previous instr. is branch/jump: must restart from it
-    cpreg[CAUSE] = SetBit(cpreg[CAUSE], CAUSE_BD_BIT);
-    cpreg[EPC] = prevPC;
-    // first instruction in exception handler itself is not in a BD slot
-    isBranchD = false;
-  } else {
-    // BD is already set to 0 by CAUSE masking with IM; sets only EPC
-    cpreg[EPC] = currPC;
-  }
-
-  // Set coprocessor unusable number in CAUSE register for
-  // `Coprocessor Unusable' exceptions
-  if (excCause == CPUEXCEPTION)
-    cpreg[CAUSE] = cpreg[CAUSE] | (copENum << COPEOFFSET);
+  // cpreg[CAUSE] = IM(cpreg[CAUSE]) | (excCode[excCause] << CAUSE_EXCCODE_BIT);
+  //
+  // if (isBranchD) {
+  //   // previous instr. is branch/jump: must restart from it
+  //   cpreg[CAUSE] = SetBit(cpreg[CAUSE], CAUSE_BD_BIT);
+  //   cpreg[EPC] = prevPC;
+  //   // first instruction in exception handler itself is not in a BD slot
+  //   isBranchD = false;
+  // } else {
+  //   // BD is already set to 0 by CAUSE masking with IM; sets only EPC
+  //   cpreg[EPC] = currPC;
+  // }
+  //
+  // // Set coprocessor unusable number in CAUSE register for
+  // // `Coprocessor Unusable' exceptions
+  // if (excCause == EXC_CPU)
+  //   cpreg[CAUSE] = cpreg[CAUSE] | (copENum << COPEOFFSET);
 
   // Set PC to the right handler
   Word excVector;
-  if (BitVal(cpreg[STATUS], STATUS_BEV_BIT)) {
-    // Machine bootstrap exception handler
-    excVector = BOOTEXCBASE;
-  } else {
-    excVector = KSEG0BASE;
-  }
-  // ERRORMSG("eccoci %d\n", excCause);
-  // ERRORMSG("handler %x\n", excVector);
-  // ERROR("eccoci");
+  // if (BitVal(cpreg[STATUS], STATUS_BEV_BIT)) {
+  //   // Machine bootstrap exception handler
+  //   excVector = BOOTEXCBASE;
+  // } else {
+  //   excVector = KSEG0BASE;
+  // }
+  excVector = KSEG0BASE;
 
-  pushKUIEStack();
+  // pushKUIEStack();
 
   if (excCause == UTLBLEXCEPTION || excCause == UTLBSEXCEPTION)
     excVector += TLBREFOFFS;
   else
     excVector += OTHEREXCOFFS;
+
+  excVector = csrRead(MTVEC);
+
+  ERRORMSG("eccoci %d\n", excCause);
+  ERRORMSG("handler %x\n", excVector);
+  // ERROR("eccoci");
 
   if (excCause == INTEXCEPTION) {
     // interrupt: test is before istruction fetch, so handling
@@ -777,9 +795,9 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
     cpreg[BADVADDR] = vaddr;
 
     if (accType == WRITE)
-      SignalExc(ADESEXCEPTION);
+      SignalExc(EXC_ADES);
     else
-      SignalExc(ADELEXCEPTION);
+      SignalExc(EXC_ADEL);
 
     return true;
   } else if (INBOUNDS(vaddr, KSEG0BASE, tlbFloorAddress)) {
@@ -804,7 +822,7 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
         // write operation on frame with D bit set to 0
         *paddr = MAXWORDVAL;
         setTLBRegs(vaddr);
-        SignalExc(MODEXCEPTION);
+        SignalExc(EXC_MOD);
         return true;
       }
     } else {
@@ -812,9 +830,9 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
       *paddr = MAXWORDVAL;
       setTLBRegs(vaddr);
       if (accType == WRITE)
-        SignalExc(TLBSEXCEPTION);
+        SignalExc(EXC_TLBS);
       else
-        SignalExc(TLBLEXCEPTION);
+        SignalExc(EXC_TLBL);
 
       return true;
     }
@@ -921,7 +939,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(CPUEXCEPTION, 0);
+      SignalExc(EXC_CPU, 0);
       e = true;
       break;
     }
@@ -955,7 +973,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("ADD not recognized (%x)\n", FUNC7);
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         break;
       }
@@ -981,7 +999,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         break;
       }
@@ -1007,7 +1025,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         break;
       }
@@ -1033,7 +1051,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         break;
       }
@@ -1061,7 +1079,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         break;
       }
@@ -1094,7 +1112,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         break;
       }
@@ -1120,7 +1138,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         break;
       }
@@ -1146,7 +1164,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         break;
       }
@@ -1154,7 +1172,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(CPUEXCEPTION, 0);
+      SignalExc(EXC_CPU, 0);
       e = true;
       break;
     }
@@ -1214,7 +1232,7 @@ bool Processor::execInstr(Word instr) {
         break;
       }
       default:
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         break;
       }
@@ -1235,7 +1253,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(CPUEXCEPTION, 0);
+      SignalExc(EXC_CPU, 0);
       e = true;
       break;
     }
@@ -1258,7 +1276,7 @@ bool Processor::execInstr(Word instr) {
         // https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/slides/14-ecf-pre.pdf
         DEBUGMSG("ECALL %d\n", regRead(REG_A0));
         setNextPC(getPC() + WORDLEN);
-        SignalExc(SYSEXCEPTION);
+        SignalExc(EXC_SYS);
         e = true;
 
         // ERROR("ECALL");
@@ -1278,8 +1296,22 @@ bool Processor::execInstr(Word instr) {
       }
       case EBREAK_IMM: {
         DEBUGMSG("EBREAK\n");
-        SignalExc(BPEXCEPTION);
+        SignalExc(EXC_BP);
         e = true;
+        break;
+      }
+      case MRET_IMM: {
+        /*
+         An xRET instruction can be executed in privilege mode x or higher,
+         where executing a lower-privilege xRET instruction will pop the
+         relevant lower-privilege interrupt enable and privilege mode stack. In
+         addition to manipulating the privilege stack as described in
+         Section 3.1.6.1, xRET sets the pc to the value stored in the xepc
+         register.
+        */
+        // TODO: change privilege mode
+        setNextPC(csrRead(MEPC));
+        DEBUGMSG("MRET %x\n", csrRead(MEPC));
         break;
       }
       case EWFI_IMM: {
@@ -1288,7 +1320,7 @@ bool Processor::execInstr(Word instr) {
         break;
       }
       default: {
-        SignalExc(CPUEXCEPTION, 0);
+        SignalExc(EXC_CPU, 0);
         e = true;
         ERROR("not found");
         break;
@@ -1297,7 +1329,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_CSRRW: {
-      std::cout << "CSRRW\n";
+      DEBUGMSG("CSRRW %s(%x),%s(%x),%x\n", regName[rd], regRead(rd),
+               regName[rs1], regRead(rs1), imm);
       if (rd != 0x0)
         regWrite(rd, csrRead(imm));
       if (rs1 != 0x0)
@@ -1342,7 +1375,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(CPUEXCEPTION, 0);
+      SignalExc(EXC_CPU, 0);
       e = true;
       ERROR("not found");
       break;
@@ -1412,7 +1445,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(CPUEXCEPTION, 0);
+      SignalExc(EXC_CPU, 0);
       e = true;
       break;
     }
@@ -1466,7 +1499,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(CPUEXCEPTION, 0);
+      SignalExc(EXC_CPU, 0);
       e = true;
       break;
     }
@@ -1524,7 +1557,7 @@ bool Processor::execInstr(Word instr) {
   // }
   default: {
     ERRORMSG("OpCode not handled %x\n", instr);
-    SignalExc(CPUEXCEPTION, 0);
+    SignalExc(EXC_CPU, 0);
     e = true;
     ERROR("opcode not handled");
     break;
@@ -1686,554 +1719,25 @@ Word Processor::merge(Word dest, Word src, unsigned int bytep, bool loadBig,
 // guidelines; returns instruction result thru res pointer, and branch delay
 // slot indication if needed (due to JR/JALR presence). It also returns TRUE
 // if an exception occurred, FALSE otherwise
-bool Processor::execRegInstr(Word *res, Word instr, bool *isBD) {
-  /*
-  bool error = false;
-  Word paddr;
-  bool atomic;
-
-  *isBD = false;
-
-  error = InvalidRegInstr(instr);
-  if (!error) {
-    // instruction format is correct
-    switch (FUNCT(instr)) {
-    case SFN_ADD:
-      if (SignAdd(res, gpr[RS(instr)], gpr[RT(instr)])) {
-        SignalExc(OVEXCEPTION);
-        error = true;
-      }
-      break;
-
-    case SFN_ADDU:
-      *res = gpr[RS(instr)] + gpr[RT(instr)];
-      break;
-
-    case SFN_AND:
-      *res = gpr[RS(instr)] & gpr[RT(instr)];
-      break;
-
-    case SFN_BREAK:
-      SignalExc(BPEXCEPTION);
-      error = true;
-      break;
-
-    case SFN_DIV:
-      if (gpr[RT(instr)] != 0) {
-        gpr[LO] = gpr[RS(instr)] / gpr[RT(instr)];
-        gpr[HI] = gpr[RS(instr)] % gpr[RT(instr)];
-      } else {
-        // divisor is zero
-        gpr[LO] = MAXSWORDVAL;
-        gpr[HI] = 0;
-      }
-      break;
-
-    case SFN_DIVU:
-      if (gpr[RT(instr)] != 0) {
-        gpr[LO] = ((Word)gpr[RS(instr)]) / ((Word)gpr[RT(instr)]);
-        gpr[HI] = ((Word)gpr[RS(instr)]) % ((Word)gpr[RT(instr)]);
-      } else {
-        // divisor is zero
-        gpr[LO] = MAXSWORDVAL;
-        gpr[HI] = 0;
-      }
-      break;
-    case SFN_JALR:
-      // solution "by the book"
-      succPC = gpr[RS(instr)];
-      *res = currPC + (2 * WORDLEN);
-      *isBD = true;
-      // alternative: *res = succPC; succPC = gpr[RS(instr)]
-      break;
-
-    case SFN_JR:
-      succPC = gpr[RS(instr)];
-      *isBD = true;
-      break;
-
-    case SFN_MFHI:
-      *res = gpr[HI];
-      break;
-
-    case SFN_MFLO:
-      *res = gpr[LO];
-      break;
-
-    case SFN_MTHI:
-      gpr[HI] = gpr[RS(instr)];
-      break;
-
-    case SFN_MTLO:
-      gpr[LO] = gpr[RS(instr)];
-      break;
-
-    case SFN_MULT:
-      SignMult(gpr[RS(instr)], gpr[RT(instr)], &(gpr[HI]), &(gpr[LO]));
-      break;
-
-    case SFN_MULTU:
-      UnsMult((Word)gpr[RS(instr)], (Word)gpr[RT(instr)], (Word *)&(gpr[HI]),
-              (Word *)&(gpr[LO]));
-      break;
-
-    case SFN_NOR:
-      *res = ~(gpr[RS(instr)] | gpr[RT(instr)]);
-      break;
-
-    case SFN_OR:
-      *res = gpr[RS(instr)] | gpr[RT(instr)];
-      break;
-
-    case SFN_SLL:
-      *res = gpr[RT(instr)] << SHAMT(instr);
-      break;
-
-    case SFN_SLLV:
-      *res = gpr[RT(instr)] << REGSHAMT(gpr[RS(instr)]);
-      break;
-
-    case SFN_SLT:
-      if (gpr[RS(instr)] < gpr[RT(instr)])
-        *res = 1UL;
-      else
-        *res = 0UL;
-      break;
-
-    case SFN_SLTU:
-      if (((Word)gpr[RS(instr)]) < ((Word)gpr[RT(instr)]))
-        *res = 1UL;
-      else
-        *res = 0UL;
-      break;
-
-    case SFN_SRA:
-      *res = (gpr[RT(instr)] >> SHAMT(instr));
-      break;
-
-    case SFN_SRAV:
-      *res = (gpr[RT(instr)] >> REGSHAMT(gpr[RS(instr)]));
-      break;
-
-    case SFN_SRL:
-      *res = (((Word)gpr[RT(instr)]) >> SHAMT(instr));
-      break;
-
-    case SFN_SRLV:
-      *res = (((Word)gpr[RT(instr)]) >> REGSHAMT(gpr[RS(instr)]));
-      break;
-
-    case SFN_SUB:
-      if (SignSub(res, gpr[RS(instr)], gpr[RT(instr)])) {
-        SignalExc(OVEXCEPTION);
-        error = true;
-      }
-      break;
-
-    case SFN_SUBU:
-      *res = gpr[RS(instr)] - gpr[RT(instr)];
-      break;
-
-    case SFN_SYSCALL:
-      SignalExc(SYSEXCEPTION);
-      error = true;
-      break;
-
-    case SFN_XOR:
-      *res = gpr[RS(instr)] ^ gpr[RT(instr)];
-      break;
-
-    case SFN_CAS:
-      if (mapVirtual(gpr[RS(instr)], &paddr, WRITE) ||
-          bus->CompareAndSet(paddr, gpr[RT(instr)], gpr[RD(instr)], &atomic,
-                             this))
-        error = true;
-      else
-        *res = atomic;
-      break;
-
-    default:
-      // unknown instruction
-      SignalExc(RIEXCEPTION);
-      error = true;
-    }
-  } else {
-    // istruction is ill-formed
-    SignalExc(RIEXCEPTION);
-  }
-
-  return error;
-  */
-  return true;
-}
+bool Processor::execRegInstr(Word *res, Word instr, bool *isBD) { return true; }
 
 // This method executes a MIPS immediate-type instruction, following MIPS
 // guidelines; returns instruction result thru res pointer. It also returns
 // TRUE if an exception occurred, FALSE otherwise
-bool Processor::execImmInstr(Word *res, Word instr) {
-  /*
-  bool error = false;
-
-  switch (OPCODE(instr)) {
-  case ADDI:
-    if (SignAdd(res, gpr[RS(instr)], SignExtImm(instr))) {
-      SignalExc(OVEXCEPTION);
-      error = true;
-    }
-    break;
-
-  case ADDIU:
-    *res = gpr[RS(instr)] + SignExtImm(instr);
-    break;
-
-  case ANDI:
-    *res = gpr[RS(instr)] & ZEXTIMM(instr);
-    break;
-
-  case LUI:
-    if (!RS(instr))
-      *res = (ZEXTIMM(instr) << HWORDLEN);
-    else {
-      // instruction is ill-formed
-      SignalExc(RIEXCEPTION);
-      error = true;
-    }
-    break;
-
-  case ORI:
-    *res = gpr[RS(instr)] | ZEXTIMM(instr);
-    break;
-
-  case SLTI:
-    if (gpr[RS(instr)] < SignExtImm(instr))
-      *res = 1UL;
-    else
-      *res = 0UL;
-    break;
-
-  case SLTIU:
-    if (((Word)gpr[RS(instr)]) < ((Word)SignExtImm(instr)))
-      *res = 1UL;
-    else
-      *res = 0UL;
-    break;
-
-  case XORI:
-    *res = gpr[RS(instr)] ^ ZEXTIMM(instr);
-    break;
-
-  default:
-    SignalExc(RIEXCEPTION);
-    error = true;
-    break;
-  }
-  return (error);
-  */
-  return true;
-}
+bool Processor::execImmInstr(Word *res, Word instr) { return true; }
 
 // This method executes a MIPS branch-type instruction, following MIPS
 // guidelines; returns instruction result thru res pointer, and branch delay
 // slot indication if needed. It also returns TRUE if an exception occurred,
 // FALSE otherwise
-bool Processor::execBranchInstr(Word instr, bool *isBD) {
-  /*
-  bool error = false;
-
-  switch (OPCODE(instr)) {
-  case BEQ:
-    if (gpr[RS(instr)] == gpr[RT(instr)])
-      succPC = nextPC + (SignExtImm(instr) << WORDSHIFT);
-    break;
-
-  case BGL:
-    // uses RT field to choose which branch type is requested
-    switch (RT(instr)) {
-    case BGEZ:
-      if (!SIGNBIT(gpr[RS(instr)]))
-        succPC = nextPC + (SignExtImm(instr) << WORDSHIFT);
-      break;
-
-    case BGEZAL:
-      // solution "by the book"; alternative: gpr[..] = succPC
-      gpr[LINKREG] = currPC + (2 * WORDLEN);
-      if (!SIGNBIT(gpr[RS(instr)]))
-        succPC = nextPC + (SignExtImm(instr) << WORDSHIFT);
-      break;
-
-    case BLTZ:
-      if (SIGNBIT(gpr[RS(instr)]))
-        succPC = nextPC + (SignExtImm(instr) << WORDSHIFT);
-      break;
-
-    case BLTZAL:
-      gpr[LINKREG] = currPC + (2 * WORDLEN);
-      if (SIGNBIT(gpr[RS(instr)]))
-        succPC = nextPC + (SignExtImm(instr) << WORDSHIFT);
-      break;
-
-    default:
-      // unknown instruction
-      SignalExc(RIEXCEPTION);
-      error = true;
-      break;
-    }
-    break;
-
-  case BGTZ:
-    if (!RT(instr)) {
-      // instruction is well formed
-      if (gpr[RS(instr)] > 0)
-        succPC = nextPC + (SignExtImm(instr) << WORDSHIFT);
-    } else {
-      // istruction is ill-formed
-      SignalExc(RIEXCEPTION);
-      error = true;
-    }
-    break;
-
-  case BLEZ:
-    if (!RT(instr)) {
-      // instruction is well formed
-      if (gpr[RS(instr)] <= 0)
-        succPC = nextPC + (SignExtImm(instr) << WORDSHIFT);
-    } else {
-      // istruction is ill-formed
-      SignalExc(RIEXCEPTION);
-      error = true;
-    }
-    break;
-
-  case BNE:
-    if (gpr[RS(instr)] != gpr[RT(instr)])
-      succPC = nextPC + (SignExtImm(instr) << WORDSHIFT);
-    break;
-
-  case J:
-    succPC = JUMPTO(nextPC, instr);
-    break;
-
-  case JAL:
-    // solution "by the book": alt. gpr[..] = succPC
-    gpr[LINKREG] = currPC + (2 * WORDLEN);
-    succPC = JUMPTO(nextPC, instr);
-    break;
-
-  default:
-    SignalExc(RIEXCEPTION);
-    error = true;
-    break;
-  }
-
-  // Next instruction is BD slot, unless an exception occurred
-  *isBD = !error;
-
-  return error;
-  */
-  return true;
-}
+bool Processor::execBranchInstr(Word instr, bool *isBD) { return true; }
 
 // This method executes a MIPS load-type instruction, following MIPS
 // guidelines. It returns TRUE if an exception occurred, FALSE
 // otherwise.
-bool Processor::execLoadInstr(Word instr) {
-  /*
-  Word paddr, vaddr, temp;
-  bool error = false;
-
-  switch (OPCODE(instr)) {
-  case LB:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-
-    // reads the full word from bus and then extracts the byte
-    if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-        !bus->DataRead(paddr, &temp, this))
-      setLoad(LOAD_TARGET_GPREG, RT(instr), signExtByte(temp,
-  BYTEPOS(vaddr))); else
-      // exception signaled: rt not loadable
-      error = true;
-    break;
-
-  case LBU:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-
-    // reads the full word from bus and then extracts the byte
-    if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-        !bus->DataRead(paddr, &temp, this))
-      setLoad(LOAD_TARGET_GPREG, RT(instr),
-              (SWord)zExtByte(temp, BYTEPOS(vaddr)));
-    else
-      // exception signaled: rt not loadable
-      error = true;
-    break;
-
-  case LH:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-    if (BitVal(vaddr, 0)) {
-      // unaligned halfword
-      SignalExc(ADELEXCEPTION);
-      error = true;
-    } else
-      // reads the full word from bus and then extracts the halfword
-      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !bus->DataRead(paddr, &temp, this))
-        setLoad(LOAD_TARGET_GPREG, RT(instr),
-                signExtHWord(temp, HWORDPOS(vaddr)));
-      else
-        // exception signaled: rt not loadable
-        error = true;
-    break;
-
-  case LHU:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-    if (BitVal(vaddr, 0)) {
-      // unaligned halfword
-      SignalExc(ADELEXCEPTION);
-      error = true;
-    } else
-      // reads the full word from bus and then extracts the halfword
-      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !bus->DataRead(paddr, &temp, this))
-        setLoad(LOAD_TARGET_GPREG, RT(instr),
-                (SWord)zExtHWord(temp, HWORDPOS(vaddr)));
-      else
-        // exception signaled: rt not loadable
-        error = true;
-    break;
-
-  case LW:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-    if (!mapVirtual(vaddr, &paddr, READ) && !bus->DataRead(paddr, &temp,
-  this)) setLoad(LOAD_TARGET_GPREG, RT(instr), (SWord)temp); else
-      // exception signaled: rt not loadable
-      error = true;
-    break;
-
-  case LWL:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-
-    // reads the full word from bus and then extracts the desired part
-    if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-        !bus->DataRead(paddr, &temp, this)) {
-      temp =
-          merge((Word)gpr[RT(instr)], temp, BYTEPOS(vaddr), BIGENDIANCPU,
-  true); setLoad(LOAD_TARGET_GPREG, RT(instr), temp); } else
-      // exception signaled: rt not loadable
-      error = true;
-    break;
-
-  case LWR:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-
-    // reads the full word from bus and then extracts the desired part
-    if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-        !bus->DataRead(paddr, &temp, this)) {
-      temp = merge((Word)gpr[RT(instr)], temp, BYTEPOS(vaddr), BIGENDIANCPU,
-                   false);
-      setLoad(LOAD_TARGET_GPREG, RT(instr), temp);
-    } else
-      // exception signaled: rt not loadable
-      error = true;
-    break;
-
-  default:
-    SignalExc(RIEXCEPTION);
-    error = true;
-    break;
-  }
-  return (error);
-  */
-  return true;
-}
+bool Processor::execLoadInstr(Word instr) { return true; }
 
 // This method executes a MIPS store-type instruction, following MIPS
 // guidelines; It returns TRUE if an exception occurred, FALSE
 // otherwise.
-bool Processor::execStoreInstr(Word instr) {
-  /*
-  Word paddr, vaddr, temp;
-  bool error = false;
-
-  switch (OPCODE(instr)) {
-  case SB:
-    // here things are a little dirty: instead of writing
-    // the byte directly into memory, it reads the full word,
-    // modifies the byte as needed, and writes the word back.
-    // This works because there could be read-only memory but
-    // not write-only...
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-    if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
-        !bus->DataRead(paddr, &temp, this)) {
-      temp = mergeByte(temp, (Word)gpr[RT(instr)], BYTEPOS(vaddr));
-      if (bus->DataWrite(paddr, temp, this))
-        // bus exception signaled
-        error = true;
-    } else
-      // address or bus exception signaled
-      error = true;
-    break;
-
-  case SH:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-    if (BitVal(vaddr, 0)) {
-      // unaligned halfword
-      SignalExc(ADESEXCEPTION);
-      error = true;
-    } else
-      // the same "dirty" thing here...
-      if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
-          !bus->DataRead(paddr, &temp, this)) {
-        temp = mergeHWord(temp, (Word)gpr[RT(instr)], HWORDPOS(vaddr));
-        if (bus->DataWrite(paddr, temp, this))
-          // bus exception signaled
-          error = true;
-      } else
-        // address or bus exception signaled
-        error = true;
-    break;
-
-  case SW:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-    if (mapVirtual(vaddr, &paddr, WRITE) ||
-        bus->DataWrite(paddr, (Word)gpr[RT(instr)], this))
-      // address or bus exception signaled
-      error = true;
-    break;
-
-  case SWL:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-    if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
-        !bus->DataRead(paddr, &temp, this)) {
-      temp = merge(temp, (Word)gpr[RT(instr)], BYTEPOS(vaddr),
-  !(BIGENDIANCPU), false);
-
-      if (bus->DataWrite(paddr, temp, this))
-        // bus exception
-        error = true;
-    } else
-      // address or bus exception signaled
-      error = true;
-    break;
-
-  case SWR:
-    vaddr = gpr[RS(instr)] + SignExtImm(instr);
-    if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
-        !bus->DataRead(paddr, &temp, this)) {
-      temp = merge(temp, (Word)gpr[RT(instr)], BYTEPOS(vaddr),
-  !(BIGENDIANCPU), true); if (bus->DataWrite(paddr, temp, this))
-        // bus exception signaled
-        error = true;
-    } else
-      // addresss or bus exception signaled
-      error = true;
-    break;
-
-  default:
-    SignalExc(RIEXCEPTION);
-    error = true;
-    break;
-  }
-  return (error);
-  */
-  return true;
-}
+bool Processor::execStoreInstr(Word instr) { return true; }

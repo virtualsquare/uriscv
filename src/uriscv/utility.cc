@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+bool DEBUG = false;
+
 void Utility::readFile(std::string filename, char *&dst, Word *size) {
   std::ifstream file(filename,
                      std::ios::in | std::ifstream::ate | std::ios::binary);

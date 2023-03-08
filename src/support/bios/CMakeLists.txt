@@ -10,7 +10,6 @@ endforeach()
 set(BIOS_CFLAGS -fno-pic -ffreestanding -static -march=rv32imd -mabi=ilp32d )
 set(BIOS_CPPFLAGS -I${PROJECT_SOURCE_DIR}/include)
 
-message("ciao" ${CMAKE_CURRENT_BINARY_DIR})
 foreach(TYPE ${ROM_TYPES})
   message(STATUS ${BIOS_CPPFLAGS})
         add_custom_target(${TYPE}.eb ALL

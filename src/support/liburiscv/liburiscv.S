@@ -77,6 +77,7 @@ LEAF_FUNC(SYSCALL)
 	nop
 	jr	ra
 
+/* TODO: tutti i get e i set sono da rifare */
 /*
  * Define CP0 register accessors.
  *
@@ -128,12 +129,15 @@ LEAF_FUNC(getSTATUS)
 DEFINE_CP0_GETTER(CAUSE, CP0_Cause)
 */
 LEAF_FUNC(getCAUSE)
-  addi a0,a0,3
+  csrrw t0,mcause,zero
+  addi a0,t0,0
 	jr	ra
 /*
 DEFINE_CP0_GETTER(EPC, CP0_EPC)
 */
 LEAF_FUNC(getEPC)
+  csrrw t0,mepc,zero
+  addi a0,t0,0
   addi a0,a0,3
 	jr	ra
 /*
@@ -297,6 +301,7 @@ LEAF_FUNC(TLBCLR)
  * PC field itself is intentionally left at 0 value
  */
 LEAF_FUNC(STST)
+  /* TODO: check this function */
   /*
 	.set	noat
 	sw	1, 16(a0)

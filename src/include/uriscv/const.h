@@ -43,6 +43,28 @@
 #define STVAL 0x143
 #define MTVAL 0x343
 
+#define MSTATUS 0x300
+
+/*
+ *
+ * The mip register is an MXLEN-bit read/write register containing information
+ * on pending interrupts, , while mie is the corresponding MXLEN-bit read/write
+ * register containing interrupt enable bits.
+ *
+ */
+#define UIE 0x4
+#define UIP 0x44
+
+#define SIE 0x104
+#define SIP 0x144
+
+#define MIE 0x304
+#define MIP 0x344
+
+#define STATUS_MIE_MASK 0x8
+#define MIE_MTIE_MASK 0x40
+#define MIP_MTIP_MASK 0x40
+
 // general configuration constants
 #define MPSFILETYPE ".uriscv"
 #define AOUTFILETYPE ".aout.uriscv"

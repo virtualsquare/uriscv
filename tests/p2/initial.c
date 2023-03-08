@@ -130,7 +130,7 @@ int main(int argc, int *argv[]) {
   ++activeProc;
   insert_ready_queue(PROCESS_PRIO_LOW, firstProc);
   firstProc->p_s.status = ALLOFF | IEPON | IMON | TEBITON;
-  firstProc->p_s.pc_epc = firstProc->p_s.reg_t9 = (memaddr)test;
+  firstProc->p_s.pc_epc = (memaddr)test;
   RAMTOP(firstProc->p_s.reg_sp);
 
   scheduler();

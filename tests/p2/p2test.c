@@ -126,9 +126,10 @@ void print(char *msg) {
 /* One can place debug calls here, but not calls to print */
 void uTLB_RefillHandler() {
 
-  setENTRYHI(0x80000000);
-  setENTRYLO(0x00000000);
-  TLBWR();
+  // TODO: riattivare
+  // setENTRYHI(0x80000000);
+  // setENTRYLO(0x00000000);
+  // TLBWR();
 
   LDST((state_t *)0x0FFFF000);
 }
@@ -146,88 +147,88 @@ void test() {
 
   STST(&hp_p1state);
   hp_p1state.reg_sp = hp_p1state.reg_sp - QPAGE;
-  hp_p1state.pc_epc = hp_p1state.reg_t9 = (memaddr)hp_p1;
+  hp_p1state.pc_epc = (memaddr)hp_p1;
   hp_p1state.status = hp_p1state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&hp_p2state);
   hp_p2state.reg_sp = hp_p1state.reg_sp - QPAGE;
-  hp_p2state.pc_epc = hp_p2state.reg_t9 = (memaddr)hp_p2;
+  hp_p2state.pc_epc = (memaddr)hp_p2;
   hp_p2state.status = hp_p2state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&p2state);
   p2state.reg_sp = hp_p2state.reg_sp - QPAGE;
-  p2state.pc_epc = p2state.reg_t9 = (memaddr)p2;
+  p2state.pc_epc = (memaddr)p2;
   p2state.status = p2state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&p3state);
   p3state.reg_sp = p2state.reg_sp - QPAGE;
-  p3state.pc_epc = p3state.reg_t9 = (memaddr)p3;
+  p3state.pc_epc = (memaddr)p3;
   p3state.status = p3state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&p4state);
   p4state.reg_sp = p3state.reg_sp - QPAGE;
-  p4state.pc_epc = p4state.reg_t9 = (memaddr)p4;
+  p4state.pc_epc = (memaddr)p4;
   p4state.status = p4state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&p5state);
   p5Stack = p5state.reg_sp =
       p4state.reg_sp - (2 * QPAGE); /* because there will 2 p4 running*/
-  p5state.pc_epc = p5state.reg_t9 = (memaddr)p5;
+  p5state.pc_epc = (memaddr)p5;
   p5state.status = p5state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&p6state);
   p6state.reg_sp = p5state.reg_sp - (2 * QPAGE);
-  p6state.pc_epc = p6state.reg_t9 = (memaddr)p6;
+  p6state.pc_epc = (memaddr)p6;
   p6state.status = p6state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&p7state);
   p7state.reg_sp = p6state.reg_sp - QPAGE;
-  p7state.pc_epc = p7state.reg_t9 = (memaddr)p7;
+  p7state.pc_epc = (memaddr)p7;
   p7state.status = p7state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&p8rootstate);
   p8rootstate.reg_sp = p7state.reg_sp - QPAGE;
-  p8rootstate.pc_epc = p8rootstate.reg_t9 = (memaddr)p8root;
+  p8rootstate.pc_epc = (memaddr)p8root;
   p8rootstate.status = p8rootstate.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&child1state);
   child1state.reg_sp = p8rootstate.reg_sp - QPAGE;
-  child1state.pc_epc = child1state.reg_t9 = (memaddr)child1;
+  child1state.pc_epc = (memaddr)child1;
   child1state.status = child1state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&child2state);
   child2state.reg_sp = child1state.reg_sp - QPAGE;
-  child2state.pc_epc = child2state.reg_t9 = (memaddr)child2;
+  child2state.pc_epc = (memaddr)child2;
   child2state.status = child2state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&gchild1state);
   gchild1state.reg_sp = child2state.reg_sp - QPAGE;
-  gchild1state.pc_epc = gchild1state.reg_t9 = (memaddr)p8leaf1;
+  gchild1state.pc_epc = (memaddr)p8leaf1;
   gchild1state.status = gchild1state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&gchild2state);
   gchild2state.reg_sp = gchild1state.reg_sp - QPAGE;
-  gchild2state.pc_epc = gchild2state.reg_t9 = (memaddr)p8leaf2;
+  gchild2state.pc_epc = (memaddr)p8leaf2;
   gchild2state.status = gchild2state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&gchild3state);
   gchild3state.reg_sp = gchild2state.reg_sp - QPAGE;
-  gchild3state.pc_epc = gchild3state.reg_t9 = (memaddr)p8leaf3;
+  gchild3state.pc_epc = (memaddr)p8leaf3;
   gchild3state.status = gchild3state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&gchild4state);
   gchild4state.reg_sp = gchild3state.reg_sp - QPAGE;
-  gchild4state.pc_epc = gchild4state.reg_t9 = (memaddr)p8leaf4;
+  gchild4state.pc_epc = (memaddr)p8leaf4;
   gchild4state.status = gchild4state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&p9state);
   p9state.reg_sp = gchild4state.reg_sp - QPAGE;
-  p9state.pc_epc = p9state.reg_t9 = (memaddr)p9;
+  p9state.pc_epc = (memaddr)p9;
   p9state.status = p9state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   STST(&p10state);
   p10state.reg_sp = p9state.reg_sp - QPAGE;
-  p10state.pc_epc = p10state.reg_t9 = (memaddr)p10;
+  p10state.pc_epc = (memaddr)p10;
   p10state.status = p10state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   /* create process p2 */
@@ -479,16 +480,12 @@ void p5gen() {
     print("Bus Error (as expected): Access non-existent memory\n");
     pFiveSupport.sup_exceptState[GENERALEXCEPT].pc_epc =
         (memaddr)p5a; /* Continue with p5a() */
-    pFiveSupport.sup_exceptState[GENERALEXCEPT].reg_t9 =
-        (memaddr)p5a; /* Continue with p5a() */
     break;
 
   case RESVINSTR:
     print("privileged instruction\n");
     /* return in kernel mode */
     pFiveSupport.sup_exceptState[GENERALEXCEPT].pc_epc =
-        (memaddr)p5b; /* Continue with p5b() */
-    pFiveSupport.sup_exceptState[GENERALEXCEPT].reg_t9 =
         (memaddr)p5b; /* Continue with p5b() */
     pFiveSupport.sup_exceptState[GENERALEXCEPT].status =
         pFiveSupport.sup_exceptState[GENERALEXCEPT].status & KUPBITOFF;
@@ -498,8 +495,6 @@ void p5gen() {
     print("Address Error (as expected): non-kuseg access w/KU=1\n");
     /* return in kernel mode */
     pFiveSupport.sup_exceptState[GENERALEXCEPT].pc_epc =
-        (memaddr)p5b; /* Continue with p5b() */
-    pFiveSupport.sup_exceptState[GENERALEXCEPT].reg_t9 =
         (memaddr)p5b; /* Continue with p5b() */
     pFiveSupport.sup_exceptState[GENERALEXCEPT].status =
         pFiveSupport.sup_exceptState[GENERALEXCEPT].status & KUPBITOFF;
@@ -531,8 +526,6 @@ void p5mm() {
       pFiveSupport.sup_exceptState[PGFAULTEXCEPT].status |
       KUPBITON; /* user mode on 	*/
   pFiveSupport.sup_exceptState[PGFAULTEXCEPT].pc_epc =
-      (memaddr)p5b; /* return to p5b()	*/
-  pFiveSupport.sup_exceptState[PGFAULTEXCEPT].reg_t9 =
       (memaddr)p5b; /* return to p5b()	*/
 
   LDST(&(pFiveSupport.sup_exceptState[PGFAULTEXCEPT]));

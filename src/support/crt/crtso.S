@@ -52,6 +52,12 @@ __start:
 	/* Initialize gp */
 	li	gp, CORE_TEXT_VADDR + (AOUT_HE_GP_VALUE << 2)
 
+  la t0, 0x80 /* TODO: find way to not hardcode LEXCHandler */
+  csrw mtvec, t0
+  /* lla t0, 1f */
+  csrw mepc, t0
+   
+
 	addi	sp, sp, -16
 	jal	main
 	addi	sp, sp, 16

@@ -98,13 +98,13 @@ PanicStr:
 	j	LEXCHandler
 	nop
 
-	.space	0x80 - 0x8
+	; .space	0x80 - 0x8
 	/*
 	 * 0x00000100 address
 	 * Secondary processor startup routine
 	 */
-	j	LInitSecondaryProcessor
-	nop
+	; j	LInitSecondaryProcessor
+	; nop
 
 	/*
 	 * 0x00000108: panic()
@@ -197,104 +197,51 @@ LUTLBHandler:
  * values outside BIOS)
  */
 LEXCHandler:
-	/* Copy Cause.ExcCode to k0 and dispatch accordingly */
-  /* mfc0	k0, CP0_Cause  // CP0 not enabled */
-	/* andi	k0, k0, CAUSE_EXCCODE_MASK */
-  READK0(t0)
-  andi t0, t0, CAUSE_EXCCODE_MASK
-  WRITEK0(t0)
+/* TODO: riscrivere */
+/* check if trap or interrupt */
+  csrrw t0,mcause,zero
+  srli t0,t0,31
+  addi t0,t0,-1
+  beq t0,zero,LIntHandler
 
-	/* srl	k0, CAUSE_EXCCODE_BIT */
-  READK0(t0)
-  srl t0,t0, CAUSE_EXCCODE_BIT
-  WRITEK0(t0)
-
-	/* cause 9 is BREAK */
-	/* addi	k0, -9 */
-  READK0(t0)
+  csrrw t0,mcause,zero
   addi t0,t0,-9
-  WRITEK0(t0)
-	/* beq	k0, 0, LBreakHandler */
-  READK0(t0)
-  beq t0, zero, LBreakHandler
+  beq t0,zero,LBreakHandler
 
-	/* Handle all other exception types the same */
-
-	/* If EPC address is in BIOS area, something in kernel has
-	 * gone horribly wrong: eg. BIOS running with int unmasked (a big
-	 * bug for BIOS).
-	 */
-	/* mfc0	k0, CP0_EPC // CP0 not enabled */
-	/* li	k1, BUS_REG_RAM_BASE */
-  li t1, BUS_REG_RAM_BASE
-  WRITEK1(t1)
-	/* subu	k0, k0, k1 */
-  READK0(t0)
-  READK1(t1)
-  sub t0, t0, t1
-  WRITEK0(t0)
-	/* jltz	k0, LPanic */
-  READK0(t0)
-  bltz t0, LPanic
-
-	/* Else: save processor state into BIOS data page and pass
-	 * along handling to the kernel. Put Addr of kernel PC handler's
-	 * location in k1
-	 */
- /*	lw	k1, BIOS_PC_AREA_BASE */
+	/* lw	k1, BIOS_PC_AREA_BASE */
   li t0,BIOS_PC_AREA_BASE // load BIOS_PC_AREA_BASE in to t1
   lw t1,0(t0) // so we can do t0 = mem[t1]
-  WRITEK1(t1)
-  
-	/* addi	k1, k1, 8 */
-  READK1(t1)
-  addi t1, t1, 8
+  addi t1,t1,8
   WRITEK1(t1)
 	j	LSaveExcptAndJmp
 
+
+LIntHandler:
+  addi t0,t0,0
+
 LBreakHandler:
-	/* If EPC address is in BIOS area, something in kernel or in BIOS
-	 * has gone horribly wrong (a BIOS bug probably). */
-	/* mfc0	k0, CP0_EPC */
-	/* li	k1, BUS_REG_RAM_BASE */
-  li t1, BUS_REG_RAM_BASE
+
+	/* any other break is passed up to SYS handler */
+	/* li	k1, BIOS_PC_AREA_BASE */
+  /*
+  li t1, BIOS_PC_AREA_BASE
   WRITEK1(t1)
-	/* subu	k0, k0, k1 */
-  READK0(t0)
+  */
+	/* addi	k1, k1, 8 */
+  /*
   READK1(t1)
-  sub t0, t0, t1
-  WRITEK0(t0)
+  addi t1, t1, 8
+  WRITEK1(t1)
+  */
+  // TODO: check if in kernel mode
 
-	/* jltz	k0, LPanic */
-  READK0(t0)
-  bltz t0, LPanic
-
-	/*
-	 * A BIOS service routine is requested:
-	 * look into a0 register for identification.
-	 */
-
-	/* move	k1, a0 */
-  WRITEK1(a0)
-
-	/* any BREAK may be executed only in kernel mode
-	 * kernel mode of caller is set when KUP bit in STATUS mask is 0
-	 */
-	/* mfc0	k0, CP0_Status // CPO not enabled */
-  /*	andi	k0, k0, KUPSTATUSMASK */
-  READK0(t0)
-  andi t0, t0, KUPSTATUSMASK
-  WRITEK0(t0)
-  /*	beq	k0, 0, LisKernel */
-  READK0(t0)
-  beq t0, zero, LisKernel
+  addi t0,a0,-1
+  beq t0, zero, LLDST
 
 	/* If in user mode, pass along to kernel */
 	/* li	k1, BUS_REG_RAM_BASE */
   li t1, BUS_REG_RAM_BASE
-  WRITEK1(t1)
 	/* addi	k1, k1, 8 */
-  READK1(t1)
   addi t1, t1, 8
   WRITEK1(t1)
 	j	LSaveExcptAndJmp
@@ -394,63 +341,45 @@ LLDST:
  *    Kernel handler address (PC) is in k1 and SP is in k1 + 4
  */
 LSaveExcptAndJmp:
-	/* lw	k0, BIOS_EXCPT_VECT_BASE */
-  li t1,BIOS_EXCPT_VECT_BASE
-  lw t0,0(t1) 
+	li	t0, BIOS_EXCPT_VECT_BASE
+  lw t0,0(t0)
   WRITEK0(t0)
 LSave:
-  /*
-	sw	1, 16(k0)
-	sw	v0, 20(k0)
-	sw	v1, 24(k0)
-	sw 	a0, 28(k0)
-	sw	a1, 32(k0)
-	sw	a2, 36(k0)
-	sw	a3, 40(k0)
-	sw	t0, 44(k0)
-	sw	t1, 48(k0)
-	sw	t2, 52(k0)
-	sw	t3, 56(k0)
-	sw	t4, 60(k0)
-	sw	t5, 64(k0)
-	sw	t6, 68(k0)
-	sw	t7, 72(k0)
-	sw	s0, 76(k0)
-	sw	s1, 80(k0)
-	sw	s2, 84(k0)
-	sw	s3, 88(k0)
-	sw	s4, 92(k0)
-	sw	s5, 96(k0)
-	sw	s6, 100(k0)
-	sw	s7, 104(k0)
-	sw	t8, 108(k0)
-	sw	t9, 112(k0)
-  */
+  /* addi sp, sp, -33*4 */
   READK0(t0)
-	sw	zero, 16(t0)
+
+  /* salvare
+    entry_hi
+    cause
+    status
+    pc_epc
+    gpr (fatto)
+    hi
+    lo
+  */
+
 	sw	ra, 20(t0)
 	sw	sp, 24(t0)
 	sw 	gp, 28(t0)
 	sw	tp, 32(t0)
-	sw	t0, 36(t0)
 	sw	t1, 40(t0)
 	sw	t2, 44(t0)
 	sw	t3, 48(t0)
 	sw	t4, 52(t0)
-	sw	t6, 56(t0)
-	sw	s0, 60(t0)
-	sw	s1, 64(t0)
-	sw	s2, 68(t0)
-	sw	s3, 72(t0)
-	sw	s4, 76(t0)
-	sw	s5, 80(t0)
-	sw	s6, 84(t0)
-	sw	s7, 88(t0)
-	sw	s8, 92(t0)
-	sw	s9, 96(t0)
-	sw	s10, 100(t0)
-	sw	s11, 104(t0)
-	sw	fp, 108(t0)
+	sw	t5, 56(t0)
+	sw	t6, 60(t0)
+	sw	s0, 64(t0)
+	sw	s1, 68(t0)
+	sw	s2, 72(t0)
+	sw	s3, 76(t0)
+	sw	s4, 80(t0)
+	sw	s5, 84(t0)
+	sw	s6, 88(t0)
+	sw	s7, 92(t0)
+	sw	s8, 96(t0)
+	sw	s9, 100(t0)
+	sw	s10, 104(t0)
+	sw	s11, 108(t0)
 	sw	a0, 112(t0)
 	sw	a1, 116(t0)
 	sw	a2, 120(t0)
@@ -460,66 +389,22 @@ LSave:
 	sw	a6, 136(t0)
 	sw	a7, 140(t0)
 
-	/* k0 and k1 are not saved */
+  csrrw t1,mcause,zero
+	sw	t1, 4(t0)
 
-  /* 
-	sw	gp, 116(k0)
-	sw	sp, 120(k0)
-	sw	fp, 124(k0)
-	sw	ra, 128(k0)
-  */
-	sw	gp, 116(t0)
-	sw	sp, 120(t0)
-	sw	fp, 124(t0)
-	sw	ra, 128(t0)
+  // epc
+  csrrw t1,mepc,zero
+	sw	t1, 12(t0)
 
-	/* Need a third register use t0 - temporarily */
-  /* 
-	mfhi	t0
-	sw	t0, 132(k0)
-	mflo	t0
-	sw	t0, 136(k0)
-  CP0 not enabled */
-	/* all processor registers saved */
+  READK0(t0)
+  sw t1, 40(t0)
+	sw	t0, 36(t0)
 
-	/* gets EntryHI and stores it */
-  /* 
-	mfc0	t0, CP0_EntryHi
-	sw	t0, 0(k0)
-  CP0 not enabled */
-
-	/* gets CAUSE register and stores it */
-	/* 
-  mfc0	t0, CP0_Cause
-	sw	t0, 4(k0)
-  CP0 not enabled */
-
-	/* and now save STATUS and EPC registers */
-  /*
-	mfc0	t0, CP0_Status
-	sw	t0, 8(k0)
-	mfc0	t0, CP0_EPC
-	sw	t0, 12(k0)
-  */
-
-	/* Restore t0  */
-	lw	t0, 44(t0)
-
-	/* All registers saved */
-
-	/* Load SP with supplied value */
-	/* lw	sp, 4(k1) */
   READK1(t1)
   lw sp, 4(t1)
 
-	/* Pass Control along to kernel */
-	/* lw	k1, 0(k1) */
-  READK1(t1)
-  lw t1, 0(t1)
-  WRITEK1(t1)
-
 	/* jr	k1 */
-  READK1(t1)
+  lw t1,0(t1)
   jr t1
 	nop
 
@@ -527,67 +412,48 @@ LSave:
  * Load CPU/CP0 registers from (state_t*) k0
  */
 LLoadStart:
-/*
-	lw	1, 16(k0)
-	lw	v0, 20(k0)
-	lw	v1, 24(k0)
-	lw 	a0, 28(k0)
-	lw	a1, 32(k0)
-	lw	a2, 36(k0)
-	lw	a3, 40(k0)
-	lw	t0, 44(k0)
-	lw	t1, 48(k0)
-	lw	t2, 52(k0)
-	lw	t3, 56(k0)
-	lw	t4, 60(k0)
-	lw	t5, 64(k0)
-	lw	t6, 68(k0)
-	lw	t7, 72(k0)
-	lw	s0, 76(k0)
-	lw	s1, 80(k0)
-	lw	s2, 84(k0)
-	lw	s3, 88(k0)
-	lw	s4, 92(k0)
-	lw	s5, 96(k0)
-	lw	s6, 100(k0)
-	lw	s7, 104(k0)
-	lw	t8, 108(k0)
-	lw	t9, 112(k0)
+
+  /* salvare
+    entry_hi
+    cause
+    status
+    pc_epc
+    gpr (fatto)
+    hi
+    lo
   */
 
-	/* k0 and k1 are not saved so they are not loaded too */
-
-/*
-	lw	gp, 116(k0)
-	lw	sp, 120(k0)
-	lw	fp, 124(k0)
-	lw	ra, 128(k0)
+  /* pc_epc */
+  /*
+	lw	t0, 16(t0)
+  csrrw zero,mepc,t0
   */
 
-	lw	zero, 16(t0)
+  READK0(t0)
+
+  /* gpr */
 	lw	ra, 20(t0)
 	lw	sp, 24(t0)
 	lw 	gp, 28(t0)
 	lw	tp, 32(t0)
-	lw	t0, 36(t0)
 	lw	t1, 40(t0)
 	lw	t2, 44(t0)
 	lw	t3, 48(t0)
 	lw	t4, 52(t0)
-	lw	t6, 56(t0)
-	lw	s0, 60(t0)
-	lw	s1, 64(t0)
-	lw	s2, 68(t0)
-	lw	s3, 72(t0)
-	lw	s4, 76(t0)
-	lw	s5, 80(t0)
-	lw	s6, 84(t0)
-	lw	s7, 88(t0)
-	lw	s8, 92(t0)
-	lw	s9, 96(t0)
-	lw	s10, 100(t0)
-	lw	s11, 104(t0)
-	lw	fp, 108(t0)
+	lw	t5, 56(t0)
+	lw	t6, 60(t0)
+	lw	s0, 64(t0)
+	lw	s1, 68(t0)
+	lw	s2, 72(t0)
+	lw	s3, 76(t0)
+	lw	s4, 80(t0)
+	lw	s5, 84(t0)
+	lw	s6, 88(t0)
+	lw	s7, 92(t0)
+	lw	s8, 96(t0)
+	lw	s9, 100(t0)
+	lw	s10, 104(t0)
+	lw	s11, 108(t0)
 	lw	a0, 112(t0)
 	lw	a1, 116(t0)
 	lw	a2, 120(t0)
@@ -597,56 +463,17 @@ LLoadStart:
 	lw	a6, 136(t0)
 	lw	a7, 140(t0)
 
-  /*
-	lw	k1, 132(k0)
-	mthi	k1
-	lw	k1, 136(k0)
-	mtlo	k1
-  */
+  lw t0, 12(t0) // epc
+  WRITEK1(t0)
+  addi t6,t0,0 // TODO: mhhh (return address)
 
-	/* all processor registers loaded (almost) */
+  // TODO: save status etc....
 
-	/* storing new EntryHI into CP0 register */
-  /*
-	lw	k1, 0(k0)
-	mtc0	k1, CP0_EntryHi
-  */
-
-	/* storing new CAUSE into CP0 register */
-  /*
-	lw	k1, 4(k0)
-	mtc0	k1, CP0_Cause
-  */
-
-	/* now load STATUS register */
-	/* lw	k1, 8(k0) */
   READK0(t0)
-  lw t1, 8(t0)
-  WRITEK1(t1)
+	lw	t0, 36(t0)
 
-	/* This is for avoiding trouble if STATUS has (erroneously)
-	 * set bit 0/1. It would cause an immediate EXC trap or expose
-	 * BIOS to interrupts. */
-	/* 
-  srl	k1, 2
-	sll	k1, 2
-  */
-  READK1(t1)
-  srl	t1,t1, 2
-	sll	t1,t1, 2
-  WRITEK1(t1)
-	/* mtc0	k1, CP0_Status // CPO not enabled */
+  jr t6
 
-	/* lw	k1, 12(k0) */
-  lw t1, 12(t0)
-  WRITEK1(t1)
-
-	/* load new PC and jump */
-	//.set	noreorder
-	//.set	nomacro
-	/* jr	k1 */
-  READK1(t1)
-  jr t1
 	mret
 	//.set	reorder
 	//.set	macro

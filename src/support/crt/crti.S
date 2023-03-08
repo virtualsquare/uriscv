@@ -51,6 +51,11 @@ __start:
 	li	$t0, TEXT_VADDR + (AOUT_HE_GP_VALUE << 2)
 	lw	$gp, 0($t0)
 
+  la t0, LEXCHandler
+  csrw mtvec, t0
+  lla t0, 1f
+  csrw mepc, t0
+
 	/* Call main */
 	addiu	$sp, $sp, -16
 	jal	main

@@ -68,7 +68,7 @@ public:
   // execution happens
   void Cycle();
 
-  uint32_t IdleCycles() const;
+  uint32_t IdleCycles();
 
   void Skip(uint32_t cycles);
 
