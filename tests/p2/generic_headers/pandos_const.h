@@ -9,6 +9,19 @@
 
 #include <uriscv/const.h>
 
+#define MSTATUS_MIE_MASK 0x8
+#define MSTATUS_MPP_MASK 0x1800
+#define MIE_MTIE_MASK 0x40
+#define MIP_MTIP_MASK 0x40
+#define MIE_ALL 0xFFFFFFFF
+
+#define MSTATUS_MPIE_BIT 7
+#define MSTATUS_MIE_BIT 3
+#define MSTATUS_MPRV_BIT 17
+#define MSTATUS_MPP_BIT 11
+#define MSTATUS_MPP_M 0x1800
+#define MSTATUS_MPP_U 0x0000
+
 /* Number of semaphore's device */
 #define SEMDEVLEN 49
 #define RECVD 5
@@ -175,8 +188,9 @@ device
    (1 << ((il_no) + 8))) // performs a bit shift based on the parameters
 
 #define NRSEMAPHORES 49 /* Numero semafori devices + pseudo clock */
-#define NSUPPSEM 48 /* Numero di semafori devices per il livello di supporto   \
-                     */
+#define NSUPPSEM                                                               \
+  48 /* Numero di semafori devices per il livello di supporto                  \
+      */
 
 #define DISKBACK 1
 #define FLASHBACK 0

@@ -3,7 +3,7 @@
 void exception_handler() {
   state_t *exceptionState = (state_t *)BIOSDATAPAGE;
   // first bit used for interrupt/exception
-  int causeCode = ((getCAUSE()) >> 1) << 1;
+  int causeCode = ((getCAUSE()) << 1) >> 1;
 
   switch (causeCode) {
   case IOINTERRUPTS: // Interrupt
@@ -26,21 +26,21 @@ void exception_handler() {
 
 // case 0 exception_handler()
 void interrupt_handler(state_t *excState) {
-  int cause = getCAUSE(); // Ritorna il registro CAUSE (3.3 pops)
+  int mip = getMIP();
 
-  if CAUSE_IP_GET (cause, IL_CPUTIMER)
+  if CAUSE_IP_GET (mip, IL_CPUTIMER)
     plt_time_handler(excState);
-  else if CAUSE_IP_GET (cause, IL_TIMER)
+  else if CAUSE_IP_GET (mip, IL_TIMER)
     intervall_timer_handler(excState);
-  else if CAUSE_IP_GET (cause, IL_DISK)
+  else if CAUSE_IP_GET (mip, IL_DISK)
     device_handler(IL_DISK, excState);
-  else if CAUSE_IP_GET (cause, IL_FLASH)
+  else if CAUSE_IP_GET (mip, IL_FLASH)
     device_handler(IL_FLASH, excState);
-  else if CAUSE_IP_GET (cause, IL_ETHERNET)
+  else if CAUSE_IP_GET (mip, IL_ETHERNET)
     device_handler(IL_ETHERNET, excState);
-  else if CAUSE_IP_GET (cause, IL_PRINTER)
+  else if CAUSE_IP_GET (mip, IL_PRINTER)
     device_handler(IL_PRINTER, excState);
-  else if CAUSE_IP_GET (cause, IL_TERMINAL)
+  else if CAUSE_IP_GET (mip, IL_TERMINAL)
     device_handler(IL_TERMINAL, excState);
 
   PANIC();
@@ -59,9 +59,11 @@ void syscall_handler(state_t *callerProcState) {
   int syscode = callerProcState->reg_a0;
   callerProcState->pc_epc += WORDLEN;
 
-  if (syscode <= 0 && ((callerProcState->status << 28) >> 31)) {
-    callerProcState->cause =
-        (callerProcState->cause & !GETEXECCODE) | 0x00000028;
+  // if (syscode <= 0 && ((callerProcState->status << 28) >> 31)) {
+  if (syscode <= 0 &&
+      (callerProcState->status & MSTATUS_MPP_MASK) == MSTATUS_MPP_U) {
+    // callerProcState->cause =
+    //     (callerProcState->cause & !GETEXECCODE) | 0x00000028;
     pass_up_or_die(GENERALEXCEPT, callerProcState);
   } else {
     switch (syscode) {

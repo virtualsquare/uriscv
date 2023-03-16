@@ -32,7 +32,7 @@ typedef unsigned int devregtr;
 #define VMOFF 0xF8FFFFFF
 
 #define SYSCAUSE (0x8 << 2)
-#define BUSERROR 6
+#define BUSERROR 7 /* TODO: it was 6, should not it be 7 ??? */
 #define RESVINSTR 10
 #define ADDRERROR 4
 #define SYSCALLEXCPT 8
@@ -43,6 +43,19 @@ typedef unsigned int devregtr;
 #define KUPBITON 0x8
 #define KUPBITOFF 0xFFFFFFF7
 #define TEBITON 0x08000000
+
+#define MSTATUS_MIE_MASK 0x8
+#define MIE_MTIE_MASK 0x40
+#define MIP_MTIP_MASK 0x40
+#define MIE_ALL 0xFFFFFFFF
+
+#define MSTATUS_MPIE_BIT 7
+#define MSTATUS_MIE_BIT 3
+#define MSTATUS_MPRV_BIT 17
+#define MSTATUS_MPP_BIT 11
+#define MSTATUS_MPP_M 0x1800
+#define MSTATUS_MPP_U 0x0000
+#define MSTATUS_MPP_MASK 0x1800
 
 #define CAUSEINTMASK 0xFD00
 #define CAUSEINTOFFS 10
@@ -141,7 +154,7 @@ void uTLB_RefillHandler() {
 void test() {
   SYSCALL(VERHOGEN, (int)&sem_testsem, 0, 0); /* V(sem_testsem)   */
 
-  print("p1 v(sem_testsem)\n");
+  // print("p1 v(sem_testsem)\n");
 
   /* set up states of the other processes */
 
@@ -158,12 +171,18 @@ void test() {
   STST(&p2state);
   p2state.reg_sp = hp_p2state.reg_sp - QPAGE;
   p2state.pc_epc = (memaddr)p2;
-  p2state.status = p2state.status | IEPBITON | CAUSEINTMASK | TEBITON;
+  // p2state.status = p2state.status | IEPBITON | CAUSEINTMASK | TEBITON;
+  p2state.status = p2state.status | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
+  ;
+  p2state.mie = p2state.mie | MIE_ALL;
 
   STST(&p3state);
   p3state.reg_sp = p2state.reg_sp - QPAGE;
   p3state.pc_epc = (memaddr)p3;
-  p3state.status = p3state.status | IEPBITON | CAUSEINTMASK | TEBITON;
+  // p3state.status = p3state.status | IEPBITON | CAUSEINTMASK | TEBITON;
+  p3state.status = p3state.status | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
+  ;
+  p3state.mie = p3state.mie | MIE_ALL;
 
   STST(&p4state);
   p4state.reg_sp = p3state.reg_sp - QPAGE;
@@ -174,7 +193,9 @@ void test() {
   p5Stack = p5state.reg_sp =
       p4state.reg_sp - (2 * QPAGE); /* because there will 2 p4 running*/
   p5state.pc_epc = (memaddr)p5;
-  p5state.status = p5state.status | IEPBITON | CAUSEINTMASK | TEBITON;
+  // p5state.status = p5state.status | IEPBITON | CAUSEINTMASK | TEBITON;
+  p5state.status = p5state.status | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
+  p5state.mie = p5state.mie | MIE_ALL;
 
   STST(&p6state);
   p6state.reg_sp = p5state.reg_sp - (2 * QPAGE);
@@ -232,53 +253,60 @@ void test() {
   p10state.status = p10state.status | IEPBITON | CAUSEINTMASK | TEBITON;
 
   /* create process p2 */
-  p2pid = SYSCALL(CREATEPROCESS, (int)&p2state, PROCESS_PRIO_LOW,
-                  (int)NULL); /* start p2     */
+  // p2pid = SYSCALL(CREATEPROCESS, (int)&p2state, PROCESS_PRIO_LOW,
+  //                 (int)NULL); /* start p2     */
 
-  print("p2 was started\n");
+  // print("p2 was started\n");
 
-  SYSCALL(VERHOGEN, (int)&sem_startp2, 0, 0); /* V(sem_startp2)   */
-
-  SYSCALL(VERHOGEN, (int)&sem_endp2, 0, 0); /* V(sem_endp2) (blocking V!)     */
+  // SYSCALL(VERHOGEN, (int)&sem_startp2, 0, 0); /* V(sem_startp2)   */
+  //
+  // SYSCALL(VERHOGEN, (int)&sem_endp2, 0, 0); /* V(sem_endp2) (blocking V!) */
 
   /* make sure we really blocked */
-  if (p1p2synch == 0) {
-    print("error: p1/p2 synchronization bad\n");
-  }
+  // if (p1p2synch == 0) {
+  //   print("error: p1/p2 synchronization bad\n");
+  // }
 
-  p3pid = SYSCALL(CREATEPROCESS, (int)&p3state, PROCESS_PRIO_LOW,
-                  (int)NULL); /* start p3     */
+  // p3pid = SYSCALL(CREATEPROCESS, (int)&p3state, PROCESS_PRIO_LOW,
+  //                 (int)NULL); /* start p3     */
 
-  print("p3 is started\n");
+  // print("p3 is started\n");
 
-  SYSCALL(PASSEREN, (int)&sem_endp3, 0, 0); /* P(sem_endp3)     */
+  // SYSCALL(PASSEREN, (int)&sem_endp3, 0, 0); /* P(sem_endp3)     */
 
-  SYSCALL(CREATEPROCESS, (int)&hp_p1state, PROCESS_PRIO_HIGH, (int)NULL);
-  SYSCALL(CREATEPROCESS, (int)&hp_p2state, PROCESS_PRIO_HIGH, (int)NULL);
-
-  p4pid = SYSCALL(CREATEPROCESS, (int)&p4state, PROCESS_PRIO_LOW,
-                  (int)NULL); /* start p4     */
+  // SYSCALL(CREATEPROCESS, (int)&hp_p1state, PROCESS_PRIO_HIGH, (int)NULL);
+  // SYSCALL(CREATEPROCESS, (int)&hp_p2state, PROCESS_PRIO_HIGH, (int)NULL);
+  //
+  // p4pid = SYSCALL(CREATEPROCESS, (int)&p4state, PROCESS_PRIO_LOW,
+  //                 (int)NULL); /* start p4     */
 
   pFiveSupport.sup_exceptContext[GENERALEXCEPT].stackPtr = (int)p5Stack;
+  // pFiveSupport.sup_exceptContext[GENERALEXCEPT].status =
+  //     ALLOFF | IEPBITON | CAUSEINTMASK | TEBITON;
   pFiveSupport.sup_exceptContext[GENERALEXCEPT].status =
-      ALLOFF | IEPBITON | CAUSEINTMASK | TEBITON;
+      MSTATUS_MIE_MASK | MSTATUS_MPP_M;
+  pFiveSupport.sup_exceptContext[GENERALEXCEPT].mie = MIE_ALL;
   pFiveSupport.sup_exceptContext[GENERALEXCEPT].pc = (memaddr)p5gen;
+
   pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].stackPtr = p5Stack;
+  // pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].status =
+  //     ALLOFF | IEPBITON | CAUSEINTMASK | TEBITON;
   pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].status =
-      ALLOFF | IEPBITON | CAUSEINTMASK | TEBITON;
+      MSTATUS_MIE_MASK | MSTATUS_MPP_M;
+  pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].mie = MIE_ALL;
   pFiveSupport.sup_exceptContext[PGFAULTEXCEPT].pc = (memaddr)p5mm;
 
   SYSCALL(CREATEPROCESS, (int)&p5state, PROCESS_PRIO_LOW,
           (int)&(pFiveSupport)); /* start p5     */
-
-  SYSCALL(CREATEPROCESS, (int)&p6state, PROCESS_PRIO_LOW,
-          (int)NULL); /* start p6		*/
-
-  SYSCALL(CREATEPROCESS, (int)&p7state, PROCESS_PRIO_LOW,
-          (int)NULL); /* start p7		*/
-
-  p9pid = SYSCALL(CREATEPROCESS, (int)&p9state, PROCESS_PRIO_LOW,
-                  (int)NULL); /* start p7		*/
+  //
+  // SYSCALL(CREATEPROCESS, (int)&p6state, PROCESS_PRIO_LOW,
+  //         (int)NULL); /* start p6		*/
+  //
+  // SYSCALL(CREATEPROCESS, (int)&p7state, PROCESS_PRIO_LOW,
+  //         (int)NULL); /* start p7		*/
+  //
+  // p9pid = SYSCALL(CREATEPROCESS, (int)&p9state, PROCESS_PRIO_LOW,
+  //                 (int)NULL); /* start p7		*/
 
   SYSCALL(PASSEREN, (int)&sem_endp5, 0, 0); /* P(sem_endp5)		*/
 
@@ -352,16 +380,16 @@ void p2() {
   cpu_t2 = SYSCALL(GETTIME, 0, 0, 0); /* CPU time used */
   STCK(now2);                         /* time of day  */
 
-  // if (((now2 - now1) >= (cpu_t2 - cpu_t1)) &&
-  //     ((cpu_t2 - cpu_t1) >= (MINLOOPTIME / (*((cpu_t *)TIMESCALEADDR))))) {
-  //   print("p2 is OK\n");
-  // } else {
-  //   if ((now2 - now1) < (cpu_t2 - cpu_t1))
-  //     print("error: more cpu time than real time\n");
-  //   if ((cpu_t2 - cpu_t1) < (MINLOOPTIME / (*((cpu_t *)TIMESCALEADDR))))
-  //     print("error: not enough cpu time went by\n");
-  //   print("p2 blew it!\n");
-  // }
+  if (((now2 - now1) >= (cpu_t2 - cpu_t1)) &&
+      ((cpu_t2 - cpu_t1) >= (MINLOOPTIME / (*((cpu_t *)TIMESCALEADDR))))) {
+    print("p2 is OK\n");
+  } else {
+    if ((now2 - now1) < (cpu_t2 - cpu_t1))
+      print("error: more cpu time than real time\n");
+    if ((cpu_t2 - cpu_t1) < (MINLOOPTIME / (*((cpu_t *)TIMESCALEADDR))))
+      print("error: not enough cpu time went by\n");
+    print("p2 blew it!\n");
+  }
 
   p1p2synch = 1; /* p1 will check this */
 
@@ -376,6 +404,7 @@ void p2() {
 
 /* p3 -- clock semaphore test process */
 void p3() {
+  print("p3 - joined\n");
   cpu_t time1, time2;
   cpu_t cpu_t1, cpu_t2; /* cpu time used       */
   int i;
@@ -402,11 +431,11 @@ void p3() {
 
   cpu_t2 = SYSCALL(GETTIME, 0, 0, 0);
 
-  // if (cpu_t2 - cpu_t1 < (MINCLOCKLOOP / (*((cpu_t *)TIMESCALEADDR)))) {
-  //   print("error: p3 - CPU time incorrectly maintained\n");
-  // } else {
-  //   print("p3 - CPU time correctly maintained\n");
-  // }
+  if (cpu_t2 - cpu_t1 < (MINCLOCKLOOP / (*((cpu_t *)TIMESCALEADDR)))) {
+    print("error: p3 - CPU time incorrectly maintained\n");
+  } else {
+    print("p3 - CPU time correctly maintained\n");
+  }
 
   int pid = SYSCALL(GETPROCESSID, 0, 0, 0);
   if (pid != p3pid) {
@@ -473,11 +502,12 @@ void p4() {
 
 /* p5's program trap handler */
 void p5gen() {
+  print("p5gen\n");
   unsigned int exeCode = pFiveSupport.sup_exceptState[GENERALEXCEPT].cause;
-  exeCode = (exeCode & CAUSEMASK) >> 2;
+  // exeCode = (exeCode & CAUSEMASK) >> 2;
   switch (exeCode) {
   case BUSERROR:
-    print("Bus Error (as expected): Access non-existent memory\n");
+    print("Bus Error\n");
     pFiveSupport.sup_exceptState[GENERALEXCEPT].pc_epc =
         (memaddr)p5a; /* Continue with p5a() */
     break;
@@ -487,8 +517,12 @@ void p5gen() {
     /* return in kernel mode */
     pFiveSupport.sup_exceptState[GENERALEXCEPT].pc_epc =
         (memaddr)p5b; /* Continue with p5b() */
+    // pFiveSupport.sup_exceptState[GENERALEXCEPT].status =
+    //     pFiveSupport.sup_exceptState[GENERALEXCEPT].status & KUPBITOFF;
     pFiveSupport.sup_exceptState[GENERALEXCEPT].status =
-        pFiveSupport.sup_exceptState[GENERALEXCEPT].status & KUPBITOFF;
+        (pFiveSupport.sup_exceptState[GENERALEXCEPT].status &
+         ~MSTATUS_MPP_MASK) |
+        MSTATUS_MPP_M;
     break;
 
   case ADDRERROR:
@@ -496,8 +530,12 @@ void p5gen() {
     /* return in kernel mode */
     pFiveSupport.sup_exceptState[GENERALEXCEPT].pc_epc =
         (memaddr)p5b; /* Continue with p5b() */
+    // pFiveSupport.sup_exceptState[GENERALEXCEPT].status =
+    //     pFiveSupport.sup_exceptState[GENERALEXCEPT].status & KUPBITOFF;
     pFiveSupport.sup_exceptState[GENERALEXCEPT].status =
-        pFiveSupport.sup_exceptState[GENERALEXCEPT].status & KUPBITOFF;
+        (pFiveSupport.sup_exceptState[GENERALEXCEPT].status &
+         ~MSTATUS_MPP_MASK) |
+        MSTATUS_MPP_M;
     break;
 
   case SYSCALLEXCPT:
@@ -522,9 +560,12 @@ void p5mm() {
     print("Correct Support Structure Address\n");
   }
 
+  // pFiveSupport.sup_exceptState[PGFAULTEXCEPT].status =
+  //     pFiveSupport.sup_exceptState[PGFAULTEXCEPT].status |
+  //     KUPBITON; /* user mode on 	*/
   pFiveSupport.sup_exceptState[PGFAULTEXCEPT].status =
-      pFiveSupport.sup_exceptState[PGFAULTEXCEPT].status |
-      KUPBITON; /* user mode on 	*/
+      (pFiveSupport.sup_exceptState[PGFAULTEXCEPT].status & ~MSTATUS_MPP_M) |
+      MSTATUS_MPP_U;
   pFiveSupport.sup_exceptState[PGFAULTEXCEPT].pc_epc =
       (memaddr)p5b; /* return to p5b()	*/
 
@@ -533,14 +574,15 @@ void p5mm() {
 
 /* p5's SYS trap handler */
 void p5sys() {
+  print("p5sys\n");
   unsigned int p5status = pFiveSupport.sup_exceptState[GENERALEXCEPT].status;
-  p5status = (p5status << 28) >> 31;
+  p5status = p5status & ~MSTATUS_MPP_MASK;
   switch (p5status) {
-  case ON:
+  case MSTATUS_MPP_U:
     print("High level SYS call from user mode process\n");
     break;
 
-  case OFF:
+  case MSTATUS_MPP_M:
     print("High level SYS call from kernel mode process\n");
     break;
   }
@@ -560,6 +602,7 @@ void p5() {
 
 void p5a() {
   /* generage a TLB exception after a TLB-Refill event */
+  print("p5a\n");
 
   p5MemLocation = (memaddr *)0x80000000;
   *p5MemLocation = 42;
@@ -568,6 +611,7 @@ void p5a() {
 /* second part of p5 - should be entered in user mode first time through */
 /* should generate a program trap (Address error) */
 void p5b() {
+  print("p5b\n");
   cpu_t time1, time2;
 
   SYSCALL(1, 0, 0, 0);

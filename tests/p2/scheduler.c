@@ -1,4 +1,6 @@
 #include "headers/scheduler.h"
+#include "uriscv/const.h"
+#include <uriscv/liburiscv.h>
 
 /**
  * If there are processes in the high priority queue, remove the first one and
@@ -82,7 +84,9 @@ void scheduler_empty_queues() {
   if (activeProc > 0 && blockedProc > 0) {
     // Enabling interrupts and disable PLT.
     currentActiveProc = NULL;
-    setSTATUS(IECON | IMON);
+    // setSTATUS(IECON | IMON);
+    setSTATUS(MSTATUS_MPP_M | MSTATUS_MIE_MASK);
+    setMIE(MIE_ALL);
     WAIT(); // twiddling its thumbs
   }
 

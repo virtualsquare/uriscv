@@ -5,8 +5,10 @@
 // handler IL_CPUTIMER
 void plt_time_handler(state_t *excState) {
   setTIMER(-2); // ACK
-  copy_state(excState, &currentActiveProc->p_s);
-  insert_ready_queue(currentActiveProc->p_prio, currentActiveProc);
+  if (currentActiveProc != 0x0) {
+    copy_state(excState, &currentActiveProc->p_s);
+    insert_ready_queue(currentActiveProc->p_prio, currentActiveProc);
+  }
   scheduler();
 }
 

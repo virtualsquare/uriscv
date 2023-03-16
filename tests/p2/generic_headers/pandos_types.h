@@ -25,6 +25,7 @@ typedef struct context_t {
   unsigned int stackPtr;
   unsigned int status;
   unsigned int pc;
+  unsigned int mie;
 } context_t;
 
 /* Support level descriptor */

@@ -17,6 +17,7 @@ void copy_state(state_t *new, state_t *old) {
   old->lo = new->lo;
   old->pc_epc = new->pc_epc;
   old->status = new->status;
+  old->mie = new->mie;
 }
 
 /**
@@ -280,7 +281,7 @@ void get_cpu_time(state_t *excState) {
 
 // SYSCALL CLOCKWAIT
 void wait_for_clock(state_t *excState) {
-  P(&semIntervalTimer, excState); // should be blocking
+  P(&semIntervalTimer, excState); // should be blockingP\(
   load_or_scheduler(excState);    // Just in case
 }
 

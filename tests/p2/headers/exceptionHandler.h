@@ -3,6 +3,7 @@
 
 #include "globals.h"
 #include "handlerFunction.h"
+#include "uriscv/const.h"
 #include "uriscv/cp0.h"
 #include <uriscv/arch.h>
 #include <uriscv/liburiscv.h>

@@ -9,6 +9,10 @@
         "terminal0": {
             "enabled": true,
             "file": "term0.uriscv"
+        },
+        "terminal1": {
+            "enabled": true,
+            "file": "term1.uriscv"
         }
     },
     "execution-rom": "/usr/local/share/uriscv/exec.rom.uriscv",
@@ -18,6 +22,6 @@
         "asid": 64,
         "file": "kernel.stab.uriscv"
     },
-    "tlb-floor-address": "0xffffffff",
+    "tlb-floor-address": "0x80000000",
     "tlb-size": 16
 }
