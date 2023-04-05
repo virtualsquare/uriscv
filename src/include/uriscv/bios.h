@@ -28,6 +28,11 @@
 #define BIOS_SRV_LDST 1
 #define BIOS_SRV_PANIC 2
 #define BIOS_SRV_HALT 3
+#define BIOS_SRV_TLBWR 4
+#define BIOS_SRV_TLBWI 5
+#define BIOS_SRV_TLBP 6
+#define BIOS_SRV_TLBR 7
+#define BIOS_SRV_TLBCLR 8
 
 /*
  * We use the BIOS-reserved registers as pointers to BIOS related data

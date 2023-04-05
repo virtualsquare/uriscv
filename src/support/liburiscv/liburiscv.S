@@ -87,64 +87,69 @@ LEAF_FUNC(SYSCALL)
 DEFINE_CP0_GETTER(INDEX, CP0_Index)
 */
 LEAF_FUNC(getINDEX)
-  addi a0,a0,3
+  csrrw a0,CSR_INDEX,zero
 	jr	ra
 /*
 DEFINE_CP0_GETTER(RANDOM, CP0_Random)
 */
 LEAF_FUNC(getRANDOM)
-  addi a0,a0,3
+  csrrw a0,CSR_RANDOM,zero
 	jr	ra
 /*
 DEFINE_CP0_GETTER(ENTRYLO, CP0_EntryLo)
 */
 LEAF_FUNC(getENTRYLO)
-  addi a0,a0,3
+  csrrw a0,CSR_ENTRYLO,zero
 	jr	ra
 /*
 DEFINE_CP0_GETTER(BADVADDR, CP0_BadVAddr)
 */
 LEAF_FUNC(getBADVADDR)
-  addi a0,a0,3
+  csrrw a0,CSR_BADVADDR,zero
 	jr	ra
 /*
 DEFINE_CP0_GETTER(TIMER, CP0_Timer)
 */
 LEAF_FUNC(getTIMER)
-  addi a0,a0,3
+  csrrw a0,time,zero
 	jr	ra
 /*
 DEFINE_CP0_GETTER(ENTRYHI, CP0_EntryHi)
 */
 LEAF_FUNC(getENTRYHI)
-  addi a0,a0,3
+  csrrw a0,CSR_ENTRYHI,zero
 	jr	ra
 /*
 DEFINE_CP0_GETTER(STATUS, CP0_Status)
 */
 LEAF_FUNC(getSTATUS)
-  addi a0,a0,3
+  csrrw a0,mstatus,zero
 	jr	ra
 /*
 DEFINE_CP0_GETTER(CAUSE, CP0_Cause)
 */
 LEAF_FUNC(getCAUSE)
-  csrrw t0,mcause,zero
-  addi a0,t0,0
+  csrrw a0,mcause,zero
 	jr	ra
 /*
 DEFINE_CP0_GETTER(EPC, CP0_EPC)
 */
 LEAF_FUNC(getEPC)
-  csrrw t0,mepc,zero
-  addi a0,t0,0
-  addi a0,a0,3
+  csrrw a0,mepc,zero
 	jr	ra
 /*
 DEFINE_CP0_GETTER(PRID, CP0_PRID)
 */
 LEAF_FUNC(getPRID)
   addi a0,a0,3
+	jr	ra
+
+LEAF_FUNC(getMIE)
+  csrrw a0,mie,zero
+	jr	ra
+
+LEAF_FUNC(getMIP)
+  csrrw a0,mip,zero
 	jr	ra
 
 /*
@@ -156,44 +161,45 @@ LEAF_FUNC(getPRID)
 DEFINE_CP0_SETTER(INDEX, CP0_Index)
 */
 LEAF_FUNC(setINDEX)
-  addi a1,a1,3
+  csrrw zero,CSR_INDEX,a0
 	jr	ra
 /*
 DEFINE_CP0_SETTER(ENTRYLO, CP0_EntryLo)
 */
 LEAF_FUNC(setENTRYLO)
-  addi a1,a1,3
+  csrrw zero,CSR_ENTRYLO,a0
 	jr	ra
 /*
 DEFINE_CP0_SETTER(TIMER, CP0_Timer)
 */
 LEAF_FUNC(setTIMER)
-  addi a1,a1,3
+  csrrw zero,time,a0
 	jr	ra
 /*
 DEFINE_CP0_SETTER(ENTRYHI, CP0_EntryHi)
 */
 LEAF_FUNC(setENTRYHI)
-  addi a1,a1,3
+  csrrw zero,CSR_ENTRYHI,a0
 	jr	ra
 /*
 DEFINE_CP0_SETTER(STATUS, CP0_Status)
 */
 LEAF_FUNC(setSTATUS)
-  addi a1,a1,3
+  csrrw zero,mstatus,a0
 	jr	ra
 /*
 DEFINE_CP0_SETTER(CAUSE, CP0_Cause)
 */
 LEAF_FUNC(setCAUSE)
-  addi a1,a1,3
+  csrrw zero,mcause,a0
+	jr	ra
+
+LEAF_FUNC(setMIE)
+  csrrw zero,mie,a0
 	jr	ra
 
 
-
-/*
- * TLBWR instruction wrapper
- */
+/* TLBWR instruction wrapper */
 LEAF_FUNC(TLBWR)
   /*
 	.set	noreorder
@@ -203,8 +209,8 @@ LEAF_FUNC(TLBWR)
   /*
 	tlbwr
   */
-  addi a7,a7,20
-  ecall
+	li	a0, BIOS_SRV_TLBWR
+  ebreak
 	nop
   /*
 	.set	reorder
@@ -224,6 +230,8 @@ LEAF_FUNC(TLBWI)
   /*
 	tlbwi
   */
+	li	a0, BIOS_SRV_TLBWI
+  ebreak
 	nop
   /*
 	.set	reorder
@@ -243,6 +251,8 @@ LEAF_FUNC(TLBP)
   /*
 	tlbp
   */
+	li	a0, BIOS_SRV_TLBP
+  ebreak
 	nop
   /*
 	.set	reorder
@@ -263,6 +273,8 @@ LEAF_FUNC(TLBR)
   /*
 	tlbr
   */
+	li	a0, BIOS_SRV_TLBR
+  ebreak
 	nop
   /*
 	.set	reorder
@@ -282,6 +294,8 @@ LEAF_FUNC(TLBCLR)
   /*
  	mtc0	a0, 4
   */
+	li	a0, BIOS_SRV_TLBCLR
+  ebreak
  	nop
   /*
  	.set	reorder
@@ -313,6 +327,10 @@ LEAF_FUNC(STST)
 	mfc0	v0, CP0_Cause
 	sw 	v0, 4(a0)
   */
+	sw	t1, 44(a0)
+
+  csrrw t1,mcause,zero
+	sw	t1, 4(a0)
 
   /*
 	sw	v1, 24(a0)
@@ -354,11 +372,46 @@ LEAF_FUNC(STST)
   */
 	/* all processor registers saved */
 
+	sw	ra, 24(a0)
+	sw	sp, 28(a0)
+	sw 	gp, 32(a0)
+	sw	tp, 36(a0)
+  sw  t0, 40(a0)
+	sw	t1, 44(a0)
+	sw	t2, 48(a0)
+	sw	t3, 52(a0)
+	sw	t4, 56(a0)
+	sw	t5, 60(a0)
+	sw	t6, 64(a0)
+	sw	s0, 68(a0)
+	sw	s1, 72(a0)
+	sw	s2, 76(a0)
+	sw	s3, 80(a0)
+	sw	s4, 84(a0)
+	sw	s5, 88(a0)
+	sw	s6, 92(a0)
+	sw	s7, 96(a0)
+	sw	s8, 100(a0)
+	sw	s9, 104(a0)
+	sw	s10, 108(a0)
+	sw	s11, 112(a0)
+	sw	a0, 116(a0)
+	sw	a1, 120(a0)
+	sw	a2, 124(a0)
+	sw	a3, 128(a0)
+	sw	a4, 132(a0)
+	sw	a5, 136(a0)
+	sw	a6, 140(a0)
+	sw	a7, 144(a0)
+
 	/* gets EntryHI and stores it */
   /*
 	mfc0	v0, CP0_EntryHi
 	sw	v0, 0(a0)
   */
+
+  csrrw t1,CSR_ENTRYHI,zero
+	sw	t1, 0(a0)
 
 	/* and now saves STATUS register and zeroes PC */
   /*
@@ -367,17 +420,29 @@ LEAF_FUNC(STST)
 	sw	0, 12(a0)
   */
 
+  csrrw t1,mstatus,zero
+	sw	t1, 8(a0)
+
+  /* zeroes PC */
+	sw	zero, 12(a0)
+
+  csrrw t1,mie,zero
+	sw	t1, 16(a0)
+
 	/* reloads v1 and a1 registers */
   /*
-	lw	v1, 24(a0)
+	lw	v1, 24(a0) ???
 	lw 	a1, 32(a0)
   */
+
+  lw a1, 120(a0)
 
 	/* sets v0 to return value */
   /*
 	move	v0, ra
   */
   addi a0,ra,0
+
 
 	jr	ra
 

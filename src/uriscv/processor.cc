@@ -13,7 +13,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
@@ -35,8 +34,12 @@
 #include <cassert>
 #include <complex>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <unistd.h>
 
 #include "uriscv/arch.h"
+#include "uriscv/bios.h"
 #include "uriscv/const.h"
 #include "uriscv/cp0.h"
 #include "uriscv/disassemble.h"
@@ -47,6 +50,9 @@
 #include "uriscv/systembus.h"
 #include "uriscv/types.h"
 #include "uriscv/utility.h"
+
+// TODO: to remove
+bool _pause = false;
 
 const char *const regName[] = {
     "zero", "ra", "sp", "gp", "tp",  "t0",  "t1", "t2", "s0/fp", "s1", "a0",
@@ -259,24 +265,23 @@ void Processor::Reset(Word pc, Word sp) {
   // clear general purpose registers
   for (i = 0; i < CPUREGNUM; i++)
     gpr[i] = 0;
-  gpr[29] = sp;
+  gpr[REG_SP] = sp;
 
   // no previous instruction is available
   prevPC = MAXWORDVAL;
   prevPhysPC = MAXWORDVAL;
   prevInstr = NOP;
 
-  // clears CP0 registers and then sets them
-  for (i = 0; i < CP0REGNUM; i++)
-    cpreg[i] = 0UL;
+  // cpreg[PRID] = id;
 
-  // first instruction is already loaded
-  cpreg[RANDOM] = ((tlbSize - 1UL) << RNDIDXOFFS) - RANDOMSTEP;
-  cpreg[STATUS] = STATUSRESET;
-  cpreg[PRID] = id;
-
-  csrWrite(MSTATUS, 0);
+  csrWrite(CSR_ENTRYHI, 0);
+  csrWrite(CSR_ENTRYLO, 0);
+  csrWrite(CSR_INDEX, 0);
+  csrWrite(MSTATUS, MSTATUS_MPP_M);
+  csrWrite(MIE, 0);
+  csrWrite(CSR_RANDOM, ((tlbSize - 1UL) << RNDIDXOFFS) - RANDOMSTEP);
   csrWrite(MCAUSE, 0);
+  mode = 0x3;
   // TODO: set misa and PC
 
   currPC = pc;
@@ -312,32 +317,36 @@ void Processor::Halt() { setStatus(PS_HALTED); }
 // may start.
 // Other MIPS-specific minor tasks are performed at proper points.
 void Processor::Cycle() {
+
   // Nothing to do if the cpu is halted
   if (isHalted())
     return;
 
   // Update internal timer
   // read MIE bit
-  if (csrRead(MSTATUS) & STATUS_MIE_MASK && csrRead(MIE) & MIE_MTIE_MASK) {
-    if (csrRead(TIME) == 0)
+  if (csrRead(MIE) & MIE_MTIE_MASK) {
+    if (csrRead(TIME) == 0) {
       AssertIRQ(IL_CPUTIMER);
-    csrWrite(TIME, csrRead(TIME));
+    }
+    csrWrite(TIME, csrRead(TIME) - 1);
   } else {
     DeassertIRQ(IL_CPUTIMER);
   }
 
   // In low-power state, only the per-cpu timer keeps running
-  if (isIdle())
+  if (isIdle()) {
     return;
+  }
 
   // Instruction decode & exec
-  if (execInstr(currInstr))
+  if (!skipCycle && execInstr(currInstr))
     handleExc();
 
   // Check if we entered sleep mode as a result of the last
   // instruction; if so, we effectively stall the pipeline.
-  if (isIdle())
+  if (isIdle()) {
     return;
+  }
 
   // PC saving for book-keeping purposes
   prevPC = currPC;
@@ -358,24 +367,27 @@ void Processor::Cycle() {
   if (checkForInt())
     handleExc();
 
+  if (skipCycle)
+    skipCycle = false;
+
   // processor cycle fetch part
   if (mapVirtual(currPC, &currPhysPC, EXEC)) {
     // TLB or Address exception caused: current instruction is nullified
-    currInstr = NOP;
+    // currInstr = NOP;
     handleExc();
+    skipCycle = true;
   } else if (bus->InstrRead(currPhysPC, &currInstr, this)) {
     // IBE exception caused: current instruction is nullified
-    currInstr = NOP;
+    // currInstr = NOP;
     handleExc();
+    skipCycle = true;
   }
 }
 uint32_t Processor::IdleCycles() {
   if (isHalted())
     return (uint32_t)-1;
   else if (isIdle())
-    return (csrRead(MSTATUS) & STATUS_MIE_MASK & csrRead(MIE) & MIE_MTIE_MASK)
-               ? csrRead(TIME)
-               : (uint32_t)-1;
+    return (csrRead(MIE) & MIE_MTIE_MASK) ? csrRead(TIME) : (uint32_t)-1;
   else
     return 0;
 }
@@ -383,7 +395,7 @@ uint32_t Processor::IdleCycles() {
 void Processor::Skip(uint32_t cycles) {
   assert(isIdle() && cycles <= IdleCycles());
 
-  if (csrRead(MSTATUS) & STATUS_MIE_MASK & csrRead(MIE) & MIE_MTIE_MASK)
+  if (csrRead(MIE) & MIE_MTIE_MASK)
     csrWrite(TIME, csrRead(TIME) - cycles);
 }
 
@@ -404,33 +416,48 @@ void Processor::SignalExc(unsigned int exc, Word cpuNum) {
 }
 
 void Processor::AssertIRQ(unsigned int il) {
-  cpreg[CAUSE] |= CAUSE_IP(il);
+
+  DEBUGMSG("assert IRQ %d\n", il);
+  // cpreg[CAUSE] |= CAUSE_IP(il);
+  csrWrite(MIP, csrRead(MIP) | CAUSE_IP(il));
+  DEBUGMSG("new MIP %x\n", csrRead(MIP));
 
   // If in standby mode, go back to being a power hog.
   if (isIdle())
     setStatus(PS_RUNNING);
 }
 
-void Processor::DeassertIRQ(unsigned int il) { cpreg[CAUSE] &= ~CAUSE_IP(il); }
+void Processor::DeassertIRQ(unsigned int il) {
+  // cpreg[CAUSE] &= ~CAUSE_IP(il);
+  csrWrite(MIP, csrRead(MIP) & ~CAUSE_IP(il));
+  if (il != 1) {
+    DEBUGMSG("deassert IRQ %d\n", il);
+    DEBUGMSG("new MIP %x\n", csrRead(MIP));
+  }
+}
 
 // This method allows to get critical information on Processor current
 // internal status. Parameters are self-explanatory: they are extracted from
 // proper places inside Processor itself
 void Processor::getCurrStatus(Word *asid, Word *pc, Word *instr, bool *isLD,
                               bool *isBD) {
-  *asid = (ASID(cpreg[ENTRYHI])) >> ASIDOFFS;
+  *asid = (ASID(csrRead(CSR_ENTRYHI))) >> ASIDOFFS;
   *pc = currPC;
   *instr = currInstr;
   *isLD = (loadPending != LOAD_TARGET_NONE);
   *isBD = isBranchD;
 }
 
-Word Processor::getASID() const { return ASID(cpreg[ENTRYHI]) >> ASIDOFFS; }
+Word Processor::getASID() { return ASID(csrRead(CSR_ENTRYHI)) >> ASIDOFFS; }
 
-bool Processor::InUserMode() const { return BitVal(cpreg[STATUS], KUCBITPOS); }
+bool Processor::InUserMode() {
+  // return (csrRead(MSTATUS) & MSTATUS_MPP_MASK) == MSTATUS_MPP_U;
+  return mode == 0x0;
+}
 
-bool Processor::InKernelMode() const {
-  return (!BitVal(cpreg[STATUS], KUCBITPOS));
+bool Processor::InKernelMode() {
+  // return (csrRead(MSTATUS) & MSTATUS_MPP_MASK) == MSTATUS_MPP_M;
+  return mode == 0x3;
 }
 
 // This method allows to get Processor previously executed instruction and
@@ -478,7 +505,10 @@ SWord Processor::getGPR(unsigned int num) { return (gpr[num]); }
 
 // This method allows to get the value of the CP0 special register indexed
 // by num. num coding itself is internal (see h/processor.h for mapping)
-Word Processor::getCP0Reg(unsigned int num) { return (cpreg[num]); }
+Word Processor::getCP0Reg(unsigned int num) {
+  exit(0);
+  return (0);
+}
 
 void Processor::getTLB(unsigned int index, Word *hi, Word *lo) const {
   *hi = tlb[index].getHI();
@@ -526,8 +556,8 @@ void Processor::setGPR(unsigned int num, SWord val) {
 // This method allows to modify the current value of a CP0 special
 // register. num coding itself is internal (see h/processor.h for mapping)
 void Processor::setCP0Reg(unsigned int num, Word val) {
-  if (num < CP0REGNUM)
-    cpreg[num] = val;
+  // if (num < CP0REGNUM)
+  //   cpreg[num] = val;
 }
 
 // This method allows to modify the current value of nextPC to force sudden
@@ -569,40 +599,45 @@ void Processor::setTLBLo(unsigned int index, Word value) {
 // This method advances CP0 RANDOM register, following MIPS conventions; it
 // cycles from RANDOMTOP to RANDOMBASE, one STEP less for each clock tick
 void Processor::randomRegTick() {
-  cpreg[RANDOM] =
-      (cpreg[RANDOM] - RANDOMSTEP) & (((tlbSize - 1UL) << RNDIDXOFFS));
-  if (cpreg[RANDOM] < RANDOMBASE)
-    cpreg[RANDOM] = ((tlbSize - 1UL) << RNDIDXOFFS);
+  csrWrite(CSR_RANDOM, (csrRead(CSR_RANDOM) - RANDOMSTEP) &
+                           (((tlbSize - 1UL) << RNDIDXOFFS)));
+  if (csrRead(CSR_RANDOM) < RANDOMBASE)
+    csrWrite(csrRead(CSR_RANDOM), ((tlbSize - 1UL) << RNDIDXOFFS));
 }
 
 // This method pushes the KU/IE bit stacks in CP0 STATUS register to start
 // exception handling
 void Processor::pushKUIEStack() {
-  unsigned int bitp;
 
-  // push the KUIE stack
-  for (bitp = KUOBITPOS; bitp > KUCBITPOS; bitp--)
-    if (BitVal(cpreg[STATUS], bitp - 2))
-      cpreg[STATUS] = SetBit(cpreg[STATUS], bitp);
-    else
-      cpreg[STATUS] = ResetBit(cpreg[STATUS], bitp);
+  if (BitVal(csrRead(MSTATUS), MSTATUS_MIE_BIT)) {
+    csrWrite(MSTATUS, SetBit(csrRead(MSTATUS), MSTATUS_MPIE_BIT));
+  } else
+    csrWrite(MSTATUS, ResetBit(csrRead(MSTATUS), MSTATUS_MPIE_BIT));
 
-  // sets to 0 current KU IE bits
-  cpreg[STATUS] = ResetBit(cpreg[STATUS], KUCBITPOS);
-  cpreg[STATUS] = ResetBit(cpreg[STATUS], IECBITPOS);
+  csrWrite(MSTATUS, ResetBit(csrRead(MSTATUS), MSTATUS_MIE_BIT));
+
+  // set machine mode
+  csrWrite(MSTATUS,
+           (csrRead(MSTATUS) & ~MSTATUS_MPP_MASK) | (mode << MSTATUS_MPP_BIT));
+  mode = 0x3;
 }
 
 // This method pops the KU/IE bit stacks in CP0 STATUS register to end
 // exception handling. It is invoked on RFE instruction execution
 void Processor::popKUIEStack() {
-  unsigned int bitp;
+  if (BitVal(csrRead(MSTATUS), MSTATUS_MPIE_BIT))
+    csrWrite(MSTATUS, SetBit(csrRead(MSTATUS), MSTATUS_MIE_BIT));
+  else
+    csrWrite(MSTATUS, ResetBit(csrRead(MSTATUS), MSTATUS_MIE_BIT));
 
-  for (bitp = IECBITPOS; bitp < IEOBITPOS; bitp++) {
-    if (BitVal(cpreg[STATUS], bitp + 2))
-      cpreg[STATUS] = SetBit(cpreg[STATUS], bitp);
-    else
-      cpreg[STATUS] = ResetBit(cpreg[STATUS], bitp);
-  }
+  csrWrite(MSTATUS, ResetBit(csrRead(MSTATUS), MSTATUS_MPIE_BIT));
+
+  if ((csrRead(MSTATUS) & MSTATUS_MPP_MASK) >> MSTATUS_MPP_BIT)
+    csrWrite(MSTATUS, ResetBit(csrRead(MSTATUS), MSTATUS_MPRV_BIT));
+
+  // xPP is set to the least-privileged supported mode
+  mode = (csrRead(MSTATUS) & MSTATUS_MPP_MASK) >> MSTATUS_MPP_BIT;
+  csrWrite(MSTATUS, (csrRead(MSTATUS) & ~MSTATUS_MPP_MASK) | MSTATUS_MPP_U);
 }
 
 // This method test for pending interrupts, checking global abilitation (IEc
@@ -610,11 +645,10 @@ void Processor::popKUIEStack() {
 // pending on bus; returns TRUE if an INT exception must be raised, FALSE
 // otherwise, and sets CP0 registers if needed
 bool Processor::checkForInt() {
-  if ((cpreg[STATUS] & STATUS_IEc) &&
-      (cpreg[CAUSE] & cpreg[STATUS] & CAUSE_IP_MASK)) {
-    SignalExc(INTEXCEPTION);
-    // Clear all Cause fields except IP
-    cpreg[CAUSE] &= CAUSE_IP_MASK;
+  // check if interrupts are enabled and pending
+  if (csrRead(MSTATUS) & MSTATUS_MIE_MASK && (csrRead(MIE) & csrRead(MIP))) {
+    DEBUGMSG("INTTTTT\n");
+    SignalExc(EXC_INT);
     return true;
   } else {
     // No interrupt on this cycle
@@ -627,7 +661,7 @@ bool Processor::checkForInt() {
  */
 void Processor::suspend() {
   // if (!(cpreg[CAUSE] & CAUSE_IP_MASK))
-  if (!(csrRead(MCAUSE) >> 31))
+  if (!(csrRead(MIP)))
     setStatus(PS_IDLE);
 }
 
@@ -638,11 +672,6 @@ void Processor::handleExc() {
   // If there is a load pending, it is completed while the processor
   // prepares for exception handling (a small bubble...).
   // completeLoad();
-
-  DEBUGMSG("EXCEPTIONSSS\n");
-  csrWrite(MCAUSE, excCause);
-  csrWrite(MEPC, currPC + 4);
-  DEBUGMSG("MCAUSE %d\n", csrRead(MCAUSE));
 
   // set the excCode into CAUSE reg
   // cpreg[CAUSE] = IM(cpreg[CAUSE]) | (excCode[excCause] << CAUSE_EXCCODE_BIT);
@@ -673,20 +702,32 @@ void Processor::handleExc() {
   // }
   excVector = KSEG0BASE;
 
-  // pushKUIEStack();
+  pushKUIEStack();
 
-  if (excCause == UTLBLEXCEPTION || excCause == UTLBSEXCEPTION)
+  unsigned int mcause = excCause;
+
+  // if (excCause == UTLBLEXCEPTION || excCause == UTLBSEXCEPTION)
+  if (mcause == EXC_UTLBL || mcause == EXC_UTLBS) {
     excVector += TLBREFOFFS;
-  else
+    mcause -= 11;
+  } else
     excVector += OTHEREXCOFFS;
 
-  excVector = csrRead(MTVEC);
+  if (excCause == EXC_INT) {
+    mcause |= 1 << 31;
+  }
 
-  ERRORMSG("eccoci %d\n", excCause);
-  ERRORMSG("handler %x\n", excVector);
-  // ERROR("eccoci");
+  DEBUGMSG("EXCEPTIONSSS\n");
+  csrWrite(MCAUSE, mcause);
+  csrWrite(MEPC, currPC);
 
-  if (excCause == INTEXCEPTION) {
+  // excVector = csrRead(MTVEC);
+
+  DEBUGMSG("handler %x (%x)\n", excVector, excVector + WORDLEN);
+  DEBUGMSG("PC %x\n", currPC);
+
+  // TODO: undestand why ADEL yes and ADES not
+  if (excCause == EXC_INT) {
     // interrupt: test is before istruction fetch, so handling
     // could start immediately
     currPC = excVector;
@@ -699,6 +740,8 @@ void Processor::handleExc() {
     nextPC = excVector;
     succPC = nextPC + WORDLEN;
   }
+
+  DEBUGMSG("PC %x\n", currPC);
 }
 
 // This method zeroes out the TLB
@@ -714,64 +757,7 @@ void Processor::zapTLB() {
 // This method allows to handle the delayed load slot: it provides to load
 // the target register with the needed value during the execution of other
 // instructions, when invoked at the appropriate point in the "pipeline"
-void Processor::completeLoad() {
-  // loadPending tells whether a general purpose or a CP0 special register
-  // is the target
-  switch (loadPending) {
-  case LOAD_TARGET_GPREG:
-    if (loadReg != 0)
-      gpr[loadReg] = loadVal;
-    loadPending = LOAD_TARGET_NONE;
-    break;
-
-  case LOAD_TARGET_CPREG:
-    // CP0 registers have some zero-filled fields or are read-only
-    // so individual handling is needed
-    switch (loadReg) {
-    case INDEX:
-      // loadable part is index field only, and P bit
-      // remain unchanged
-      cpreg[INDEX] = (cpreg[INDEX] & SIGNMASK) |
-                     (((Word)loadVal) & ((tlbSize - 1UL) << RNDIDXOFFS));
-      break;
-
-    case ENTRYLO:
-      // loadable part is PFN and status bits only
-      cpreg[ENTRYLO] = ((Word)loadVal) & ENTRYLOMASK;
-      break;
-
-    case CP0REG_TIMER:
-      cpreg[CP0REG_TIMER] = (Word)loadVal;
-      DeassertIRQ(IL_CPUTIMER);
-      break;
-
-    case ENTRYHI:
-      // loadable parts are VPN and ASID fields
-      cpreg[ENTRYHI] = ((Word)loadVal) & (VPNMASK | ASIDMASK);
-      break;
-
-    case STATUS:
-      // loadable parts are CU0 bit, TE bit, BEV bit in DS, IM mask and
-      // KUIE bit stack
-      cpreg[STATUS] = ((Word)loadVal) & STATUSMASK;
-      break;
-
-    case EPC:
-    case PRID:
-    case RANDOM:
-    case BADVADDR:
-    default:
-      // read-only regs: writes have no effects
-      break;
-    }
-    loadPending = LOAD_TARGET_NONE;
-    break;
-
-  case LOAD_TARGET_NONE:
-  default:
-    break;
-  }
-}
+void Processor::completeLoad() {}
 
 // This method maps the virtual addresses to physical ones following the
 // complex mapping algorithm and TLB used by MIPS (see external doc).
@@ -782,8 +768,8 @@ void Processor::completeLoad() {
 bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
   // SignalProcVAccess() is always done so it is possible
   // to track accesses which produce exceptions
-  machine->HandleVMAccess(ENTRYHI_GET_ASID(cpreg[ENTRYHI]), vaddr, accType,
-                          this);
+  machine->HandleVMAccess(ENTRYHI_GET_ASID(csrRead(CSR_ENTRYHI)), vaddr,
+                          accType, this);
 
   // address validity and bounds check
   if (BADADDR(vaddr) ||
@@ -792,15 +778,20 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
     *paddr = MAXWORDVAL;
 
     // the bad virtual address is put into BADVADDR reg
-    cpreg[BADVADDR] = vaddr;
+    csrWrite(CSR_BADVADDR, vaddr);
 
     if (accType == WRITE)
       SignalExc(EXC_ADES);
-    else
+    else {
       SignalExc(EXC_ADEL);
+    }
 
     return true;
   } else if (INBOUNDS(vaddr, KSEG0BASE, tlbFloorAddress)) {
+    if (vaddr >= KUSEGBASE) {
+      ERRORMSG("ADDRESS IN KSEG0 - TLBFLOOR %x\n", vaddr);
+      exit(0);
+    }
     // no bad offset; if vaddr < KUSEGBASE the processor is surely
     // in kernelMode
     // valid access to KSEG0 area
@@ -812,7 +803,7 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
   // to KSEG0 or KUSEG spaces.
 
   unsigned int index;
-  if (probeTLB(&index, cpreg[ENTRYHI], vaddr)) {
+  if (probeTLB(&index, csrRead(CSR_ENTRYHI), vaddr)) {
     if (tlb[index].IsV()) {
       if (accType != WRITE || tlb[index].IsD()) {
         // All OK
@@ -840,10 +831,11 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
     // bad or missing VPN match: Refill event required
     *paddr = MAXWORDVAL;
     setTLBRegs(vaddr);
+
     if (accType == WRITE)
-      SignalExc(UTLBSEXCEPTION);
+      SignalExc(EXC_UTLBS);
     else
-      SignalExc(UTLBLEXCEPTION);
+      SignalExc(EXC_UTLBL);
 
     return true;
   }
@@ -853,8 +845,8 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
 // handling (see mapVirtual() for invocation/specific cases).
 void Processor::setTLBRegs(Word vaddr) {
   // Note that ENTRYLO is left undefined!
-  cpreg[BADVADDR] = vaddr;
-  cpreg[ENTRYHI] = VPN(vaddr) | ASID(cpreg[ENTRYHI]);
+  csrWrite(CSR_BADVADDR, vaddr);
+  csrWrite(CSR_ENTRYHI, VPN(vaddr) | ASID(csrRead(CSR_ENTRYHI)));
 }
 
 // This method make Processor execute a single MIPS instruction, emulating
@@ -866,9 +858,25 @@ bool Processor::execInstr(Word instr) {
   const Symbol *sym =
       machine->getStab()->Probe(config->getSymbolTableASID(), getPC(), true);
   if (sym != NULL && sym->getName() != prevFunc) {
+    // if (strcmp("p5b", prevFunc.c_str()) == 0) {
+    //   sleep(1);
+    // }
+    DEBUGMSG("<FUN %s\n", prevFunc.c_str());
+    if (strcmp("pandos_memcpy", prevFunc.c_str()) == 0) {
+      // DEBUG = true;
+    }
     prevFunc = sym->getName();
-    DEBUGMSG("FUN %s\n", sym->getName());
+    DEBUGMSG("\n>FUN %s\n", sym->getName());
+    if (strcmp("trap", prevFunc.c_str()) == 0) {
+      // sleep(1);
+      // _pause = true;
+    }
+    if (strcmp("pandos_memcpy", prevFunc.c_str()) == 0) {
+      // DEBUG = false;
+    }
   }
+  if (_pause)
+    sleep(1);
   DEBUGMSG("[%08x] (%08x) ", getPC(), instr);
 
   switch (opcode) {
@@ -885,19 +893,18 @@ bool Processor::execInstr(Word instr) {
       DEBUGMSG("LB\n");
       // just 8 bits
       if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+          !this->bus->DataRead(paddr, &read, this)) {
         regWrite(rd, signExtByte(read, BYTEPOS(vaddr)));
         setNextPC(getPC() + WORDLEN);
       } else
         e = true;
-      exit(-1);
       break;
     }
     case OP_LH: {
       DEBUGMSG("LBH\n");
       // just 16 bits
       if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+          !this->bus->DataRead(paddr, &read, this)) {
         regWrite(rd, signExtHWord(read, HWORDPOS(vaddr)));
         setNextPC(getPC() + WORDLEN);
       } else
@@ -905,11 +912,11 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_LW: {
+      DEBUGMSG("LW %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
+               (Word)imm);
       if (!mapVirtual(vaddr, &paddr, READ) &&
-          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+          !this->bus->DataRead(paddr, &read, this)) {
         regWrite(rd, read);
-        DEBUGMSG("LW %s,%s(%x),%d -> %x\n", regName[rd], regName[rs1],
-                 regRead(rs1), (Word)imm, read);
         setNextPC(getPC() + WORDLEN);
       } else
         e = true;
@@ -918,7 +925,7 @@ bool Processor::execInstr(Word instr) {
     case OP_LBU: {
       // just 8 bits
       if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+          !this->bus->DataRead(paddr, &read, this)) {
         DEBUGMSG("LBU %s,%s(%x),%d -> %x\n", regName[rd], regName[rs1],
                  regRead(rs1), imm, read);
         regWrite(rd, zExtByte(read, BYTEPOS(vaddr)));
@@ -930,7 +937,7 @@ bool Processor::execInstr(Word instr) {
     case OP_LHU: {
       // just 16 bits
       if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !this->bus->DataRead((SWord)regRead(rs1) + (SWord)imm, &read, this)) {
+          !this->bus->DataRead(paddr, &read, this)) {
         DEBUGMSG("LHU\n");
         regWrite(rd, zExtHWord(read, HWORDPOS(vaddr)));
         setNextPC(getPC() + WORDLEN);
@@ -957,7 +964,9 @@ bool Processor::execInstr(Word instr) {
     case OP_ADD_FUNC3: {
       switch (FUNC7) {
       case OP_ADD_FUNC7: {
-        DEBUGMSG("ADD %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        DEBUGMSG("ADD %s,%s(%x),%s(%x) -> %x\n", regName[rd], regName[rs1],
+                 regRead(rs1), regName[rs2], regRead(rs2),
+                 regRead(rs1) + regRead(rs2));
         regWrite(rd, regRead(rs1) + regRead(rs2));
         break;
       }
@@ -1190,7 +1199,7 @@ bool Processor::execInstr(Word instr) {
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       DEBUGMSG("ADDI %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
                imm);
-      regWrite(rd, regRead(rs1) + imm);
+      regWrite(rd, (Word)(regRead(rs1) + imm));
       break;
     }
     case OP_SLLI: {
@@ -1221,12 +1230,14 @@ bool Processor::execInstr(Word instr) {
       uint8_t FUNC7 = FUNC7(instr);
       switch (FUNC7) {
       case OP_SRLI_FUNC7: {
-        DEBUGMSG("SRLI\n");
+        DEBUGMSG("SRLI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+                 imm);
         regWrite(rd, regRead(rs1) >> imm);
         break;
       }
       case OP_SRAI_FUNC7: {
-        DEBUGMSG("SRAI\n");
+        DEBUGMSG("SRAI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+                 imm);
         uint8_t msb = rs1 & 0x80000000;
         regWrite(rd, regRead(rs1) >> imm | msb);
         break;
@@ -1236,7 +1247,6 @@ bool Processor::execInstr(Word instr) {
         e = true;
         break;
       }
-      regWrite(rd, SWord(regRead(rs1)) ^ SWord(imm));
       break;
     }
     case OP_ORI: {
@@ -1247,7 +1257,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_ANDI: {
-      DEBUGMSG("ANDI\n");
+      DEBUGMSG("ANDI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+               imm);
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       regWrite(rd, SWord(regRead(rs1)) & SWord(imm));
       break;
@@ -1278,26 +1289,64 @@ bool Processor::execInstr(Word instr) {
         setNextPC(getPC() + WORDLEN);
         SignalExc(EXC_SYS);
         e = true;
-
-        // ERROR("ECALL");
-        // TODO
-        // switch (this->mode) {
-        // case MODE_USER: {
-        //   return EXC_ENV_CALL_U;
-        // }
-        // case MODE_SUPERVISOR: {
-        //   return EXC_ENV_CALL_S;
-        // }
-        // case MODE_MACHINE: {
-        //   return EXC_ENV_CALL_M;
-        // }
-        // }
         break;
       }
       case EBREAK_IMM: {
-        DEBUGMSG("EBREAK\n");
-        SignalExc(EXC_BP);
-        e = true;
+        // TODO : remove
+        if (regRead(REG_A0) == 2 || regRead(REG_A0) == 3) {
+          exit(0);
+        }
+        int mode = regRead(REG_A0);
+        if (mode <= BIOS_SRV_HALT) {
+          DEBUGMSG("EBREAK\n");
+          SignalExc(EXC_BP);
+          e = true;
+        } else {
+          unsigned int i;
+          DEBUGMSG("EBREAK");
+          switch (mode) {
+          case BIOS_SRV_TLBP:
+            // solution "by the book"
+            DEBUGMSG(" TLBP\n");
+            csrWrite(CSR_INDEX, SIGNMASK);
+            if (probeTLB(&i, csrRead(CSR_ENTRYHI), csrRead(CSR_ENTRYHI)))
+              csrWrite(CSR_INDEX, (i << RNDIDXOFFS));
+            break;
+
+          case BIOS_SRV_TLBR:
+            DEBUGMSG(" TLBR\n");
+            csrWrite(CSR_ENTRYHI, tlb[RNDIDX(csrRead(CSR_INDEX))].getHI());
+            csrWrite(CSR_ENTRYLO, tlb[RNDIDX(csrRead(CSR_INDEX))].getLO());
+            break;
+
+          case BIOS_SRV_TLBWI:
+            DEBUGMSG(" TLBWI\n");
+            tlb[RNDIDX(csrRead(CSR_INDEX))].setHI(csrRead(CSR_ENTRYHI));
+            tlb[RNDIDX(csrRead(CSR_INDEX))].setLO(csrRead(CSR_ENTRYLO));
+            SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
+            break;
+
+          case BIOS_SRV_TLBWR:
+            DEBUGMSG(" TLBWR\n");
+            tlb[RNDIDX(csrRead(CSR_RANDOM))].setHI(csrRead(CSR_ENTRYHI));
+            tlb[RNDIDX(csrRead(CSR_RANDOM))].setLO(csrRead(CSR_ENTRYLO));
+            DEBUGMSG("\n\nENTRYHI %x\n", csrRead(CSR_ENTRYHI));
+            DEBUGMSG("ENTRYLO %x\n\n", csrRead(CSR_ENTRYLO));
+            SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
+            break;
+
+          case BIOS_SRV_TLBCLR:
+            zapTLB();
+            break;
+
+          default:
+            ERRORMSG(" NOT FOUND\n");
+            // invalid instruction
+            SignalExc(EXC_CPU, 0);
+            e = true;
+          }
+          setNextPC(getPC() + WORDLEN);
+        }
         break;
       }
       case MRET_IMM: {
@@ -1310,12 +1359,14 @@ bool Processor::execInstr(Word instr) {
          register.
         */
         // TODO: change privilege mode
-        setNextPC(csrRead(MEPC));
         DEBUGMSG("MRET %x\n", csrRead(MEPC));
+        popKUIEStack();
+        setNextPC(csrRead(MEPC));
         break;
       }
       case EWFI_IMM: {
         DEBUGMSG("EWFI\n");
+        setNextPC(getPC() + WORDLEN);
         suspend();
         break;
       }
@@ -1331,10 +1382,13 @@ bool Processor::execInstr(Word instr) {
     case OP_CSRRW: {
       DEBUGMSG("CSRRW %s(%x),%s(%x),%x\n", regName[rd], regRead(rd),
                regName[rs1], regRead(rs1), imm);
-      if (rd != 0x0)
+      if (rd != REG_ZERO)
         regWrite(rd, csrRead(imm));
-      if (rs1 != 0x0)
+      if (rs1 != REG_ZERO) {
         csrWrite(imm, regRead(rs1));
+        if (imm == TIME)
+          DeassertIRQ(IL_CPUTIMER);
+      }
       setNextPC(getPC() + WORDLEN);
       break;
     }
@@ -1342,14 +1396,19 @@ bool Processor::execInstr(Word instr) {
       std::cout << "CSRRS\n";
       regWrite(rd, csrRead(imm));
       csrWrite(imm, csrRead(imm) | regRead(rs1));
+      if (imm == TIME)
+        DeassertIRQ(IL_CPUTIMER);
       setNextPC(getPC() + WORDLEN);
       break;
     }
     case OP_CSRRC: {
       std::cout << "CSRRC\n";
       regWrite(rd, csrRead(imm));
-      if (rs1 != 0x0)
+      if (rs1 != 0x0) {
         csrWrite(imm, csrRead(imm) & ~regRead(rs1));
+        if (imm == TIME)
+          DeassertIRQ(IL_CPUTIMER);
+      }
       setNextPC(getPC() + WORDLEN);
       break;
     }
@@ -1357,6 +1416,8 @@ bool Processor::execInstr(Word instr) {
       std::cout << "CSRRWI\n";
       regWrite(rd, csrRead(imm));
       csrWrite(imm, csrRead(imm) & ~rs1);
+      if (imm == TIME)
+        DeassertIRQ(IL_CPUTIMER);
       setNextPC(getPC() + WORDLEN);
       break;
     }
@@ -1364,6 +1425,8 @@ bool Processor::execInstr(Word instr) {
       std::cout << "CSRRSI\n";
       regWrite(rd, csrRead(imm));
       csrWrite(imm, csrRead(imm) | rs1);
+      if (imm == TIME)
+        DeassertIRQ(IL_CPUTIMER);
       setNextPC(getPC() + WORDLEN);
       break;
     }
@@ -1371,6 +1434,8 @@ bool Processor::execInstr(Word instr) {
       std::cout << "CSRRCI\n";
       regWrite(rd, csrRead(imm));
       csrWrite(imm, csrRead(imm) & ~rs1);
+      if (imm == TIME)
+        DeassertIRQ(IL_CPUTIMER);
       setNextPC(getPC() + WORDLEN);
       break;
     }
@@ -1393,41 +1458,41 @@ bool Processor::execInstr(Word instr) {
     case OP_BEQ: {
       DEBUGMSG("BEQ %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
                regName[rs2], regRead(rs2), imm);
-      if (regRead(rs1) == regRead(rs2))
+      if ((SWord)regRead(rs1) == (SWord)regRead(rs2))
         setNextPC((SWord)getPC() + ((SWord)imm));
       else
         setNextPC(getPC() + WORDLEN);
       break;
     }
     case OP_BNE: {
-      DEBUGMSG("BNE %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
+      DEBUGMSG("BNE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
                regName[rs2], regRead(rs2), imm);
-      if (regRead(rs1) != regRead(rs2))
+      if ((SWord)regRead(rs1) != (SWord)regRead(rs2))
         setNextPC((SWord)getPC() + ((SWord)imm));
       else
         setNextPC(getPC() + WORDLEN);
       break;
     }
     case OP_BLT: {
-      DEBUGMSG("BLT %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
-               regName[rs2], regRead(rs2), imm);
-      if (regRead(rs1) < regRead(rs2))
+      DEBUGMSG("BLT %s(%x),%s(%x),%d (%d)\n", regName[rs1], regRead(rs1),
+               regName[rs2], regRead(rs2), imm, regRead(rs1) < regRead(rs2));
+      if ((SWord)regRead(rs1) < (SWord)regRead(rs2))
         setNextPC((SWord)getPC() + ((SWord)imm));
       else
         setNextPC(getPC() + WORDLEN);
       break;
     }
     case OP_BGE: {
-      DEBUGMSG("BGE %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
+      DEBUGMSG("BGE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
                regName[rs2], regRead(rs2), imm);
-      if (regRead(rs1) >= regRead(rs2)) {
+      if ((SWord)regRead(rs1) >= (SWord)regRead(rs2)) {
         setNextPC((SWord)getPC() + ((SWord)imm));
       } else
         setNextPC(getPC() + WORDLEN);
       break;
     }
     case OP_BLTU: {
-      DEBUGMSG("BLTU %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
+      DEBUGMSG("BLTU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
                regName[rs2], regRead(rs2), imm);
       if (regRead(rs1) < regRead(rs2))
         setNextPC(getPC() + (imm));
@@ -1436,7 +1501,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BGEU: {
-      DEBUGMSG("BGEU %s(%d),%s(%d),%d\n", regName[rs1], regRead(rs1),
+      DEBUGMSG("BGEU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
                regName[rs2], regRead(rs2), imm);
       if (regRead(rs1) >= regRead(rs2))
         setNextPC(getPC() + (imm));
@@ -1461,15 +1526,14 @@ bool Processor::execInstr(Word instr) {
     Word vaddr = (SWord)regRead(rs1) + (SWord)imm;
     Word paddr = 0;
     Word old = 0;
-    e = this->bus->DataRead(vaddr, &old, this);
     switch (FUNC3) {
     case OP_SB: {
+      DEBUGMSG("SB %s(%x),%s(%x),%d\n", regName[rs2], regRead(rs2),
+               regName[rs1], regRead(rs1), imm);
       if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
           !bus->DataRead(paddr, &old, this)) {
         old = mergeByte(old, regRead(rs2), BYTEPOS(vaddr));
         e = this->bus->DataWrite(paddr, old, this);
-        DEBUGMSG("SB %s(%x),%s(%x),%d -> %x\n", regName[rs2], regRead(rs2),
-                 regName[rs1], regRead(rs1), imm, old);
         setNextPC(getPC() + WORDLEN);
       } else
         e = true;
@@ -1477,10 +1541,10 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_SH: {
+      DEBUGMSG("SH %s(%x),%s(%x),%d -> %x\n", regName[rs2], regRead(rs2),
+               regName[rs1], regRead(rs1), imm, old);
       if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
           !bus->DataRead(paddr, &old, this)) {
-        DEBUGMSG("SH %s(%x),%s(%x),%d -> %x\n", regName[rs2], regRead(rs2),
-                 regName[rs1], regRead(rs1), imm, old);
         old = mergeHWord(old, regRead(rs2), HWORDPOS(vaddr));
         e = this->bus->DataWrite(paddr, old, this);
         setNextPC(getPC() + WORDLEN);
@@ -1489,10 +1553,10 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_SW: {
+      DEBUGMSG("SW $(%s(%x)+%d)<-%s(%x)\n", regName[rs1], regRead(rs1), imm,
+               regName[rs2], regRead(rs2));
       if (!mapVirtual(vaddr, &paddr, WRITE) &&
           !this->bus->DataWrite(paddr, regRead(rs2), this)) {
-        DEBUGMSG("SW %s(%x),%s(%x),%d\n", regName[rs2], regRead(rs2),
-                 regName[rs1], regRead(rs1), imm);
         setNextPC(getPC() + WORDLEN);
       } else
         e = true;
@@ -1542,19 +1606,6 @@ bool Processor::execInstr(Word instr) {
     setNextPC(((regRead(rs1) + imm) & 0xfffffffe));
     break;
   }
-  // case OP_FENCE: {
-  //   DEBUGMSG("FENCE\n!!! Da implementare\n");
-  //   // DEBUGMSG("PR %d ", FENCE_PR(instr));
-  //   // DEBUGMSG("PW %d ", FENCE_PW(instr));
-  //   // DEBUGMSG("PI %d ", FENCE_PI(instr));
-  //   // DEBUGMSG("PO %d ", FENCE_PO(instr));
-  //   // DEBUGMSG("SR %d ", FENCE_SR(instr));
-  //   // DEBUGMSG("SW %d ", FENCE_SW(instr));
-  //   // DEBUGMSG("SI %d ", FENCE_SI(instr));
-  //   // DEBUGMSG("SO %d\n", FENCE_SO(instr));
-  //   setNextPC(getPC() + WORDLEN);
-  //   break;
-  // }
   default: {
     ERRORMSG("OpCode not handled %x\n", instr);
     SignalExc(EXC_CPU, 0);
@@ -1571,8 +1622,8 @@ bool Processor::execInstr(Word instr) {
 // MIPS conventions)
 bool Processor::cp0Usable() {
   // CP0 is usable only when marked in user mode, and always in kernel mode
-  return BitVal(cpreg[STATUS], STATUS_CU0_BIT) ||
-         !BitVal(cpreg[STATUS], STATUS_KUc_BIT);
+  return BitVal(csrRead(MSTATUS), STATUS_CU0_BIT) ||
+         !BitVal(csrRead(MSTATUS), STATUS_KUc_BIT);
 }
 
 // This method scans the TLB looking for a entry that matches ASID/VPN pair;

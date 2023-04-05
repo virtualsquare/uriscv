@@ -45,6 +45,10 @@
 
 #define MSTATUS 0x300
 
+// Custom CSR
+#define CSR_ENTRYLO 0x800
+#define CSR_ENTRYHI 0x801
+
 /*
  *
  * The mip register is an MXLEN-bit read/write register containing information
@@ -61,9 +65,19 @@
 #define MIE 0x304
 #define MIP 0x344
 
-#define STATUS_MIE_MASK 0x8
+#define MSTATUS_MIE_MASK 0x8
+#define MSTATUS_MPP_MASK 0x1800
 #define MIE_MTIE_MASK 0x40
 #define MIP_MTIP_MASK 0x40
+#define MIE_ALL 0xFFFFFFFF
+
+#define MSTATUS_MPIE_BIT 7
+#define MSTATUS_MIE_BIT 3
+#define MSTATUS_MPRV_BIT 17
+#define MSTATUS_MPP_BIT 11
+#define MSTATUS_MPP_M 0x1800
+#define MSTATUS_MPP_U 0x0000
+#define MSTATUS_MPP_MASK 0x1800
 
 // general configuration constants
 #define MPSFILETYPE ".uriscv"
@@ -119,7 +133,7 @@
 #define MAXASID 64
 
 // MIPS NOP instruction
-#define NOP 0UL
+#define NOP 0x00000013
 
 // word length in bytes, byte length in bits, sign masks, etc.
 #define WORDLEN 4
@@ -144,21 +158,8 @@
 
 // exception type constants (simulator internal coding)
 #define NOEXCEPTION 0
-#define INTEXCEPTION 1
-#define MODEXCEPTION 2
 #define UTLBLEXCEPTION 3
-#define TLBLEXCEPTION 4
 #define UTLBSEXCEPTION 5
-#define TLBSEXCEPTION 6
-#define ADELEXCEPTION 7
-#define ADESEXCEPTION 8
-#define DBEXCEPTION 9
-#define IBEXCEPTION 10
-#define SYSEXCEPTION 11
-#define BPEXCEPTION 12
-#define RIEXCEPTION 13
-#define CPUEXCEPTION 14
-#define OVEXCEPTION 15
 
 // interrupt handling related constants
 

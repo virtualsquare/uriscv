@@ -84,6 +84,7 @@ typedef struct state {
   unsigned int cause;
   unsigned int status;
   unsigned int pc_epc;
+  unsigned int mie;
   unsigned int gpr[STATE_GPR_LEN];
   unsigned int hi;
   unsigned int lo;

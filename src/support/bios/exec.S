@@ -22,7 +22,7 @@
 
 #include "uriscv/arch.h"
 #include "uriscv/cp0.h"
-#include "uriscv/bios_defs.h"
+#include "uriscv/bios.h"
 
 /* Constants */
 
@@ -43,7 +43,9 @@
 
 #define CAUSENEGMASK      0xFFFFFF83
 #define KUPSTATUSMASK     0x00000008
-#define SAFESTATUSMASK    0xFFFFFFFC
+/* #define SAFESTATUSMASK    0xFFFFFFFC */
+#define SAFESTATUSMASK 0xFFFFFFF0
+#define MSTATUSMPPM 0x1800
 
 #define READK0(reg) \
   csrrw reg,mscratch,zero
@@ -215,9 +217,13 @@ LEXCHandler:
   WRITEK1(t1)
 	j	LSaveExcptAndJmp
 
-
 LIntHandler:
-  addi t0,t0,0
+	/* lw	k1, BIOS_PC_AREA_BASE */
+  li t0,BIOS_PC_AREA_BASE // load BIOS_PC_AREA_BASE in to t1
+  lw t1,0(t0) // so we can do t0 = mem[t1]
+  addi t1,t1,8
+  WRITEK1(t1)
+	j	LSaveExcptAndJmp
 
 LBreakHandler:
 
@@ -235,8 +241,31 @@ LBreakHandler:
   */
   // TODO: check if in kernel mode
 
-  addi t0,a0,-1
-  beq t0, zero, LLDST
+	/* 0 is LDCXT(stackPtr, STATUS, PC) */
+	/* beq	0, k1, LLDCXT */
+  add t1, a0,0
+  beq zero, t1, LLDCXT
+
+	/* addi	k1, -1 */
+  addi t1, t1, -1
+
+	/* 1 is LDST */
+  /* beq	0, k1, LLDST */
+  beq zero, t1, LLDST
+
+	/* addi	k1, -1 */
+  addi t1, t1, -1
+
+	/* 2 is PANIC routine */
+	/* beq	0, k1, LPanic */
+  beq zero, t1, LPanic 
+
+	/* addi	k1, -1 */
+  addi t1, t1, -1
+
+	/* 3 is HALT routine */
+	/* beq	0, k1, LHalt */
+  beq zero, t1, LHalt
 
 	/* If in user mode, pass along to kernel */
 	/* li	k1, BUS_REG_RAM_BASE */
@@ -246,86 +275,37 @@ LBreakHandler:
   WRITEK1(t1)
 	j	LSaveExcptAndJmp
 
-LisKernel:
-	/* 0 is LDCXT(stackPtr, STATUS, PC) */
-	/* beq	0, k1, LLDCXT */
-  READK1(t1)
-  beq zero, t1, LLDCXT
-
-	/* addi	k1, -1 */
-  READK1(t1)
-  addi t1, t1, -1
-  WRITEK1(t1)
-
-	/* 1 is LDST */
-  /* beq	0, k1, LLDST */
-  READK1(t1)
-  beq zero, t1, LLDST
-
-	/* addi	k1, -1 */
-  READK1(t1)
-  addi t1, t1, -1
-  WRITEK1(t1)
-
-	/* 2 is PANIC routine */
-	/* beq	0, k1, LPanic */
-  READK1(t1)
-  beq zero, t1, LPanic 
-
-	/* addi	k1, -1 */
-  READK1(t1)
-  addi t1, t1, -1
-  WRITEK1(t1)
-
-	/* 3 is HALT routine */
-	/* beq	0, k1, LHalt */
-  READK1(t1)
-  beq zero, t1, LHalt
-
-	/* any other break is passed up to SYS handler */
-	/* li	k1, BIOS_PC_AREA_BASE */
-  li t1, BIOS_PC_AREA_BASE
-  WRITEK1(t1)
-	/* addi	k1, k1, 8 */
-  READK1(t1)
-  addi t1, t1, 8
-  WRITEK1(t1)
-	j	LSaveExcptAndJmp
-
 LLDCXT:
 	# a1 is stackPtr, a2 is new STATUS, a3 is PC
 
 	# STATUS preparation
   /* move	k1, a2 */
-  WRITEK1(a2)
+  move t1, a2
 	# this for BIOS safety: no KU or IE bits on
 	/* li	k0, SAFESTATUSMASK */
   li t0, SAFESTATUSMASK
-  WRITEK0(t0)
 	/* and	k1, k1, k0 */
-  READK0(t0)
-  READK1(t1)
   and t1, t1, t0
-  WRITEK1(t1)
 
 	# STATUS loading
 	/* mtc0	k1, CP0_Status // CP0 not enabled */
+  csrrw zero,mstatus,t1
 
 	# stackPtr loading
 	move	sp, a1
 
 	# get new PC and jump
 	/* move	k1, a3 */
-  WRITEK1(a3)
+  move t1, a3
+  csrrw zero,mepc,a3
   /* TODO: check if it is useful */
 	/* move	t9, a3 */
 
 	//.set	noreorder
 	//.set	nomacro
 	/* jr	k1 */
-  READK1(t1)
-  jr t1
 	mret
+  jr t1
 	//.set	reorder
 	//.set	macro
 
@@ -358,53 +338,64 @@ LSave:
     lo
   */
 
-	sw	ra, 20(t0)
-	sw	sp, 24(t0)
-	sw 	gp, 28(t0)
-	sw	tp, 32(t0)
-	sw	t1, 40(t0)
-	sw	t2, 44(t0)
-	sw	t3, 48(t0)
-	sw	t4, 52(t0)
-	sw	t5, 56(t0)
-	sw	t6, 60(t0)
-	sw	s0, 64(t0)
-	sw	s1, 68(t0)
-	sw	s2, 72(t0)
-	sw	s3, 76(t0)
-	sw	s4, 80(t0)
-	sw	s5, 84(t0)
-	sw	s6, 88(t0)
-	sw	s7, 92(t0)
-	sw	s8, 96(t0)
-	sw	s9, 100(t0)
-	sw	s10, 104(t0)
-	sw	s11, 108(t0)
-	sw	a0, 112(t0)
-	sw	a1, 116(t0)
-	sw	a2, 120(t0)
-	sw	a3, 124(t0)
-	sw	a4, 128(t0)
-	sw	a5, 132(t0)
-	sw	a6, 136(t0)
-	sw	a7, 140(t0)
+	sw	ra, 24(t0)
+	sw	sp, 28(t0)
+	sw 	gp, 32(t0)
+	sw	tp, 36(t0)
+	sw	t1, 44(t0)
+	sw	t2, 48(t0)
+	sw	t3, 52(t0)
+	sw	t4, 56(t0)
+	sw	t5, 60(t0)
+	sw	t6, 64(t0)
+	sw	s0, 68(t0)
+	sw	s1, 72(t0)
+	sw	s2, 76(t0)
+	sw	s3, 80(t0)
+	sw	s4, 84(t0)
+	sw	s5, 88(t0)
+	sw	s6, 92(t0)
+	sw	s7, 96(t0)
+	sw	s8, 100(t0)
+	sw	s9, 104(t0)
+	sw	s10, 108(t0)
+	sw	s11, 112(t0)
+	sw	a0, 116(t0)
+	sw	a1, 120(t0)
+	sw	a2, 124(t0)
+	sw	a3, 128(t0)
+	sw	a4, 132(t0)
+	sw	a5, 136(t0)
+	sw	a6, 140(t0)
+	sw	a7, 144(t0)
+
+  csrrw t1,CSR_ENTRYHI,zero
+  sw t1,0(t0)
 
   csrrw t1,mcause,zero
 	sw	t1, 4(t0)
+
+  csrrw t1,mstatus,zero
+	sw	t1, 8(t0)
 
   // epc
   csrrw t1,mepc,zero
 	sw	t1, 12(t0)
 
+  csrrw t1,mie,zero
+	sw	t1, 16(t0)
+
   READK0(t0)
-  sw t1, 40(t0)
-	sw	t0, 36(t0)
+  sw t1, 44(t0)
+	sw	t0, 40(t0)
 
   READK1(t1)
   lw sp, 4(t1)
 
 	/* jr	k1 */
   lw t1,0(t1)
+  csrrw zero,mepc,t1
+
   jr t1
 	nop
 
@@ -415,9 +406,9 @@ LLoadStart:
 
   /* salvare
     entry_hi
-    cause
-    status
-    pc_epc
+    cause (fatto)
+    status (fatto)
+    pc_epc (fatto)
     gpr (fatto)
     hi
     lo
@@ -432,49 +423,75 @@ LLoadStart:
   READK0(t0)
 
   /* gpr */
-	lw	ra, 20(t0)
-	lw	sp, 24(t0)
-	lw 	gp, 28(t0)
-	lw	tp, 32(t0)
-	lw	t1, 40(t0)
-	lw	t2, 44(t0)
-	lw	t3, 48(t0)
-	lw	t4, 52(t0)
-	lw	t5, 56(t0)
-	lw	t6, 60(t0)
-	lw	s0, 64(t0)
-	lw	s1, 68(t0)
-	lw	s2, 72(t0)
-	lw	s3, 76(t0)
-	lw	s4, 80(t0)
-	lw	s5, 84(t0)
-	lw	s6, 88(t0)
-	lw	s7, 92(t0)
-	lw	s8, 96(t0)
-	lw	s9, 100(t0)
-	lw	s10, 104(t0)
-	lw	s11, 108(t0)
-	lw	a0, 112(t0)
-	lw	a1, 116(t0)
-	lw	a2, 120(t0)
-	lw	a3, 124(t0)
-	lw	a4, 128(t0)
-	lw	a5, 132(t0)
-	lw	a6, 136(t0)
-	lw	a7, 140(t0)
+	lw	ra, 24(t0)
+	lw	sp, 28(t0)
+	lw 	gp, 32(t0)
+	lw	tp, 36(t0)
+	lw	t1, 44(t0)
+	lw	t2, 48(t0)
+	lw	t3, 52(t0)
+	lw	t4, 56(t0)
+	lw	t5, 60(t0)
+	lw	t6, 64(t0)
+	lw	s0, 68(t0)
+	lw	s1, 72(t0)
+	lw	s2, 76(t0)
+	lw	s3, 80(t0)
+	lw	s4, 84(t0)
+	lw	s5, 88(t0)
+	lw	s6, 92(t0)
+	lw	s7, 96(t0)
+	lw	s8, 100(t0)
+  lw	s9, 104(t0)
+  lw	s10, 108(t0)
+	lw	s11, 112(t0)
+	lw	a0, 116(t0)
+	lw	a1, 120(t0)
+	lw	a2, 124(t0)
+	lw	a3, 128(t0)
+	lw	a4, 132(t0)
+	lw	a5, 136(t0)
+	lw	a6, 140(t0)
+	lw	a7, 144(t0)
 
-  lw t0, 12(t0) // epc
-  WRITEK1(t0)
-  addi t6,t0,0 // TODO: mhhh (return address)
+  lw t6, 0(t0)
+  csrrw zero,CSR_ENTRYHI,t6
+
+
+  lw t6, 4(t0)
+  csrrw zero,mcause,t6
+
+	/* This is for avoiding trouble if STATUS has (erroneously)
+	 * set bit 0/1. It would cause an immediate EXC trap or expose
+	 * BIOS to interrupts. */
+  lw t6, 8(t0)
+	srl 	t6,t6, 4 
+	sll 	t6,t6, 4 
+  /*
+  li t5,MSTATUSMPPM
+  or   t6,t6,t5
+  */
+  csrrw zero,mstatus,t6
+
+  // has to be the last one
+  lw t6, 12(t0) // epc (mhhh using of t6)
+  csrrw zero,mepc,t6
+  WRITEK1(t6)
+
+  lw t6, 16(t0)
+  csrrw zero,mie,t6
 
   // TODO: save status etc....
 
   READK0(t0)
-	lw	t0, 36(t0)
+	lw	t6, 64(t0)
+	lw	t0, 40(t0)
 
-  jr t6
+  READK1(t6)
 
 	mret
+  // jr t6
+
 	//.set	reorder
 	//.set	macro
 

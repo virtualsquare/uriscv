@@ -51,6 +51,7 @@
 #include "uriscv/blockdev.h"
 #include "uriscv/blockdev_params.h"
 #include "uriscv/const.h"
+#include "uriscv/cp0.h"
 #include "uriscv/device.h"
 #include "uriscv/error.h"
 #include "uriscv/event.h"
@@ -147,8 +148,9 @@ void SystemBus::ClockTick() {
   machine->HandleBusAccess(BUS_REG_TOD_LO, WRITE, NULL);
 
   // Update interval timer
-  if (UnsSub(&timer, timer, 1))
+  if (UnsSub(&timer, timer, 1)) {
     pic->StartIRQ(IL_TIMER);
+  }
   machine->HandleBusAccess(BUS_REG_TIMER, WRITE, NULL);
 
   // Scan the event queue
@@ -193,7 +195,7 @@ bool SystemBus::DataRead(Word addr, Word *datap, Processor *cpu) {
 
   if (busRead(addr, datap, cpu)) {
     // address invalid: signal exception to processor
-    cpu->SignalExc(DBEXCEPTION);
+    cpu->SignalExc(EXC_DBE);
     return true;
   }
 
@@ -223,10 +225,10 @@ bool SystemBus::DataWrite(Word addr, Word data, Processor *proc) {
 
   if (busWrite(addr, data, proc)) {
     // data write is out of valid write bounds
-    proc->SignalExc(DBEXCEPTION);
+    proc->SignalExc(EXC_DBE);
     return true;
-  } else
-    return false;
+  }
+  return false;
 }
 
 bool SystemBus::CompareAndSet(Word addr, Word oldval, Word newval, bool *result,
@@ -240,7 +242,7 @@ bool SystemBus::CompareAndSet(Word addr, Word oldval, Word newval, bool *result,
     *result = false;
     return false;
   } else {
-    cpu->SignalExc(DBEXCEPTION);
+    cpu->SignalExc(EXC_DBE);
     return true;
   }
 }
@@ -315,7 +317,9 @@ bool SystemBus::InstrRead(Word addr, Word *instrp, Processor *proc) {
 
   if (busRead(addr, instrp)) {
     // address invalid: signal exception to processor
-    proc->SignalExc(IBEXCEPTION);
+    ERRORMSG("IBEXCEPTION %x\n", addr);
+    exit(0);
+    proc->SignalExc(EXC_IBE);
     return true;
   } else {
     // address was valid
@@ -371,8 +375,6 @@ Device *SystemBus::getDev(unsigned int intL, unsigned int dNum) {
 bool SystemBus::busRead(Word addr, Word *datap, Processor *cpu) {
   if (INBOUNDS(addr, RAMBASE, RAMBASE + ram->Size())) {
     *datap = ram->MemRead(CONVERT(addr, RAMBASE));
-    // if (addr == 0x20000fa4)
-    //   printf("\nread from RAM %x at %x\n", *datap, addr);
   } else if (INBOUNDS(addr, BIOSDATABASE, BIOSDATABASE + biosdata->Size())) {
     *datap = biosdata->MemRead(CONVERT(addr, BIOSDATABASE));
   } else if (INBOUNDS(addr, BIOSBASE, BIOSBASE + bios->Size())) {
@@ -499,8 +501,6 @@ Device *SystemBus::makeDev(unsigned int intl, unsigned int dnum) {
 // and writable, and TRUE otherwise
 bool SystemBus::busWrite(Word addr, Word data, Processor *cpu) {
   if (INBOUNDS(addr, RAMBASE, RAMBASE + ram->Size())) {
-    // if (addr == 0x20000fa4)
-    //   printf("\nwrite to RAM %x at %x\n", data, addr);
     ram->MemWrite(CONVERT(addr, RAMBASE), data);
   } else if (INBOUNDS(addr, BIOSDATABASE, BIOSDATABASE + biosdata->Size())) {
     biosdata->MemWrite(CONVERT(addr, BIOSDATABASE), data);

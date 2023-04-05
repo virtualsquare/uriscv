@@ -57,6 +57,8 @@ target_include_directories(uriscv-mkdev
     )
 target_link_libraries(uriscv-objdump)
 
+install(TARGETS uriscv-mkdev RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 install(TARGETS testdis RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # add_subdirectory(frontends)

@@ -511,8 +511,6 @@ void TerminalDevice::WriteDevReg(unsigned int regnum, Word data) {
         recvCTime = scheduleIOEvent(TERMRESETTIME * config->getClockRate());
         sprintf(recvStatStr, "Resetting (last op: %s)",
                 isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
-        printf("Resetting (last op: %s)",
-               isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
         reg[RECVSTATUS] = BUSY;
         break;
 
@@ -522,8 +520,6 @@ void TerminalDevice::WriteDevReg(unsigned int regnum, Word data) {
         recvIntPend = false;
         sprintf(recvStatStr, "Idle (last op: %s)",
                 isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
-        printf("Idle (last op: %s)",
-               isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
         reg[RECVSTATUS] = READY;
         break;
 
@@ -533,8 +529,6 @@ void TerminalDevice::WriteDevReg(unsigned int regnum, Word data) {
         recvIntPend = false;
         sprintf(recvStatStr, "Receiving (last op: %s)",
                 isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
-        printf("Receiving (last op: %s)",
-               isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
         recvCTime = scheduleIOEvent(RECVCHRTIME * config->getClockRate());
         reg[RECVSTATUS] = BUSY;
         break;
@@ -542,8 +536,6 @@ void TerminalDevice::WriteDevReg(unsigned int regnum, Word data) {
       default:
         sprintf(recvStatStr, "Unknown command (last op: %s)",
                 isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
-        printf("Unknown command (last op: %s)",
-               isSuccess(dType, reg[RECVSTATUS] & BYTEMASK));
         reg[RECVSTATUS] = ILOPERR;
         bus->IntReq(intL, devNum);
         recvIntPend = true;

@@ -47,18 +47,6 @@
 #define CONTEXTREG 4
 
 // and corresponding register index in Processor structure
-enum {
-  INDEX,
-  RANDOM,
-  ENTRYLO,
-  BADVADDR,
-  CP0REG_TIMER,
-  ENTRYHI,
-  STATUS,
-  CAUSE,
-  EPC,
-  PRID
-};
 
 // STATUS and CAUSE interrupt area mask
 #define INTMASK 0x0000FF00UL

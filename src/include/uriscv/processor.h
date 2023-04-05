@@ -88,12 +88,12 @@ public:
 
   void getCurrStatus(Word *asid, Word *pc, Word *instr, bool *isLD, bool *isBD);
 
-  Word getASID() const;
+  Word getASID();
   Word getPC() const { return currPC; }
   Word getInstruction() const { return currInstr; }
 
-  bool InUserMode() const;
-  bool InKernelMode() const;
+  bool InUserMode();
+  bool InKernelMode();
 
   void getPrevStatus(Word *pc, Word *instr);
   const char *getExcCauseStr();
@@ -152,7 +152,9 @@ private:
   SystemBus *bus;
 
   std::string prevFunc;
+  bool skipCycle;
 
+  unsigned int mode;
   ProcessorStatus status;
 
   // last exception cause: an internal format is used (see excName[]
@@ -200,7 +202,7 @@ private:
   Word succPC;
 
   // CP0 components: special registers and the TLB
-  Word cpreg[CP0REGNUM];
+  // Word cpreg[CP0REGNUM];
 
   size_t tlbSize;
   scoped_array<TLBEntry> tlb;

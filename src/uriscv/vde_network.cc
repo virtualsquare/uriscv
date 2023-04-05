@@ -198,10 +198,6 @@ void netinterface::setaddr(char *iethaddr) {
   register int i;
   for (i = 0; i < 6; i++)
     ethaddr[i] = iethaddr[i];
-
-  //	for (int i = 0; i < 6; i++)
-  //		printf("%x:",ethaddr[i]);
-  //	printf("\n");
 }
 
 void netinterface::getaddr(char *pethaddr) {
@@ -210,11 +206,7 @@ void netinterface::getaddr(char *pethaddr) {
     pethaddr[i] = ethaddr[i];
 }
 
-void netinterface::setmode(int imode) {
-  mode = imode;
-
-  //	printf("mode %x\n", mode);
-}
+void netinterface::setmode(int imode) { mode = imode; }
 
 unsigned int netinterface::getmode() { return mode; }
 

@@ -30,6 +30,12 @@
 #ifndef URISCV_ARCH_H
 #define URISCV_ARCH_H
 
+#define CSR_ENTRYLO 0x800
+#define CSR_ENTRYHI 0x801
+#define CSR_INDEX 0x802
+#define CSR_RANDOM 0x803
+#define CSR_BADVADDR 0x803
+
 /*
  * Generalities
  */

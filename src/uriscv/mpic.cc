@@ -100,8 +100,9 @@ void InterruptController::EndIRQ(unsigned int il, unsigned int devNo) {
 }
 
 Word InterruptController::Read(Word addr, const Processor *cpu) const {
-  if (CDEV_BITMAP_BASE <= addr && addr < CDEV_BITMAP_END)
+  if (CDEV_BITMAP_BASE <= addr && addr < CDEV_BITMAP_END) {
     return cpuData[cpu->Id()].idb[(addr - CDEV_BITMAP_BASE) >> 2];
+  }
 
   if (IRT_BASE <= addr && addr < IRT_END) {
     unsigned int offset = (addr - IRT_BASE) >> 2;

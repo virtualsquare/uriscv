@@ -61,6 +61,10 @@ extern unsigned int getSTATUS(void);
 
 extern unsigned int getCAUSE(void);
 
+extern unsigned int getMIE(void);
+
+extern unsigned int getMIP(void);
+
 extern unsigned int getEPC(void);
 
 extern unsigned int getPRID(void);
@@ -80,6 +84,8 @@ extern unsigned int setENTRYHI(unsigned int entry);
 extern unsigned int setSTATUS(unsigned int entry);
 
 extern unsigned int setCAUSE(unsigned int cause);
+
+extern unsigned int setMIE(unsigned int mie);
 
 extern unsigned int setTIMER(unsigned int timer);
 
