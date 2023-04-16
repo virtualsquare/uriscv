@@ -236,7 +236,7 @@ HIDDEN void StrBInstr(Word instr) {
 
 HIDDEN const char *const CSRInstrName[] = {
 	"",
-	"cssrw",
+	"csrrw",
 	"csrrs",
 	"csrrc",
 	"",
