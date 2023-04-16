@@ -506,7 +506,6 @@ SWord Processor::getGPR(unsigned int num) { return (gpr[num]); }
 // This method allows to get the value of the CP0 special register indexed
 // by num. num coding itself is internal (see h/processor.h for mapping)
 Word Processor::getCP0Reg(unsigned int num) {
-  exit(0);
   return (0);
 }
 
@@ -1292,10 +1291,10 @@ bool Processor::execInstr(Word instr) {
         break;
       }
       case EBREAK_IMM: {
-        // TODO : remove
-        if (regRead(REG_A0) == 2 || regRead(REG_A0) == 3) {
-          exit(0);
-        }
+        // // TODO : remove
+        // if (regRead(REG_A0) == 2 || regRead(REG_A0) == 3) {
+        //   exit(0);
+        // }
         int mode = regRead(REG_A0);
         if (mode <= BIOS_SRV_HALT) {
           DEBUGMSG("EBREAK\n");
