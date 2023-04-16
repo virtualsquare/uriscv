@@ -48,6 +48,9 @@ const char *RegName(unsigned int index);
 // This function returns CP0 register name indexed by position
 const char *CP0RegName(unsigned int index);
 
+// This function returns CSR register name indexed by position
+const char *CSRRegName(unsigned int index);
+
 const char *getBInstrName(Word instr);
 
 // this function returns the pointer to a static buffer which contains

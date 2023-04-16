@@ -58,6 +58,131 @@ const char* RegName(unsigned int index)
 		return EMPTYSTR;
 }
 
+char csrNameBuf[32];
+
+const char *CSRRegName(unsigned int index) {
+	switch(index) {
+		case CYCLE:
+			return "cycle";
+			break;
+		case MCYCLE:
+			return "mcycle";
+			break;
+		case CYCLEH:
+			return "cycleh";
+			break;
+		case MCYCLEH:
+			return "mcycleh";
+			break;
+		case TIME:
+			return "time";
+			break;
+		case TIMEH:
+			return "timeh";
+			break;
+		case INSTRET:
+			return "instret";
+			break;
+		case MINSTRET:
+			return "minstret";
+			break;
+		case INSTRETH:
+			return "instreth";
+			break;
+		case MINSTRETH:
+			return "minstreth";
+			break;
+		case UTVEC:
+			return "utvec";
+			break;
+		case SEDELEG:
+			return "sedeleg";
+			break;
+		case MEDELEG:
+			return "medeleg";
+			break;
+		case SIDELEG:
+			return "sideleg";
+			break;
+		case MIDELEG:
+			return "mideleg";
+			break;
+		case STVEC:
+			return "stvec";
+			break;
+		case MTVEC:
+			return "mtvec";
+			break;
+		case USCRATCH:
+			return "uscratch";
+			break;
+		case SSCRATCH:
+			return "sscratch";
+			break;
+		case MSCRATCH:
+			return "mscratch";
+			break;
+		case UEPC:
+			return "uepc";
+			break;
+		case SEPC:
+			return "sepc";
+			break;
+		case MEPC:
+			return "mepc";
+			break;
+		case UCAUSE:
+			return "ucause";
+			break;
+		case SCAUSE:
+			return "scause";
+			break;
+		case MCAUSE:
+			return "mcause";
+			break;
+		case UTVAL:
+			return "utval";
+			break;
+		case STVAL:
+			return "stval";
+			break;
+		case MTVAL:
+			return "mtval";
+			break;
+		case MSTATUS:
+			return "mstatus";
+			break;
+		case CSR_ENTRYLO:
+			return "entrylo";
+			break;
+		case CSR_ENTRYHI:
+			return "entryhi";
+			break;
+		case UIE:
+			return "uie";
+			break;
+		case UIP:
+			return "uip";
+			break;
+		case SIE:
+			return "sie";
+			break;
+		case SIP:
+			return "sip";
+			break;
+		case MIE:
+			return "mie";
+			break;
+		case MIP:
+			return "mip";
+			break;
+		default:
+			// No name found, identify by index
+			sprintf(csrNameBuf, "0x%x", index);
+			return csrNameBuf;
+	}
+}
+
 const char *sep = " ";
 
 void setDisassembleSep(const char *newSep) {
@@ -248,19 +373,19 @@ HIDDEN const char *const CSRInstrName[] = {
 HIDDEN void StrCSRInstr(Word instr, uint8_t func3) {
 	if(func3 < 4) {
 		// Non immediate variants
-		sprintf(strbuf, "%s\t%s,%s0x%x,%s%s",
+		sprintf(strbuf, "%s\t%s,%s%s,%s%s",
 			CSRInstrName[func3],
 			regName[RD(instr)], sep,
-			I_IMM(instr), sep,
+			CSRRegName(I_IMM(instr)), sep,
 			regName[RS1(instr)]
 		);
 	}
 	else {
 		// Immediate variants
-		sprintf(strbuf, "%s\t%s,%s0x%x,%s%d",
+		sprintf(strbuf, "%s\t%s,%s%s,%s%d",
 			CSRInstrName[func3],
 			regName[RD(instr)], sep,
-			I_IMM(instr), sep,
+			CSRRegName(I_IMM(instr)), sep,
 			RS1(instr)
 		);
 	}
@@ -705,5 +830,5 @@ const char* CP0RegName(unsigned int index)
 	// 	return cp0RegName[index];
 	// else
 	// 	return "";
-	return NULL;
+	return "CP0Reg";
 }

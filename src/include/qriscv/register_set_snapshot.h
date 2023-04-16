@@ -59,7 +59,7 @@ private:
 
 	enum RegisterType {
 		RT_GENERAL = 1,
-		RT_CP0     = 2,
+		RT_CSR     = 2,
 		RT_OTHER   = 3
 	};
 
@@ -89,6 +89,7 @@ private:
 
 	Word gprCache[Processor::kNumCPURegisters];
 	Word cp0Cache[Processor::kNumCP0Registers];
+	Word csrCache[Processor::kNumCSRRegisters];
 	std::vector<SpecialRegisterInfo> sprCache;
 
 	QFont topLevelFont;
