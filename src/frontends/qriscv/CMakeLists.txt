@@ -88,7 +88,7 @@ target_include_directories(uriscv
         ${PROJECT_SOURCE_DIR}/src/frontends
         ${PROJECT_SOURCE_DIR}/src/include)
 
-target_link_libraries(uriscv PRIVATE Qt5::Widgets)
+target_link_libraries(uriscv PRIVATE Qt6::Widgets)
 
 set(QT_DEFINES -DQT_NO_DEBUG -DQT_NO_KEYWORDS -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED)
 target_compile_options(uriscv PRIVATE ${QT_DEFINES} ${SIGCPP_CFLAGS})
@@ -100,7 +100,7 @@ target_compile_definitions(uriscv PRIVATE -DPACKAGE_VERSION="${PROJECT_VERSION}"
 target_link_libraries(uriscv
         PRIVATE
         uriscv-lib
-        Qt5::Widgets
+        Qt6::Widgets
         ${SIGCPP_LIBRARIES}
         ${LIBDL})
 

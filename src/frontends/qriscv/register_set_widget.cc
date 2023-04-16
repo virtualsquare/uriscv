@@ -25,6 +25,7 @@
 #include <QVBoxLayout>
 #include <QToolBar>
 #include <QAction>
+#include <QActionGroup>
 
 #include "qriscv/register_set_snapshot.h"
 #include "qriscv/ui_utils.h"
@@ -38,7 +39,7 @@ RegisterSetWidget::RegisterSetWidget(Word cpuId, QWidget* parent)
 	cpuId(cpuId),
 	delegateKey(QString("RegisterSetWidget%1/delegate").arg(cpuId))
 {
-	connect(this, SIGNAL(topLevelChanged(bool)), this, SLOT(updateWindowTitle()));
+	connect(this, &RegisterSetWidget::topLevelChanged, this, &RegisterSetWidget::updateWindowTitle);
 
 	QWidget* widget = new QWidget;
 	QVBoxLayout* layout = new QVBoxLayout(widget);
@@ -58,7 +59,7 @@ RegisterSetWidget::RegisterSetWidget(Word cpuId, QWidget* parent)
 	addDisplayAction("Binary", new RIDelegateBinary(this),
 	                 displayGroup, toolBar);
 
-	connect(displayGroup, SIGNAL(triggered(QAction*)), this, SLOT(setDisplayType(QAction*)));
+	connect(displayGroup, &QActionGroup::triggered, this, &RegisterSetWidget::setDisplayType);
 
 	layout->addWidget(toolBar, 0, Qt::AlignRight);
 	QFont toolBarFont = toolBar->font();
