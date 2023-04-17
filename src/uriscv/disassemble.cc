@@ -158,6 +158,15 @@ const char *CSRRegName(unsigned int index) {
 		case CSR_ENTRYHI:
 			return "entryhi";
 			break;
+		case CSR_INDEX:
+			return "index";
+			break;
+		case CSR_RANDOM:
+			return "random";
+			break;
+		// case CSR_BADVADDR:
+		// 	return "badvaddr";
+			break;
 		case UIE:
 			return "uie";
 			break;

@@ -30,6 +30,8 @@
 #include "uriscv/types.h"
 #include "uriscv/processor.h"
 
+const int kNumRelevantCSRRegisters = 40;
+
 class RegisterSetSnapshot: public QAbstractItemModel {
 	Q_OBJECT
 
@@ -89,7 +91,7 @@ private:
 
 	Word gprCache[Processor::kNumCPURegisters];
 	Word cp0Cache[Processor::kNumCP0Registers];
-	Word csrCache[Processor::kNumCSRRegisters];
+	Word csrCache[kNumRelevantCSRRegisters];
 	std::vector<SpecialRegisterInfo> sprCache;
 
 	QFont topLevelFont;

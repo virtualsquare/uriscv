@@ -41,6 +41,49 @@ const char* const RegisterSetSnapshot::registerTypeNames[RegisterSetSnapshot::kN
 	"Other Registers"
 };
 
+const int relevantCsrRegisters[kNumRelevantCSRRegisters] = {
+	CYCLE,
+	MCYCLE,
+	CYCLEH,
+	MCYCLEH,
+	TIME,
+	TIMEH,
+	INSTRET,
+	MINSTRET,
+	INSTRETH,
+	MINSTRETH,
+	UTVEC,
+	SEDELEG,
+	MEDELEG,
+	SIDELEG,
+	MIDELEG,
+	STVEC,
+	MTVEC,
+	USCRATCH,
+	SSCRATCH,
+	MSCRATCH,
+	UEPC,
+	SEPC,
+	MEPC,
+	UCAUSE,
+	SCAUSE,
+	MCAUSE,
+	UTVAL,
+	STVAL,
+	MTVAL,
+	MSTATUS,
+	CSR_ENTRYLO,
+	CSR_ENTRYHI,
+	CSR_INDEX,
+	CSR_RANDOM,
+	UIE,
+	UIP,
+	SIE,
+	SIP,
+	MIE,
+	MIP
+};
+
 RegisterSetSnapshot::RegisterSetSnapshot(Word cpuId, QObject* parent)
 	: QAbstractItemModel(parent),
 	cpuId(cpuId)
@@ -73,7 +116,7 @@ QModelIndex RegisterSetSnapshot::index(int row, int column, const QModelIndex& p
 				return createIndex(row, column, (quint32) RT_GENERAL);
 			break;
 		case RT_CSR:
-			if ((unsigned int) row < Processor::kNumCSRRegisters)
+			if ((unsigned int) row < kNumRelevantCSRRegisters)
 				return createIndex(row, column, (quint32) RT_CSR);
 			break;
 		case RT_OTHER:
@@ -115,7 +158,7 @@ int RegisterSetSnapshot::rowCount(const QModelIndex& parent) const
 		case RT_GENERAL:
 			return Processor::kNumCPURegisters;
 		case RT_CSR:
-			return Processor::kNumCSRRegisters;
+			return kNumRelevantCSRRegisters;
 		case RT_OTHER:
 			return sprCache.size();
 		default:
@@ -164,7 +207,7 @@ QVariant RegisterSetSnapshot::data(const QModelIndex& index, int role) const
 				case RT_GENERAL:
 					return RegName(index.row());
 				case RT_CSR:
-					return CSRRegName(index.row());
+					return CSRRegName(relevantCsrRegisters[index.row()]);
 				case RT_OTHER:
 					return sprCache[index.row()].name;
 				default:
@@ -220,9 +263,9 @@ bool RegisterSetSnapshot::setData(const QModelIndex& index, const QVariant& vari
 		break;
 
 	case RT_CSR:
-		cpu->csrWrite(r, variant.value<Word>());
-		if (csrCache[r] != cpu->csrRead(r)) {
-			csrCache[r] = cpu->csrRead(r);
+		cpu->csrWrite(relevantCsrRegisters[r], variant.value<Word>());
+		if (csrCache[r] != cpu->csrRead(relevantCsrRegisters[r])) {
+			csrCache[r] = cpu->csrRead(relevantCsrRegisters[r]);
 			Q_EMIT dataChanged(index, index);
 		}
 		break;
@@ -301,8 +344,8 @@ void RegisterSetSnapshot::updateCache()
 		}
 	}
 
-	for (unsigned int i = 0; i < Processor::kNumCSRRegisters; i++) {
-		Word value = cpu->csrRead(i);
+	for (unsigned int i = 0; i < kNumRelevantCSRRegisters; i++) {
+		Word value = cpu->csrRead(relevantCsrRegisters[i]);
 		if (csrCache[i] != value) {
 			csrCache[i] = value;
 			QModelIndex index = createIndex(i, COL_REGISTER_VALUE, RT_CSR);
