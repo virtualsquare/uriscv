@@ -41,7 +41,7 @@
 #include "uriscv/arch.h"
 #include "uriscv/bios.h"
 #include "uriscv/const.h"
-#include "uriscv/cp0.h"
+#include "uriscv/cpu.h"
 #include "uriscv/disassemble.h"
 #include "uriscv/error.h"
 #include "uriscv/machine.h"
@@ -505,9 +505,7 @@ SWord Processor::getGPR(unsigned int num) { return (gpr[num]); }
 
 // This method allows to get the value of the CP0 special register indexed
 // by num. num coding itself is internal (see h/processor.h for mapping)
-Word Processor::getCP0Reg(unsigned int num) {
-  return (0);
-}
+Word Processor::getCP0Reg(unsigned int num) { return (0); }
 
 void Processor::getTLB(unsigned int index, Word *hi, Word *lo) const {
   *hi = tlb[index].getHI();
@@ -523,7 +521,7 @@ Word Processor::getTLBLo(unsigned int index) const {
 }
 
 Word Processor::regRead(Word reg) {
-  assert(reg >= 0 && reg < CPUGPRNUM);
+  assert(reg >= 0 && reg < CPUREGNUM);
   if (reg == REG_ZERO)
     return 0;
   return gpr[reg];
@@ -789,7 +787,6 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
   } else if (INBOUNDS(vaddr, KSEG0BASE, tlbFloorAddress)) {
     if (vaddr >= KUSEGBASE) {
       ERRORMSG("ADDRESS IN KSEG0 - TLBFLOOR %x\n", vaddr);
-      exit(0);
     }
     // no bad offset; if vaddr < KUSEGBASE the processor is surely
     // in kernelMode
@@ -1615,14 +1612,6 @@ bool Processor::execInstr(Word instr) {
   }
 
   return e;
-}
-
-// This method tests for CP0 availability (as set in STATUS register and in
-// MIPS conventions)
-bool Processor::cp0Usable() {
-  // CP0 is usable only when marked in user mode, and always in kernel mode
-  return BitVal(csrRead(MSTATUS), STATUS_CU0_BIT) ||
-         !BitVal(csrRead(MSTATUS), STATUS_KUc_BIT);
 }
 
 // This method scans the TLB looking for a entry that matches ASID/VPN pair;

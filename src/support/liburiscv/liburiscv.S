@@ -1,6 +1,7 @@
 #include "uriscv/arch.h"
 #include "uriscv/bios.h"
-#include "uriscv/cp0.h"
+#include "uriscv/cpu.h"
+#include "uriscv/const.h"
 
 #define LEAF_FUNC(func)				\
 	.globl	func;              \

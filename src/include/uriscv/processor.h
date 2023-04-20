@@ -40,9 +40,8 @@ enum ProcessorStatus { PS_HALTED, PS_RUNNING, PS_IDLE };
 class Processor {
 public:
   // Register file size:
-  static const unsigned int kNumCPURegisters = 34;
+  static const unsigned int kNumCPURegisters = 32;
   static const unsigned int kNumCSRRegisters = 4096;
-  static const unsigned int kNumCP0Registers = 9;
 
   Processor(const MachineConfig *config, Word id, Machine *machine,
             SystemBus *bus);
@@ -238,7 +237,6 @@ private:
   void setTLBRegs(Word vaddr);
   bool checkForInt();
   void suspend();
-  bool cp0Usable(void);
   void setLoad(LoadTargetType loadCode, unsigned int regNum, SWord regVal);
   SWord signExtByte(Word val, unsigned int bytep);
   Word zExtByte(Word val, unsigned int bytep);

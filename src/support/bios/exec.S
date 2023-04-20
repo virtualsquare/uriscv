@@ -21,8 +21,9 @@
  */
 
 #include "uriscv/arch.h"
-#include "uriscv/cp0.h"
+#include "uriscv/cpu.h"
 #include "uriscv/bios.h"
+#include "uriscv/const.h"
 
 /* Constants */
 

@@ -1,3 +1,4 @@
+#include "gdb/gdb.h"
 #include "uriscv/config.h"
 #include "uriscv/error.h"
 #include "uriscv/machine.h"
@@ -24,7 +25,7 @@ int main(int argc, char **argv) {
   // Declare the supported options.
   po::options_description desc("Allowed options");
   desc.add_options()("help", "produce help message")("debug", "enable debug")(
-      "iter", po::value<int>(), "iterations");
+      "iter", po::value<int>(), "iterations")("gdb", "start gdb server");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -35,20 +36,21 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // MachineConfig *config = MachineConfig::Create("config_machine.json");
   std::string error;
   MachineConfig *config =
       MachineConfig::LoadFromFile("config_machine.json", error);
 
-  // config->setDeviceFile(EXT_IL_INDEX(IL_TERMINAL), 1, "term1.uriscv");
-  // config->setDeviceEnabled(EXT_IL_INDEX(IL_TERMINAL), 1, true);
-  // config->setTLBFloorAddress(MachineConfig::TLB_FLOOR_ADDRESS[2]);
-  // config->Save();
   SymbolTable *stab;
   stab = new SymbolTable(config->getSymbolTableASID(),
                          config->getROM(ROM_TYPE_STAB).c_str());
   Machine *mac = new Machine(config, NULL, NULL, NULL);
   mac->setStab(stab);
+
+  /* TODO: should be in a different thread */
+  if (vm.count("gdb")) {
+    GDBServer *gdb = new GDBServer(mac);
+    gdb->StartServer();
+  }
 
   int iter = -1;
   if (vm.count("debug")) {
@@ -60,8 +62,6 @@ int main(int argc, char **argv) {
   else
     unlimited = true;
 
-  // Processor *processor = new Processor(config, bus);
-  // processor->Init(2, ENTRYPOINT, 0);
   bool stopped = false;
   for (int i = 0; i < iter || unlimited; i++) {
     mac->step(&stopped);

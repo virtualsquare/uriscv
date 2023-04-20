@@ -28,6 +28,8 @@
 #ifndef URISCV_CONSTS_H
 #define URISCV_CONSTS_H
 
+#include "uriscv/csr.h"
+
 /* Hardware & software constants */
 #define PAGESIZE 4096 /* page size in bytes */
 #define WORDLEN 4     /* word size in bytes */

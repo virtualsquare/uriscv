@@ -51,7 +51,7 @@
 #include "uriscv/blockdev.h"
 #include "uriscv/blockdev_params.h"
 #include "uriscv/const.h"
-#include "uriscv/cp0.h"
+#include "uriscv/cpu.h"
 #include "uriscv/device.h"
 #include "uriscv/error.h"
 #include "uriscv/event.h"
@@ -318,7 +318,6 @@ bool SystemBus::InstrRead(Word addr, Word *instrp, Processor *proc) {
   if (busRead(addr, instrp)) {
     // address invalid: signal exception to processor
     ERRORMSG("IBEXCEPTION %x\n", addr);
-    exit(0);
     proc->SignalExc(EXC_IBE);
     return true;
   } else {
@@ -388,6 +387,7 @@ bool SystemBus::busRead(Word addr, Word *datap, Processor *cpu) {
     *datap = MAXWORDVAL;
     return true;
   }
+
   // address was valid
   return false;
 }

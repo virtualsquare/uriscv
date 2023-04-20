@@ -25,7 +25,6 @@
 #include <deque>
 #include <vector>
 
-// #include "uriscv/cp0.h"
 #include "uriscv/machine_config.h"
 
 class SystemBus;
