@@ -75,6 +75,7 @@ public:
   // address was invalid and an exception was caused, FALSE otherwise,
   // and notifies Watch
   bool InstrRead(Word addr, Word *instrp, Processor *proc);
+  bool InstrReadGDB(Word addr, Word *instrp, Processor *proc);
 
   // This method transfers a block from or to memory, starting with
   // address startAddr; it returns TRUE is transfer was not successful

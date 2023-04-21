@@ -317,8 +317,18 @@ bool SystemBus::InstrRead(Word addr, Word *instrp, Processor *proc) {
 
   if (busRead(addr, instrp)) {
     // address invalid: signal exception to processor
-    ERRORMSG("IBEXCEPTION %x\n", addr);
+    DEBUGMSG("IBEXCEPTION %x\n", addr);
     proc->SignalExc(EXC_IBE);
+    return true;
+  } else {
+    // address was valid
+    return false;
+  }
+}
+
+bool SystemBus::InstrReadGDB(Word addr, Word *instrp, Processor *proc) {
+  if (busRead(addr, instrp)) {
+    // address invalid: signal exception to processor
     return true;
   } else {
     // address was valid

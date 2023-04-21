@@ -7,6 +7,7 @@
 #include <string>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <vector>
 
 class GDBServer {
 public:
@@ -35,8 +36,15 @@ public:
 
 private:
   Machine *mac;
+  std::vector<uint> breakpoints;
 
-  std::string ReadRegisters();
-  std::string SendMemory(std::string &msg);
-  static inline std::string GetMsg(const std::string &msg);
+  std::string readRegisters();
+  std::string sendMemory(std::string &msg);
+  static inline std::string getMsg(const std::string &msg);
+
+  uint parseBreakpoint(std::string &msg);
+
+  inline bool checkBreakpoint(const uint &addr);
+  inline void addBreakpoint(const uint &addr);
+  inline void removeBreakpoint(const uint &addr);
 };

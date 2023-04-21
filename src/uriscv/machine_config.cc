@@ -316,7 +316,6 @@ void MachineConfig::resetToFactorySettings() {
   setRamSize(DEFAUlT_RAM_SIZE);
 
   std::string dataDir = PACKAGE_DATA_DIR;
-  printf("DATA DIR : %s\n", dataDir.c_str());
 
   setROM(ROM_TYPE_BOOT, dataDir + "/coreboot.rom.uriscv");
   setROM(ROM_TYPE_BIOS, dataDir + "/exec.rom.uriscv");

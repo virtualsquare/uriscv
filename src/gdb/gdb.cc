@@ -38,7 +38,7 @@ const std::string qAttachedReply = GDBServer::EncodeReply("S05");
 
 GDBServer::GDBServer(Machine *mac) { this->mac = mac; }
 
-inline std::string GDBServer::GetMsg(const std::string &msg) {
+inline std::string GDBServer::getMsg(const std::string &msg) {
   static std::regex reg(R"(.*\$(.*)#.*)");
   std::smatch matches;
   regex_match(msg, matches, reg);
@@ -48,7 +48,7 @@ inline std::string GDBServer::GetMsg(const std::string &msg) {
   return matches[1].str();
 }
 
-std::string GDBServer::ReadRegisters() {
+std::string GDBServer::readRegisters() {
 
   std::string res = "";
 
@@ -66,8 +66,8 @@ std::string GDBServer::ReadRegisters() {
   return EncodeReply(res);
 }
 
-std::string GDBServer::SendMemory(std::string &msg) {
-  /* delete 'm' */
+std::string GDBServer::sendMemory(std::string &msg) {
+  /* deletes 'm' */
   msg.erase(0, 1);
 
   std::string delimiter = ",";
@@ -82,14 +82,15 @@ std::string GDBServer::SendMemory(std::string &msg) {
   ss << std::hex << msg.substr(0, msg.find(delimiter));
   ss >> size;
 
-  printf("addr %x , size %d\n", (int)addr, (int)size);
   std::string res = "";
 
+  uint instr = 0;
   for (uint i = 0; i < size; i += WORD_SIZE) {
-    uint instr = 0;
-    if (!mac->getBus()->InstrRead(addr + i, &instr, mac->getProcessor(0))) {
+    // if (mac->getProcessor(0)->mapVirtual(addr + i, &phyPC, EXEC)) {
+    // } else if (mac->getBus()->InstrRead(currPhysPC, &currInstr, this)) {
+    // }
+    if (!mac->getBus()->InstrReadGDB(addr + i, &instr, mac->getProcessor(0))) {
       char r[1024] = {0};
-      printf("instr (%x) -> %x\n", addr + i, htonl(instr));
       snprintf(r, 1024, "%08x", htonl(instr));
       res += r;
     }
@@ -101,8 +102,36 @@ std::string GDBServer::SendMemory(std::string &msg) {
   return EncodeReply(res);
 }
 
+inline bool GDBServer::checkBreakpoint(const uint &addr) {
+  return std::find(breakpoints.begin(), breakpoints.end(), addr) !=
+         breakpoints.end();
+}
+inline void GDBServer::addBreakpoint(const uint &addr) {
+  if (std::find(breakpoints.begin(), breakpoints.end(), addr) ==
+      breakpoints.end()) {
+    breakpoints.push_back(addr);
+  }
+}
+inline void GDBServer::removeBreakpoint(const uint &addr) {
+  auto new_end = remove(breakpoints.begin(), breakpoints.end(), addr);
+  (void)new_end;
+}
+
+uint GDBServer::parseBreakpoint(std::string &msg) {
+  /* deletes 'Z0,' or 'z0,'  */
+  msg.erase(0, 3);
+
+  uint addr;
+  std::stringstream sa;
+
+  sa << std::hex << msg;
+  sa >> addr;
+
+  return addr;
+}
+
 std::string GDBServer::ReadData(const std::string &msg) {
-  std::string body = GetMsg(msg);
+  std::string body = getMsg(msg);
   if (body == "")
     return emptyReply;
 
@@ -115,14 +144,23 @@ std::string GDBServer::ReadData(const std::string &msg) {
   } else if (strcmp(body.c_str(), "?") == 0) {
     return questionMarkReply;
   } else if (strcmp(body.c_str(), "g") == 0) {
-    return ReadRegisters();
+    return readRegisters();
   } else if (body.c_str()[0] == 'm') {
-    return SendMemory(body);
+    return sendMemory(body);
   } else if (body.c_str()[0] == 'c') {
-    return emptyReply;
+    do {
+      bool stopped = false;
+      mac->step(&stopped);
+    } while (!checkBreakpoint(mac->getProcessor(0)->getPC()));
+
+    return qAttachedReply;
   } else if (body.c_str()[0] == 'z') {
+    uint addr = parseBreakpoint(body);
+    removeBreakpoint(addr);
     return OKReply;
   } else if (body.c_str()[0] == 'Z') {
+    uint addr = parseBreakpoint(body);
+    addBreakpoint(addr);
     return OKReply;
   } else if (strcmp(body.c_str(), vContMsg) == 0) {
     /* Not supported */
@@ -133,7 +171,7 @@ std::string GDBServer::ReadData(const std::string &msg) {
 }
 
 void GDBServer::StartServer() {
-  printf("Starting GDB Server\n");
+  DEBUGMSG("[GDB] Starting GDB Server\n");
 
   int server_fd, new_socket, valread;
   struct sockaddr_in address;
@@ -172,15 +210,18 @@ void GDBServer::StartServer() {
     exit(EXIT_FAILURE);
   }
 
+  printf("[GDB] GDB connection accepted\n");
+
   while (true) {
     /* clean the buffer */
     valread = read(new_socket, buffer, 1024);
     if (valread != -1) {
       if (strcmp(buffer, "+") != 0 && strcmp(buffer, "") != 0) {
-        printf("[->] %s\n", buffer);
+        DEBUGMSG("[GDB][->] %s\n", buffer);
+
         /* + is the ACK */
         std::string reply = "+" + ReadData(buffer);
-        printf("[<-] %s\n\n", reply.c_str());
+        DEBUGMSG("[GDB][<-] %s\n\n", reply.c_str());
 
         send(new_socket, reply.c_str(), (reply).size(), 0);
         usleep(200);

@@ -20,7 +20,6 @@ namespace po = boost::program_options;
 void Panic(const char *message) { ERROR(message); }
 
 int main(int argc, char **argv) {
-  std::cout << "Main\n";
 
   // Declare the supported options.
   po::options_description desc("Allowed options");
@@ -46,12 +45,6 @@ int main(int argc, char **argv) {
   Machine *mac = new Machine(config, NULL, NULL, NULL);
   mac->setStab(stab);
 
-  /* TODO: should be in a different thread */
-  if (vm.count("gdb")) {
-    GDBServer *gdb = new GDBServer(mac);
-    gdb->StartServer();
-  }
-
   int iter = -1;
   if (vm.count("debug")) {
     DEBUG = true;
@@ -61,6 +54,11 @@ int main(int argc, char **argv) {
     iter = vm["iter"].as<int>();
   else
     unlimited = true;
+
+  if (vm.count("gdb")) {
+    GDBServer *gdb = new GDBServer(mac);
+    gdb->StartServer();
+  }
 
   bool stopped = false;
   for (int i = 0; i < iter || unlimited; i++) {
