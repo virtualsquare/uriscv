@@ -90,7 +90,6 @@ private:
 	Processor* cpu;
 
 	Word gprCache[Processor::kNumCPURegisters];
-	Word cp0Cache[Processor::kNumCP0Registers];
 	Word csrCache[kNumRelevantCSRRegisters];
 	std::vector<SpecialRegisterInfo> sprCache;
 
