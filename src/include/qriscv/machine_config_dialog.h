@@ -50,6 +50,9 @@ void registerDeviceClass(const QString& label,
                          const QString& deviceName,
                          bool selected = false);
 
+void setFileBrowser(QPushButton *button,
+                    std::function<void(QString)> callback);
+
 MachineConfig* const config;
 
 QSpinBox* cpuSpinner;

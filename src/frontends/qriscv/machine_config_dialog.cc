@@ -23,7 +23,6 @@
 
 #include <cassert>
 
-#include <QSignalMapper>
 #include <QLineEdit>
 #include <QCheckBox>
 #include <QPushButton>
@@ -137,8 +136,6 @@ QWidget* MachineConfigDialog::createGeneralTab()
 	ramSizeSpinner->setValue(config->getRamSize());
 	layout->addWidget(ramSizeSpinner, 5, 3);
 
-	QSignalMapper* fileChooserMapper = new QSignalMapper(this);
-	connect(fileChooserMapper, SIGNAL(mapped(int)), this, SLOT(getROMFileName(int)));
 	QPushButton* fileChooserButton;
 
 	layout->addWidget(new QLabel("<b>BIOS</b>"), 7, 0, 1, 3);
@@ -149,9 +146,10 @@ QWidget* MachineConfigDialog::createGeneralTab()
 	layout->addWidget(romFileInfo[ROM_TYPE_BOOT].lineEdit, 8, 3, 1, 2);
 	romFileInfo[ROM_TYPE_BOOT].lineEdit->setText(config->getROM(ROM_TYPE_BOOT).c_str());
 	fileChooserButton = new QPushButton("Browse...");
-	connect(fileChooserButton, SIGNAL(clicked()), fileChooserMapper, SLOT(map()));
-	fileChooserMapper->setMapping(fileChooserButton, ROM_TYPE_BOOT);
 	layout->addWidget(fileChooserButton, 8, 5);
+	this->setFileBrowser(fileChooserButton, [this](QString filename) {
+			romFileInfo[ROM_TYPE_BOOT].lineEdit->setText(filename);
+	});
 
 	layout->addWidget(new QLabel("Execution BIOS:"), 9, 1);
 	romFileInfo[ROM_TYPE_BIOS].description = "Execution BIOS";
@@ -159,9 +157,10 @@ QWidget* MachineConfigDialog::createGeneralTab()
 	layout->addWidget(romFileInfo[ROM_TYPE_BIOS].lineEdit, 9, 3, 1, 2);
 	romFileInfo[ROM_TYPE_BIOS].lineEdit->setText(config->getROM(ROM_TYPE_BIOS).c_str());
 	fileChooserButton = new QPushButton("Browse...");
-	connect(fileChooserButton, SIGNAL(clicked()), fileChooserMapper, SLOT(map()));
-	fileChooserMapper->setMapping(fileChooserButton, ROM_TYPE_BIOS);
 	layout->addWidget(fileChooserButton, 9, 5);
+	this->setFileBrowser(fileChooserButton, [this](QString filename) {
+			romFileInfo[ROM_TYPE_BIOS].lineEdit->setText(filename);
+	});
 
 	layout->addWidget(new QLabel("<b>Boot</b>"), 11, 0, 1, 3);
 
@@ -175,9 +174,10 @@ QWidget* MachineConfigDialog::createGeneralTab()
 	layout->addWidget(romFileInfo[ROM_TYPE_CORE].lineEdit, 13, 3, 1, 2);
 	romFileInfo[ROM_TYPE_CORE].lineEdit->setText(config->getROM(ROM_TYPE_CORE).c_str());
 	fileChooserButton = new QPushButton("Browse...");
-	connect(fileChooserButton, SIGNAL(clicked()), fileChooserMapper, SLOT(map()));
-	fileChooserMapper->setMapping(fileChooserButton, ROM_TYPE_CORE);
 	layout->addWidget(fileChooserButton, 13, 5);
+	this->setFileBrowser(fileChooserButton, [this](QString filename) {
+			romFileInfo[ROM_TYPE_CORE].lineEdit->setText(filename);
+	});
 
 	layout->addWidget(new QLabel("<b>Debugging Support</b>"), 15, 0, 1, 3);
 
@@ -188,9 +188,10 @@ QWidget* MachineConfigDialog::createGeneralTab()
 	layout->addWidget(romFileInfo[ROM_TYPE_STAB].lineEdit, 16, 3, 1, 2);
 	romFileInfo[ROM_TYPE_STAB].lineEdit->setText(config->getROM(ROM_TYPE_STAB).c_str());
 	fileChooserButton = new QPushButton("Browse...");
-	connect(fileChooserButton, SIGNAL(clicked()), fileChooserMapper, SLOT(map()));
-	fileChooserMapper->setMapping(fileChooserButton, ROM_TYPE_STAB);
 	layout->addWidget(fileChooserButton, 16, 5);
+	this->setFileBrowser(fileChooserButton, [this](QString filename) {
+			romFileInfo[ROM_TYPE_STAB].lineEdit->setText(filename);
+	});
 
 	layout->addWidget(new QLabel("Symbol Table ASID:<br />(default = 0x40)"), 17, 1);
 	stabAsidEdit = new AsidLineEdit;
@@ -211,6 +212,15 @@ QWidget* MachineConfigDialog::createGeneralTab()
 	layout->setColumnStretch(4, 1);
 
 	return tabWidget;
+}
+
+void MachineConfigDialog::setFileBrowser(QPushButton *button, std::function<void(QString)> callback) {
+	connect(button, &QPushButton::clicked, this, [this, callback]() {
+		QString filename = QFileDialog::getOpenFileName(this, "File browser...");
+		if (!filename.isNull()) {
+			callback(filename);
+		}
+	});
 }
 
 QWidget* MachineConfigDialog::createDeviceTab()
@@ -339,8 +349,6 @@ DeviceFileChooser::DeviceFileChooser(const QString& deviceClassName,
 	il(line),
 	deviceName(deviceName)
 {
-	QSignalMapper* signalMapper = new QSignalMapper(this);
-
 	QGridLayout* grid = new QGridLayout(this);
 
 	QLabel* header = new QLabel(deviceClassName);
@@ -360,8 +368,9 @@ DeviceFileChooser::DeviceFileChooser(const QString& deviceClassName,
 		fileLabel->setBuddy(fileNameEdit[i]);
 		fileNameEdit[i]->setText(config->getDeviceFile(il, i).c_str());
 		QPushButton* bt = new QPushButton("Browse...");
-		connect(bt, SIGNAL(clicked()), signalMapper, SLOT(map()));
-		signalMapper->setMapping(bt, (int) i);
+		connect(bt, &QPushButton::clicked, this, [this, i]() {
+			this->browseDeviceFile(i);
+		});
 		enabledCB[i] = new QCheckBox;
 		enabledCB[i]->setChecked(config->getDeviceEnabled(il, i));
 
@@ -373,8 +382,6 @@ DeviceFileChooser::DeviceFileChooser(const QString& deviceClassName,
 
 	grid->setColumnMinimumWidth(1, 190);
 	grid->setRowStretch(11, 1);
-
-	connect(signalMapper, SIGNAL(mapped(int)), this, SLOT(browseDeviceFile(int)));
 }
 
 QString DeviceFileChooser::getDeviceFile(unsigned int devNo)
@@ -438,9 +445,6 @@ NetworkConfigWidget::NetworkConfigWidget(QWidget* parent)
 
 	const MachineConfig* config = Appl()->getConfig();
 
-	QSignalMapper* signalMapper = new QSignalMapper(this);
-	connect(signalMapper, SIGNAL(mapped(int)), this, SLOT(browseDeviceFile(int)));
-
 	for (unsigned int i = 0; i < N_DEV_PER_IL; i++) {
 		QWidget* widget = new QWidget;
 		nicConfigStack->addWidget(widget);
@@ -467,8 +471,9 @@ NetworkConfigWidget::NetworkConfigWidget(QWidget* parent)
 		grid->addWidget(fileEdit[i], 1, 1);
 		QPushButton* fileBt = new QPushButton("&Browse...");
 		grid->addWidget(fileBt, 1, 2);
-		connect(fileBt, SIGNAL(clicked()), signalMapper, SLOT(map()));
-		signalMapper->setMapping(fileBt, (int) i);
+		connect(fileBt, &QPushButton::clicked, this, [this, i]() {
+			this->browseDeviceFile(i);
+		});
 
 		fixedMacId[i] = new QCheckBox("Fixed &MAC address");
 		grid->addWidget(fixedMacId[i], 2, 0, 1, 3);
