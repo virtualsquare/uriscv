@@ -207,14 +207,14 @@ void MonitorWindow::createActions()
 	decreaseSpeedAction->setShortcut(QKeySequence("Ctrl+-"));
 	decreaseSpeedAction->setEnabled(dbgSession->getSpeed() != 0);
 
-	QSignalMapper* showCpuWindowMapper = new QSignalMapper(this);
-	connect(showCpuWindowMapper, SIGNAL(mapped(int)), this, SLOT(showCpuWindow(int)));
 	for (unsigned int i = 0; i < MachineConfig::MAX_CPUS; ++i) {
 		showCpuWindowActions[i] = new QAction(QString("Processor %1").arg(i), this);
 		if (i < 10)
 			showCpuWindowActions[i]->setShortcut(QKeySequence(QString("Alt+Shift+%1").arg(i)));
-		connect(showCpuWindowActions[i], SIGNAL(triggered()), showCpuWindowMapper, SLOT(map()));
-		showCpuWindowMapper->setMapping(showCpuWindowActions[i], i);
+
+		connect(showCpuWindowActions[i], &QAction::triggered, this, [this, i]() {
+			this->showCpuWindow(i);
+		});
 		showCpuWindowActions[i]->setEnabled(false);
 	}
 
