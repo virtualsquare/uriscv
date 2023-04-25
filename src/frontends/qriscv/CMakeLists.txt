@@ -43,8 +43,6 @@ add_executable(uriscv
         register_set_snapshot.cc
         ../../include/qriscv/register_set_widget.h
         register_set_widget.cc
-        ../../include/qriscv/tlb_model.h
-        tlb_model.cc
         ../../include/qriscv/terminal_view.h
         terminal_view.cc
         ../../include/qriscv/terminal_window.h

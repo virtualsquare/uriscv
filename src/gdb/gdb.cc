@@ -86,9 +86,6 @@ std::string GDBServer::sendMemory(std::string &msg) {
 
   uint instr = 0;
   for (uint i = 0; i < size; i += WORD_SIZE) {
-    // if (mac->getProcessor(0)->mapVirtual(addr + i, &phyPC, EXEC)) {
-    // } else if (mac->getBus()->InstrRead(currPhysPC, &currInstr, this)) {
-    // }
     if (!mac->getBus()->InstrReadGDB(addr + i, &instr, mac->getProcessor(0))) {
       char r[1024] = {0};
       snprintf(r, 1024, "%08x", htonl(instr));

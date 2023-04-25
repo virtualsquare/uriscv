@@ -79,11 +79,6 @@ MachineConfig *MachineConfig::LoadFromFile(const std::string &fileName,
       config->setNumProcessors(root->Get("num-processors")->AsNumber());
     if (root->HasMember("clock-rate"))
       config->setClockRate(root->Get("clock-rate")->AsNumber());
-    if (root->HasMember("tlb-size"))
-      config->setTLBSize(root->Get("tlb-size")->AsNumber());
-    if (root->HasMember("tlb-floor-address"))
-      config->setTLBFloorAddress(stoul(
-          (root->Get("tlb-floor-address")->AsString()).erase(0, 2), 0, 16));
     if (root->HasMember("num-ram-frames"))
       config->setRamSize(root->Get("num-ram-frames")->AsNumber());
 
@@ -233,17 +228,6 @@ void MachineConfig::setClockRate(unsigned int value) {
   clockRate = bumpProperty(MIN_CLOCK_RATE, value, MAX_CLOCK_RATE);
 }
 
-void MachineConfig::setTLBSize(Word size) {
-  tlbSize = bumpProperty(MIN_TLB, size, MAX_TLB);
-}
-
-void MachineConfig::setTLBFloorAddress(Word addr) {
-  if (addr == MINWORDVAL)
-    tlbFloorAddress = RAMBASE + (getRamSize() * FRAMESIZE * FRAMEKB);
-  else
-    tlbFloorAddress = addr;
-}
-
 void MachineConfig::setROM(ROMType type, const std::string &fileName) {
   romFiles[type] = fileName;
 }
@@ -311,8 +295,6 @@ void MachineConfig::setMACId(unsigned int devNo, const uint8_t *value) {
 void MachineConfig::resetToFactorySettings() {
   setNumProcessors(DEFAULT_NUM_CPUS);
   setClockRate(DEFAULT_CLOCK_RATE);
-  setTLBSize(DEFAULT_TLB_SIZE);
-  setTLBFloorAddress(DEFAULT_TLB_FLOOR_ADDRESS);
   setRamSize(DEFAUlT_RAM_SIZE);
 
   std::string dataDir = PACKAGE_DATA_DIR;

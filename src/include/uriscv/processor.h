@@ -33,7 +33,6 @@
 class MachineConfig;
 class Machine;
 class SystemBus;
-class TLBEntry;
 
 enum ProcessorStatus { PS_HALTED, PS_RUNNING, PS_IDLE };
 
@@ -103,9 +102,6 @@ public:
   Word getCurrPPC(void);
   SWord getGPR(unsigned int num);
   Word getCP0Reg(unsigned int num);
-  void getTLB(unsigned int index, Word *hi, Word *lo) const;
-  Word getTLBHi(unsigned int index) const;
-  Word getTLBLo(unsigned int index) const;
 
   Word regRead(Word reg);
   void regWrite(Word reg, Word value);
@@ -123,14 +119,10 @@ public:
   void setCP0Reg(unsigned int num, Word val);
   void setNextPC(Word npc);
   void setSuccPC(Word spc);
-  void setTLB(unsigned int index, Word hi, Word lo);
-  void setTLBHi(unsigned int index, Word value);
-  void setTLBLo(unsigned int index, Word value);
 
   // Signals
   sigc::signal<void> StatusChanged;
   sigc::signal<void, unsigned int> SignalException;
-  sigc::signal<void, unsigned int> SignalTLBChanged;
 
 private:
   enum MultiplierPorts { HI = 32, LO = 33 };
@@ -200,21 +192,12 @@ private:
   Word nextPC;
   Word succPC;
 
-  // CP0 components: special registers and the TLB
-  // Word cpreg[CP0REGNUM];
-
-  size_t tlbSize;
-  scoped_array<TLBEntry> tlb;
-
-  Word tlbFloorAddress;
-
   void initCSR();
 
   // private methods
   void setStatus(ProcessorStatus newStatus);
 
   void handleExc();
-  void zapTLB(void);
 
   bool execInstr(Word instr);
   bool execRegInstr(Word *res, Word instr, bool *isBD);
@@ -226,15 +209,11 @@ private:
   bool execStoreCopInstr(Word instr);
 
   bool mapVirtual(Word vaddr, Word *paddr, Word accType);
-  bool probeTLB(unsigned int *index, Word asid, Word vpn);
   void completeLoad(void);
-
-  void randomRegTick(void);
 
   void pushKUIEStack(void);
   void popKUIEStack(void);
 
-  void setTLBRegs(Word vaddr);
   bool checkForInt();
   void suspend();
   void setLoad(LoadTargetType loadCode, unsigned int regNum, SWord regVal);

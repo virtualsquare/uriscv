@@ -71,92 +71,9 @@ HIDDEN const char *const excName[] = {
 HIDDEN const Word excCode[] = {0UL, 0UL, 1UL, 2UL, 2UL, 3UL,  3UL,  4UL,
                                5UL, 6UL, 7UL, 8UL, 9UL, 10UL, 11UL, 12UL};
 
-// Each TLBEntry object represents a single entry in the TLB contained in
-// the CP0 coprocessor part of a real MIPS processor.
-// Each one is a 64-bit field split in two parts (HI and LO), with special
-// fields and control bits (see external documentation for more details).
-
-class TLBEntry {
-public:
-  // This method builds an entry and sets its initial contents
-  TLBEntry(Word entHI = 0, Word entLO = 0);
-
-  // This method returns the HI 32-bit part of the entry
-  Word getHI() const { return tlbHI; }
-
-  // This method returns the LO 32-bit part of the entry
-  Word getLO() const { return tlbLO; }
-
-  // This method sets the entry HI part (leaving the zero-filled
-  // field untouched)
-  void setHI(Word entHI);
-
-  // This method sets the entry LO part (leaving the zero-filled field
-  // untouched)
-  void setLO(Word entLO);
-
-  // This method compares the entry contents with the VPN part of a
-  // virtual address and returns TRUE if a match is found, FALSE
-  // otherwise
-  bool VPNMatch(Word vaddr);
-
-  // This method compares the entry contents with the ASID field in a
-  // CP0 special register and returns TRUE if a match is found, FALSE
-  // otherwise
-  bool ASIDMatch(Word cpreg);
-
-  // the following methods return the bit value for the corresponding
-  // access control bit
-  bool IsG();
-  bool IsV();
-  bool IsD();
-
-private:
-  // contains the VPN + ASID fields, and a zero-filled field
-  Word tlbHI;
-
-  // contains the PFN field, some access control bits and a
-  // zero-filled field
-  Word tlbLO;
-};
-
-// This method builds an entry and sets its initial contents
-TLBEntry::TLBEntry(Word entHI, Word entLO) {
-  tlbHI = entHI;
-  tlbLO = entLO;
-}
-
-// This method sets the entry HI part (leaving the zero-filled field untouched)
-void TLBEntry::setHI(Word entHI) { tlbHI = (entHI & (VPNMASK | ASIDMASK)); }
-
-// This method sets the entry LO part (leaving the zero-filled field untouched)
-void TLBEntry::setLO(Word entLO) { tlbLO = (entLO & ENTRYLOMASK); }
-
-// This method compares the entry contents with the VPN part of a virtual
-// address and returns TRUE if a match is found, FALSE otherwise
-bool TLBEntry::VPNMatch(Word vaddr) { return VPN(tlbHI) == VPN(vaddr); }
-
-// This method compares the entry contents with the ASID field in a CP0
-// special register and returns TRUE if a match is found, FALSE otherwise
-bool TLBEntry::ASIDMatch(Word cpreg) { return ASID(tlbHI) == ASID(cpreg); }
-
-// This method returns the value of G (Global) access control bit in an
-// entry LO part
-bool TLBEntry::IsG() { return BitVal(tlbLO, GBITPOS); }
-
-// This method returns the value of V (Valid) access control bit in an
-// entry LO part
-bool TLBEntry::IsV() { return BitVal(tlbLO, VBITPOS); }
-
-// This method returns the value of D (Dirty) access control bit in an
-// entry LO part
-bool TLBEntry::IsD() { return BitVal(tlbLO, DBITPOS); }
-
 Processor::Processor(const MachineConfig *config, Word cpuId, Machine *machine,
                      SystemBus *bus)
-    : id(cpuId), config(config), machine(machine), bus(bus), status(PS_HALTED),
-      tlbSize(config->getTLBSize()), tlb(new TLBEntry[tlbSize]),
-      tlbFloorAddress(config->getTLBFloorAddress()) {
+    : id(cpuId), config(config), machine(machine), bus(bus), status(PS_HALTED) {
   initCSR();
 }
 
@@ -279,7 +196,6 @@ void Processor::Reset(Word pc, Word sp) {
   csrWrite(CSR_INDEX, 0);
   csrWrite(MSTATUS, MSTATUS_MPP_M);
   csrWrite(MIE, 0);
-  csrWrite(CSR_RANDOM, ((tlbSize - 1UL) << RNDIDXOFFS) - RANDOMSTEP);
   csrWrite(MCAUSE, 0);
   mode = 0x3;
   // TODO: set misa and PC
@@ -352,9 +268,6 @@ void Processor::Cycle() {
   prevPC = currPC;
   prevPhysPC = currPhysPC;
   prevInstr = currInstr;
-
-  // RANDOM register is decremented
-  randomRegTick();
 
   // currPC is loaded so a new cycle fetch may start: this "PC stack" is
   // used to emulate delayed branch slots
@@ -503,23 +416,6 @@ Word Processor::getSuccPC() { return (succPC); }
 // indexed by num (HI and LO are the last ones in the array)
 SWord Processor::getGPR(unsigned int num) { return (gpr[num]); }
 
-// This method allows to get the value of the CP0 special register indexed
-// by num. num coding itself is internal (see h/processor.h for mapping)
-Word Processor::getCP0Reg(unsigned int num) { return (0); }
-
-void Processor::getTLB(unsigned int index, Word *hi, Word *lo) const {
-  *hi = tlb[index].getHI();
-  *lo = tlb[index].getLO();
-}
-
-Word Processor::getTLBHi(unsigned int index) const {
-  return tlb[index].getHI();
-}
-
-Word Processor::getTLBLo(unsigned int index) const {
-  return tlb[index].getLO();
-}
-
 Word Processor::regRead(Word reg) {
   assert(reg >= 0 && reg < CPUREGNUM);
   if (reg == REG_ZERO)
@@ -566,41 +462,9 @@ void Processor::setNextPC(Word npc) { nextPC = npc; }
 // the target of a branch already taken
 void Processor::setSuccPC(Word spc) { succPC = spc; }
 
-// This method allows to modify the current value of a specified TLB entry
-void Processor::setTLB(unsigned int index, Word hi, Word lo) {
-  if (index < tlbSize) {
-    tlb[index].setHI(hi);
-    tlb[index].setLO(lo);
-    SignalTLBChanged(index);
-  } else {
-    Panic("Unknown TLB entry in Processor::setTLB()");
-  }
-}
-
-void Processor::setTLBHi(unsigned int index, Word value) {
-  assert(index < tlbSize);
-  tlb[index].setHI(value);
-  SignalTLBChanged(index);
-}
-
-void Processor::setTLBLo(unsigned int index, Word value) {
-  assert(index < tlbSize);
-  tlb[index].setLO(value);
-  SignalTLBChanged(index);
-}
-
 //
 // Processor private methods start here
 //
-
-// This method advances CP0 RANDOM register, following MIPS conventions; it
-// cycles from RANDOMTOP to RANDOMBASE, one STEP less for each clock tick
-void Processor::randomRegTick() {
-  csrWrite(CSR_RANDOM, (csrRead(CSR_RANDOM) - RANDOMSTEP) &
-                           (((tlbSize - 1UL) << RNDIDXOFFS)));
-  if (csrRead(CSR_RANDOM) < RANDOMBASE)
-    csrWrite(csrRead(CSR_RANDOM), ((tlbSize - 1UL) << RNDIDXOFFS));
-}
 
 // This method pushes the KU/IE bit stacks in CP0 STATUS register to start
 // exception handling
@@ -741,16 +605,6 @@ void Processor::handleExc() {
   DEBUGMSG("PC %x\n", currPC);
 }
 
-// This method zeroes out the TLB
-void Processor::zapTLB() {
-  // Leave out the first entry ([0])
-  for (size_t i = 1; i < tlbSize; ++i) {
-    tlb[i].setHI(0);
-    tlb[i].setLO(0);
-    SignalTLBChanged(i);
-  }
-}
-
 // This method allows to handle the delayed load slot: it provides to load
 // the target register with the needed value during the execution of other
 // instructions, when invoked at the appropriate point in the "pipeline"
@@ -784,7 +638,7 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
     }
 
     return true;
-  } else if (INBOUNDS(vaddr, KSEG0BASE, tlbFloorAddress)) {
+  } else {
     if (vaddr >= KUSEGBASE) {
       ERRORMSG("ADDRESS IN KSEG0 - TLBFLOOR %x\n", vaddr);
     }
@@ -794,55 +648,59 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
     *paddr = vaddr;
     return false;
   }
+  // } else if (INBOUNDS(vaddr, KSEG0BASE, tlbFloorAddress)) {
+  //   if (vaddr >= KUSEGBASE) {
+  //     ERRORMSG("ADDRESS IN KSEG0 - TLBFLOOR %x\n", vaddr);
+  //   }
+  //   // no bad offset; if vaddr < KUSEGBASE the processor is surely
+  //   // in kernelMode
+  //   // valid access to KSEG0 area
+  //   *paddr = vaddr;
+  //   return false;
+  // }
 
   // The access is in user mode to user space, or in kernel mode
   // to KSEG0 or KUSEG spaces.
+  //
+  // unsigned int index;
+  // if (probeTLB(&index, csrRead(CSR_ENTRYHI), vaddr)) {
+  //   if (tlb[index].IsV()) {
+  //     if (accType != WRITE || tlb[index].IsD()) {
+  //       // All OK
+  //       *paddr = PHADDR(vaddr, tlb[index].getLO());
+  //       return false;
+  //     } else {
+  //       // write operation on frame with D bit set to 0
+  //       *paddr = MAXWORDVAL;
+  //       setTLBRegs(vaddr);
+  //       SignalExc(EXC_MOD);
+  //       return true;
+  //     }
+  //   } else {
+  //     // invalid access to frame with V bit set to 0
+  //     *paddr = MAXWORDVAL;
+  //     setTLBRegs(vaddr);
+  //     if (accType == WRITE)
+  //       SignalExc(EXC_TLBS);
+  //     else
+  //       SignalExc(EXC_TLBL);
+  //
+  //     return true;
+  //   }
+  // } else {
+  //   // bad or missing VPN match: Refill event required
+  //   *paddr = MAXWORDVAL;
+  //   setTLBRegs(vaddr);
+  //
+  //   if (accType == WRITE)
+  //     SignalExc(EXC_UTLBS);
+  //   else
+  //     SignalExc(EXC_UTLBL);
+  //
+  //   return true;
+  // }
 
-  unsigned int index;
-  if (probeTLB(&index, csrRead(CSR_ENTRYHI), vaddr)) {
-    if (tlb[index].IsV()) {
-      if (accType != WRITE || tlb[index].IsD()) {
-        // All OK
-        *paddr = PHADDR(vaddr, tlb[index].getLO());
-        return false;
-      } else {
-        // write operation on frame with D bit set to 0
-        *paddr = MAXWORDVAL;
-        setTLBRegs(vaddr);
-        SignalExc(EXC_MOD);
-        return true;
-      }
-    } else {
-      // invalid access to frame with V bit set to 0
-      *paddr = MAXWORDVAL;
-      setTLBRegs(vaddr);
-      if (accType == WRITE)
-        SignalExc(EXC_TLBS);
-      else
-        SignalExc(EXC_TLBL);
-
-      return true;
-    }
-  } else {
-    // bad or missing VPN match: Refill event required
-    *paddr = MAXWORDVAL;
-    setTLBRegs(vaddr);
-
-    if (accType == WRITE)
-      SignalExc(EXC_UTLBS);
-    else
-      SignalExc(EXC_UTLBL);
-
-    return true;
-  }
-}
-
-// This method sets the CP0 special registers on exceptions forced by TLB
-// handling (see mapVirtual() for invocation/specific cases).
-void Processor::setTLBRegs(Word vaddr) {
-  // Note that ENTRYLO is left undefined!
-  csrWrite(CSR_BADVADDR, vaddr);
-  csrWrite(CSR_ENTRYHI, VPN(vaddr) | ASID(csrRead(CSR_ENTRYHI)));
+  return false;
 }
 
 // This method make Processor execute a single MIPS instruction, emulating
@@ -1298,43 +1156,8 @@ bool Processor::execInstr(Word instr) {
           SignalExc(EXC_BP);
           e = true;
         } else {
-          unsigned int i;
           DEBUGMSG("EBREAK");
           switch (mode) {
-          case BIOS_SRV_TLBP:
-            // solution "by the book"
-            DEBUGMSG(" TLBP\n");
-            csrWrite(CSR_INDEX, SIGNMASK);
-            if (probeTLB(&i, csrRead(CSR_ENTRYHI), csrRead(CSR_ENTRYHI)))
-              csrWrite(CSR_INDEX, (i << RNDIDXOFFS));
-            break;
-
-          case BIOS_SRV_TLBR:
-            DEBUGMSG(" TLBR\n");
-            csrWrite(CSR_ENTRYHI, tlb[RNDIDX(csrRead(CSR_INDEX))].getHI());
-            csrWrite(CSR_ENTRYLO, tlb[RNDIDX(csrRead(CSR_INDEX))].getLO());
-            break;
-
-          case BIOS_SRV_TLBWI:
-            DEBUGMSG(" TLBWI\n");
-            tlb[RNDIDX(csrRead(CSR_INDEX))].setHI(csrRead(CSR_ENTRYHI));
-            tlb[RNDIDX(csrRead(CSR_INDEX))].setLO(csrRead(CSR_ENTRYLO));
-            SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
-            break;
-
-          case BIOS_SRV_TLBWR:
-            DEBUGMSG(" TLBWR\n");
-            tlb[RNDIDX(csrRead(CSR_RANDOM))].setHI(csrRead(CSR_ENTRYHI));
-            tlb[RNDIDX(csrRead(CSR_RANDOM))].setLO(csrRead(CSR_ENTRYLO));
-            DEBUGMSG("\n\nENTRYHI %x\n", csrRead(CSR_ENTRYHI));
-            DEBUGMSG("ENTRYLO %x\n\n", csrRead(CSR_ENTRYLO));
-            SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
-            break;
-
-          case BIOS_SRV_TLBCLR:
-            zapTLB();
-            break;
-
           default:
             ERRORMSG(" NOT FOUND\n");
             // invalid instruction
@@ -1349,8 +1172,8 @@ bool Processor::execInstr(Word instr) {
         /*
          An xRET instruction can be executed in privilege mode x or higher,
          where executing a lower-privilege xRET instruction will pop the
-         relevant lower-privilege interrupt enable and privilege mode stack. In
-         addition to manipulating the privilege stack as described in
+         relevant lower-privilege interrupt enable and privilege mode stack.
+         In addition to manipulating the privilege stack as described in
          Section 3.1.6.1, xRET sets the pc to the value stored in the xepc
          register.
         */
@@ -1612,22 +1435,6 @@ bool Processor::execInstr(Word instr) {
   }
 
   return e;
-}
-
-// This method scans the TLB looking for a entry that matches ASID/VPN pair;
-// scan algorithm follows MIPS specifications, and returns the _highest_
-// entry that matches
-bool Processor::probeTLB(unsigned int *index, Word asid, Word vpn) {
-  bool found = false;
-
-  for (unsigned int i = 0; i < tlbSize; i++) {
-    if (tlb[i].VPNMatch(vpn) && (tlb[i].IsG() || tlb[i].ASIDMatch(asid))) {
-      found = true;
-      *index = i;
-    }
-  }
-
-  return found;
 }
 
 // This method sets delayed load handling variables when needed by
