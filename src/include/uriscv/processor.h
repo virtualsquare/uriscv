@@ -120,7 +120,7 @@ public:
   // debugging inside the simulation.
 
   void setGPR(unsigned int num, SWord val);
-  void setCP0Reg(unsigned int num, Word val);
+  void setPC(Word npc);
   void setNextPC(Word npc);
   void setSuccPC(Word spc);
   void setTLB(unsigned int index, Word hi, Word lo);

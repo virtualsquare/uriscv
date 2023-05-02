@@ -14,6 +14,7 @@
 #include <stdlib.h>
 
 bool DEBUG = false;
+bool DISASS = false;
 
 void Utility::readFile(std::string filename, char *&dst, Word *size) {
   std::ifstream file(filename,

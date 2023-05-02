@@ -24,7 +24,8 @@ int main(int argc, char **argv) {
   // Declare the supported options.
   po::options_description desc("Allowed options");
   desc.add_options()("help", "produce help message")("debug", "enable debug")(
-      "iter", po::value<int>(), "iterations")("gdb", "start gdb server");
+      "disass", "enable disassembler")("iter", po::value<int>(),
+                                       "iterations")("gdb", "start gdb server");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -39,6 +40,9 @@ int main(int argc, char **argv) {
   MachineConfig *config =
       MachineConfig::LoadFromFile("config_machine.json", error);
 
+  if (error != "")
+    Panic(error.c_str());
+
   SymbolTable *stab;
   stab = new SymbolTable(config->getSymbolTableASID(),
                          config->getROM(ROM_TYPE_STAB).c_str());
@@ -46,9 +50,11 @@ int main(int argc, char **argv) {
   mac->setStab(stab);
 
   int iter = -1;
-  if (vm.count("debug")) {
+  if (vm.count("debug"))
     DEBUG = true;
-  }
+  if (vm.count("disass"))
+    DISASS = true;
+
   bool unlimited = false;
   if (vm.count("iter"))
     iter = vm["iter"].as<int>();
@@ -58,13 +64,14 @@ int main(int argc, char **argv) {
   if (vm.count("gdb")) {
     GDBServer *gdb = new GDBServer(mac);
     gdb->StartServer();
-  }
+  } else {
 
-  bool stopped = false;
-  for (int i = 0; i < iter || unlimited; i++) {
-    mac->step(&stopped);
-    if (stopped) {
-      ERROR("Error in step\n");
+    bool stopped = false;
+    for (int i = 0; i < iter || unlimited; i++) {
+      mac->step(&stopped);
+      if (stopped) {
+        Panic("Error in step\n");
+      }
     }
   }
   return 0;

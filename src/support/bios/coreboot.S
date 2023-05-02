@@ -22,13 +22,16 @@
 #include "uriscv/arch.h"
 #include "uriscv/bios.h"
 
+
+
  	/* Constants */
 
 	STATUSMASK 	= 0xFFBFFFF3
-	BIOSPANIC	= 0x00000108
+	BIOSPANIC	= 0x00000080
 	VECTAREANUM	= 8
 	VECTPCPOS	= 12
 	VECTSIZE	= 140
+  VECTSTART = 0x0
 	PROGVSTART	= 0x20001004
 
 	PADDINGTLB	= 0x100 - 8
@@ -59,7 +62,7 @@ coreboot:
 
 	/* TLB miss should not happen during boot phase: jumps to BIOS PANIC */
 	lui	t0, 0x0000
-	ori	t0, t0, 0x108
+	ori	t0, t0, 0x80
 	jr	t0
 	nop
 
@@ -68,7 +71,7 @@ coreboot:
 	/* no other exceptions should happen during boot phase:
 	   jumps to BIOS PANIC */
 	lui	t0, 0x0000
-	ori	t0, t0, 0x108
+	ori	t0, t0, 0x80
 	jr	t0
 	nop
 
@@ -78,18 +81,6 @@ coreboot:
   */
 
 LCoreBootStart:
-	/*
-	 * Mapping all exceptions to BIOS code
-	 * This is done resetting bit 22 in STATUS CP0 register
-	 * we also assure that kernel will start in kernel mode with
-	 * interrupts disabled: this is done zeroing bits 3 and 2.
-	 */
-   /*
-	 mfc0	a0, CP0_Status
-	 li	  a1, STATUSMASK
-	 and   a0, a0, a1
-	 mtc0	a0, CP0_Status
-   */
 
   /*
   * Setting Exception PCs, both for general exceptions and for TLB
@@ -123,16 +114,11 @@ LCoreBootStart:
 	li	a0, PROGVSTART
 	lw	ra, 0(a0)
 
-/*
-	 .set noreorder
-	 .set nomacro
-   */
+  li t0, VECTSTART
+  csrrw zero,mtvec,t0
+
 	jr	ra
 	mret /* rfe */
-  /*
-	 .set reorder
-	 .set macro
-   */
 
 	.end coreboot
 	.size	 coreboot, . - coreboot

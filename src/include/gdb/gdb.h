@@ -33,12 +33,20 @@ public:
   }
 
   std::string ReadData(const std::string &msg);
+  bool CheckBreakpoint();
+  bool Step();
+
+  inline void Stop() { stopped = true; };
+  bool IsStopped() const { return stopped; };
 
 private:
+  bool killed, stopped;
   Machine *mac;
   std::vector<uint> breakpoints;
 
   std::string readRegisters();
+  std::string writeRegister(std::string &msg);
+  std::string writeRegisters(std::string &msg);
   std::string sendMemory(std::string &msg);
   static inline std::string getMsg(const std::string &msg);
 
@@ -47,4 +55,11 @@ private:
   inline bool checkBreakpoint(const uint &addr);
   inline void addBreakpoint(const uint &addr);
   inline void removeBreakpoint(const uint &addr);
+
+  void sendMsg(const int &socket, const std::string &msg);
 };
+
+typedef struct thread_arg_struct {
+  GDBServer *gdb;
+  int socket;
+} thread_arg_t;

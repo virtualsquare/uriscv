@@ -1,7 +1,7 @@
 set(URISCV_INCLUDE_DIR ${CMAKE_INSTALL_INCLUDEDIR}/uriscv)
 set(LIBURISCV_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include/support/liburiscv)
 
-set(LIBURISCV_CFLAGS -ffreestanding -ansi -Wall -c -static -march=rv32imfd -mabi=ilp32d -fno-pic)
+set(LIBURISCV_CFLAGS -ffreestanding -ansi -Wall -c -static -g -march=rv32imfd -mabi=ilp32d -fno-pic)
 set(LIBURISCV_CPPFLAGS -I${PROJECT_SOURCE_DIR}/include)
 
 add_custom_target(liburiscv.o ALL

@@ -5,23 +5,26 @@
 #define CAUSE_EXCCODE_BIT 2
 #define CAUSE_GET_EXCCODE(x) (((x)&CAUSE_EXCCODE_MASK) >> CAUSE_EXCCODE_BIT)
 
-/* Exception codes - naming follows standard MIPS mnemonics */
-#define EXC_INT 0
-#define EXC_MOD 1
-#define EXC_TLBL 2
-#define EXC_TLBS 3
-#define EXC_ADEL 4
-#define EXC_ADES 5
-#define EXC_IBE 6
-#define EXC_DBE 7
-#define EXC_SYS 8
-#define EXC_BP 9
-#define EXC_RI 10
-#define EXC_CPU 11
-#define EXC_OV 12
+/* Exception codes as described in RISCV manual */
+#define EXC_IDM 0  /* instruction address misaligned */
+#define EXC_IDF 1  /* instruction address fault */
+#define EXC_IL 2   /* illegal instruction */
+#define EXC_BP 3   /* breakpoint */
+#define EXC_LAM 4  /* load address misaligned */
+#define EXC_LAD 5  /* load address fault */
+#define EXC_SAM 6  /* store address misaligned */
+#define EXC_SAF 7  /* store access fault */
+#define EXC_ECU 8  /* environment call from U-mode */
+#define EXC_ECS 9  /* environment call from S-mode */
+#define EXC_ECM 11 /* environment call from M-mode */
+#define EXC_IPF 12 /* instruction page fault */
+#define EXC_LPF 13 /* load page fault */
+#define EXC_SPF 15 /* store page fault */
 
-#define EXC_UTLBL 13
-#define EXC_UTLBS 14
+#define EXC_TLBL 24  /* tlb load fault */
+#define EXC_TLBS 25  /* tlb store fault */
+#define EXC_UTLBL 26 /* user tlb load fault */
+#define EXC_UTLBS 27 /* user tlb store fault */
 
 #define STATUS_IM_MASK 0x0000ff00
 #define STATUS_IM(line) (1U << (8 + (line)))

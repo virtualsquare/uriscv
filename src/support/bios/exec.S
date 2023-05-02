@@ -32,7 +32,7 @@
 #define VECTSIZE    140
 
 /* NOP padding: 30 nops - string length (32 bytes) */
-#define GENEXC_PADDING    (30 * 4) - 32
+#define PANIC_PADDING    (30 * 4) - 32
 #define ENDSTRADDR        0x00000008
 #define PANICSTRADDR      (ENDSTRADDR + 16)
 
@@ -65,26 +65,13 @@
 	.align	2
 	.globl	jios
 	.type	jios,@function
-	//.ent	jios
 bios:
-/*
-	.frame	fp,0,k1
-	.mask	0x00000000,0
-	.fmask	0x00000000,0
-  */
-
-	/*
-	 * Tell gas not to use at in pseudoop expansions
-	 */
-	//.set	noat
 
 	/*
 	 * 0x00000000 address
 	 * This is the entry point for UTLB type exceptions.
 	 */
-	//.set	noreorder
-	//.set	nomacro
-	j	LUTLBHandler
+	j	LEXCHandler
 	nop
 
 EndStr:
@@ -92,30 +79,12 @@ EndStr:
 PanicStr:
 	.string "kernel panic()\n"
 
-	.space	GENEXC_PADDING
+	.space	PANIC_PADDING
 
 	/*
-	 * 0x00000080 address
-	 * This is the entry point for general ("other", non-TLB) exceptions.
-	 */
-	j	LEXCHandler
-	nop
-
-	; .space	0x80 - 0x8
-	/*
-	 * 0x00000100 address
-	 * Secondary processor startup routine
-	 */
-	; j	LInitSecondaryProcessor
-	; nop
-
-	/*
-	 * 0x00000108: panic()
+	 * 0x00000080: panic()
 	 * Print a message on terminal 0 and loop forever
 	 */
-
-	//.set	reorder
-	//.set	macro
 
 LPanic:
 	li	a0, PANICSTRADDR - 1
@@ -151,42 +120,14 @@ LHalt:
 	j 	LTermOp
 
 /*
- * Get a cpu up and runing: initialize BIOS related structures and
- * load the supplied processor state.
- */
-LInitSecondaryProcessor:
-	/* Initialize ptr to exception state vector */
-	li	t0, VECTSIZE
-	/* mfc0	t1, CP0_PRID // CP0 not enabled */
-/*	 mult	t0, t1 // TODO: add mult */
-  mul t0,t0,t1
-	/* mflo	t0 // CPO not enabled */
-	 li	t2, BIOS_DATA_PAGE_BASE
-	add	t0, t0, t2
-	li	t2, BIOS_EXCPT_VECT_BASE
-	sw	t0, 0(t2)
-
-	/* Initialize ptr to PC/SP area */
-	li	t0, 16
-  mul t0,t0,t1 
-	/* mflo	t0 // CPO not enabled */
-	li	t1, BIOS_EXEC_HANDLERS_ADDRS
-	add	t0, t0, t1
-	li	t2, BIOS_PC_AREA_BASE
-	sw	t0, 0(t2)
-
-	/* Load the new state - address of start_state cached at start of exception vector */
-	li	t0, BIOS_EXCPT_VECT_BASE
-	/* sw	k0, 0(t0) */
-  READK0(t1)
-	sw 	t1, 0(t0) // mem[t0] = k0
-	j	LLoadStart
-
-/*
  * Handle TLBL/TLBS refill misses
  * k1 is address of kernel branch address (TLB Refill handler)
  */
 LUTLBHandler:
+  csrrw t0,mcause,zero
+  li t1,11
+  sub t0,t0,t1
+  csrrw zero,mcause,t0
 	/* lw	k1, BIOS_PC_AREA_BASE */
   li t0,BIOS_PC_AREA_BASE // load BIOS_PC_AREA_BASE in to t1
   lw t1,0(t0) // so we can do t0 = mem[t1]
@@ -200,12 +141,18 @@ LUTLBHandler:
  * values outside BIOS)
  */
 LEXCHandler:
-/* TODO: riscrivere */
-/* check if trap or interrupt */
+
   csrrw t0,mcause,zero
   srli t0,t0,31
   addi t0,t0,-1
   beq t0,zero,LIntHandler
+
+  csrrw t0,mcause,zero
+  li t1,0x7FFFFFFF
+  and t0,t0,t1 
+  li t1,EXC_UTLBL
+  bgeu t0,t1,LUTLBHandler
+
 
   csrrw t0,mcause,zero
   addi t0,t0,-9

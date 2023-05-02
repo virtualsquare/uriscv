@@ -42,6 +42,7 @@
 #include "uriscv/bios.h"
 #include "uriscv/const.h"
 #include "uriscv/cpu.h"
+#include "uriscv/csr.h"
 #include "uriscv/disassemble.h"
 #include "uriscv/error.h"
 #include "uriscv/machine.h"
@@ -272,17 +273,15 @@ void Processor::Reset(Word pc, Word sp) {
   prevPhysPC = MAXWORDVAL;
   prevInstr = NOP;
 
-  // cpreg[PRID] = id;
-
   csrWrite(CSR_ENTRYHI, 0);
   csrWrite(CSR_ENTRYLO, 0);
   csrWrite(CSR_INDEX, 0);
+  csrWrite(CSR_BADVADDR, 0);
+  csrWrite(CSR_RANDOM, ((tlbSize - 1UL) << RNDIDXOFFS) - RANDOMSTEP);
   csrWrite(MSTATUS, MSTATUS_MPP_M);
   csrWrite(MIE, 0);
-  csrWrite(CSR_RANDOM, ((tlbSize - 1UL) << RNDIDXOFFS) - RANDOMSTEP);
   csrWrite(MCAUSE, 0);
   mode = 0x3;
-  // TODO: set misa and PC
 
   currPC = pc;
 
@@ -417,10 +416,8 @@ void Processor::SignalExc(unsigned int exc, Word cpuNum) {
 
 void Processor::AssertIRQ(unsigned int il) {
 
-  DEBUGMSG("assert IRQ %d\n", il);
   // cpreg[CAUSE] |= CAUSE_IP(il);
   csrWrite(MIP, csrRead(MIP) | CAUSE_IP(il));
-  DEBUGMSG("new MIP %x\n", csrRead(MIP));
 
   // If in standby mode, go back to being a power hog.
   if (isIdle())
@@ -430,10 +427,6 @@ void Processor::AssertIRQ(unsigned int il) {
 void Processor::DeassertIRQ(unsigned int il) {
   // cpreg[CAUSE] &= ~CAUSE_IP(il);
   csrWrite(MIP, csrRead(MIP) & ~CAUSE_IP(il));
-  if (il != 1) {
-    DEBUGMSG("deassert IRQ %d\n", il);
-    DEBUGMSG("new MIP %x\n", csrRead(MIP));
-  }
 }
 
 // This method allows to get critical information on Processor current
@@ -550,12 +543,9 @@ void Processor::setGPR(unsigned int num, SWord val) {
     gpr[num] = val;
 }
 
-// This method allows to modify the current value of a CP0 special
-// register. num coding itself is internal (see h/processor.h for mapping)
-void Processor::setCP0Reg(unsigned int num, Word val) {
-  // if (num < CP0REGNUM)
-  //   cpreg[num] = val;
-}
+// This method allows to modify the current value of currPC to force a
+// immediate jump: gdb purposes
+void Processor::setPC(Word npc) { currPC = npc; }
 
 // This method allows to modify the current value of nextPC to force sudden
 // branch: it violates delayed branch slot conventions
@@ -644,7 +634,6 @@ void Processor::popKUIEStack() {
 bool Processor::checkForInt() {
   // check if interrupts are enabled and pending
   if (csrRead(MSTATUS) & MSTATUS_MIE_MASK && (csrRead(MIE) & csrRead(MIP))) {
-    DEBUGMSG("INTTTTT\n");
     SignalExc(EXC_INT);
     return true;
   } else {
@@ -666,64 +655,21 @@ void Processor::suspend() {
 // raising, following the MIPS conventions; it also set the PC value
 // to point the appropriate exception handler vector.
 void Processor::handleExc() {
-  // If there is a load pending, it is completed while the processor
-  // prepares for exception handling (a small bubble...).
-  // completeLoad();
-
-  // set the excCode into CAUSE reg
-  // cpreg[CAUSE] = IM(cpreg[CAUSE]) | (excCode[excCause] << CAUSE_EXCCODE_BIT);
-  //
-  // if (isBranchD) {
-  //   // previous instr. is branch/jump: must restart from it
-  //   cpreg[CAUSE] = SetBit(cpreg[CAUSE], CAUSE_BD_BIT);
-  //   cpreg[EPC] = prevPC;
-  //   // first instruction in exception handler itself is not in a BD slot
-  //   isBranchD = false;
-  // } else {
-  //   // BD is already set to 0 by CAUSE masking with IM; sets only EPC
-  //   cpreg[EPC] = currPC;
-  // }
-  //
-  // // Set coprocessor unusable number in CAUSE register for
-  // // `Coprocessor Unusable' exceptions
-  // if (excCause == EXC_CPU)
-  //   cpreg[CAUSE] = cpreg[CAUSE] | (copENum << COPEOFFSET);
 
   // Set PC to the right handler
-  Word excVector;
-  // if (BitVal(cpreg[STATUS], STATUS_BEV_BIT)) {
-  //   // Machine bootstrap exception handler
-  //   excVector = BOOTEXCBASE;
-  // } else {
-  //   excVector = KSEG0BASE;
-  // }
-  excVector = KSEG0BASE;
+  Word excVector = csrRead(MTVEC) >> 2;
 
   pushKUIEStack();
 
   unsigned int mcause = excCause;
 
-  // if (excCause == UTLBLEXCEPTION || excCause == UTLBSEXCEPTION)
-  if (mcause == EXC_UTLBL || mcause == EXC_UTLBS) {
-    excVector += TLBREFOFFS;
-    mcause -= 11;
-  } else
-    excVector += OTHEREXCOFFS;
-
   if (excCause == EXC_INT) {
     mcause |= 1 << 31;
   }
 
-  DEBUGMSG("EXCEPTIONSSS\n");
   csrWrite(MCAUSE, mcause);
   csrWrite(MEPC, currPC);
 
-  // excVector = csrRead(MTVEC);
-
-  DEBUGMSG("handler %x (%x)\n", excVector, excVector + WORDLEN);
-  DEBUGMSG("PC %x\n", currPC);
-
-  // TODO: undestand why ADEL yes and ADES not
   if (excCause == EXC_INT) {
     // interrupt: test is before istruction fetch, so handling
     // could start immediately
@@ -737,8 +683,6 @@ void Processor::handleExc() {
     nextPC = excVector;
     succPC = nextPC + WORDLEN;
   }
-
-  DEBUGMSG("PC %x\n", currPC);
 }
 
 // This method zeroes out the TLB
@@ -857,12 +801,12 @@ bool Processor::execInstr(Word instr) {
     // if (strcmp("p5b", prevFunc.c_str()) == 0) {
     //   sleep(1);
     // }
-    DEBUGMSG("<FUN %s\n", prevFunc.c_str());
+    DISASSMSG("<FUN %s\n", prevFunc.c_str());
     if (strcmp("pandos_memcpy", prevFunc.c_str()) == 0) {
       // DEBUG = true;
     }
     prevFunc = sym->getName();
-    DEBUGMSG("\n>FUN %s\n", sym->getName());
+    DISASSMSG("\n>FUN %s\n", sym->getName());
     if (strcmp("trap", prevFunc.c_str()) == 0) {
       // sleep(1);
       // _pause = true;
@@ -873,11 +817,11 @@ bool Processor::execInstr(Word instr) {
   }
   if (_pause)
     sleep(1);
-  DEBUGMSG("[%08x] (%08x) ", getPC(), instr);
+  DISASSMSG("[%08x] (%08x) ", getPC(), instr);
 
   switch (opcode) {
   case OP_L: {
-    DEBUGMSG("\tI-type | ");
+    DISASSMSG("\tI-type | ");
     int8_t rd = RD(instr);
     int8_t rs1 = RS1(instr);
     int16_t imm = I_IMM(instr);
@@ -886,7 +830,7 @@ bool Processor::execInstr(Word instr) {
     Word vaddr = regRead(rs1) + imm, paddr = 0;
     switch (FUNC3) {
     case OP_LB: {
-      DEBUGMSG("LB\n");
+      DISASSMSG("LB\n");
       // just 8 bits
       if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
           !this->bus->DataRead(paddr, &read, this)) {
@@ -897,7 +841,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_LH: {
-      DEBUGMSG("LBH\n");
+      DISASSMSG("LBH\n");
       // just 16 bits
       if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
           !this->bus->DataRead(paddr, &read, this)) {
@@ -908,8 +852,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_LW: {
-      DEBUGMSG("LW %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
-               (Word)imm);
+      DISASSMSG("LW %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
+                (Word)imm);
       if (!mapVirtual(vaddr, &paddr, READ) &&
           !this->bus->DataRead(paddr, &read, this)) {
         regWrite(rd, read);
@@ -922,8 +866,8 @@ bool Processor::execInstr(Word instr) {
       // just 8 bits
       if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
           !this->bus->DataRead(paddr, &read, this)) {
-        DEBUGMSG("LBU %s,%s(%x),%d -> %x\n", regName[rd], regName[rs1],
-                 regRead(rs1), imm, read);
+        DISASSMSG("LBU %s,%s(%x),%d -> %x\n", regName[rd], regName[rs1],
+                  regRead(rs1), imm, read);
         regWrite(rd, zExtByte(read, BYTEPOS(vaddr)));
         setNextPC(getPC() + WORDLEN);
       } else
@@ -934,7 +878,7 @@ bool Processor::execInstr(Word instr) {
       // just 16 bits
       if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
           !this->bus->DataRead(paddr, &read, this)) {
-        DEBUGMSG("LHU\n");
+        DISASSMSG("LHU\n");
         regWrite(rd, zExtHWord(read, HWORDPOS(vaddr)));
         setNextPC(getPC() + WORDLEN);
       } else
@@ -950,7 +894,7 @@ bool Processor::execInstr(Word instr) {
     break;
   }
   case R_TYPE: {
-    DEBUGMSG("\tR-type | ");
+    DISASSMSG("\tR-type | ");
     int8_t rs1 = RS1(instr);
     int8_t rs2 = RS2(instr);
     uint8_t rd = RD(instr);
@@ -960,19 +904,19 @@ bool Processor::execInstr(Word instr) {
     case OP_ADD_FUNC3: {
       switch (FUNC7) {
       case OP_ADD_FUNC7: {
-        DEBUGMSG("ADD %s,%s(%x),%s(%x) -> %x\n", regName[rd], regName[rs1],
-                 regRead(rs1), regName[rs2], regRead(rs2),
-                 regRead(rs1) + regRead(rs2));
+        DISASSMSG("ADD %s,%s(%x),%s(%x) -> %x\n", regName[rd], regName[rs1],
+                  regRead(rs1), regName[rs2], regRead(rs2),
+                  regRead(rs1) + regRead(rs2));
         regWrite(rd, regRead(rs1) + regRead(rs2));
         break;
       }
       case OP_SUB_FUNC7: {
-        DEBUGMSG("SUB %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        DISASSMSG("SUB %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
         regWrite(rd, regRead(rs1) - regRead(rs2));
         break;
       }
       case OP_MUL_FUNC7: {
-        DEBUGMSG("MUL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        DISASSMSG("MUL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
         regWrite(rd, regRead(rs1) * regRead(rs2));
         break;
       }
@@ -991,14 +935,14 @@ bool Processor::execInstr(Word instr) {
       case OP_MULH_FUNC7: {
         SWord high = 0, low = 0;
         SignMult(regRead(rs1), regRead(rs2), &high, &low);
-        DEBUGMSG("MULH %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                 regName[rs2], high);
+        DISASSMSG("MULH %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                  regName[rs2], high);
         regWrite(rd, high);
         break;
       }
       case OP_SLL_FUNC7: {
-        DEBUGMSG("SLL %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
-                 regName[rs1], regRead(rs1), regRead(rs2));
+        DISASSMSG("SLL %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                  regName[rs1], regRead(rs1), regRead(rs2));
         regWrite(rd, regRead(rs1) << regRead(rs2));
         break;
       }
@@ -1017,14 +961,14 @@ bool Processor::execInstr(Word instr) {
       case OP_MULHSU_FUNC7: {
         SWord high = 0, low = 0;
         UnsSignMult((SWord)regRead(rs1), (SWord)regRead(rs2), &high, &low);
-        DEBUGMSG("MULHSU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                 regName[rs2], high);
+        DISASSMSG("MULHSU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                  regName[rs2], high);
         regWrite(rd, high);
         break;
       }
       case OP_SLT_FUNC7: {
-        DEBUGMSG("SLT %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
-                 regName[rs1], regRead(rs1), regRead(rs2));
+        DISASSMSG("SLT %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                  regName[rs1], regRead(rs1), regRead(rs2));
         regWrite(rd, SWord(regRead(rs1)) < SWord(regRead(rs2)) ? 1 : 0);
         break;
       }
@@ -1043,14 +987,14 @@ bool Processor::execInstr(Word instr) {
       case OP_MULHU_FUNC7: {
         Word high = 0, low = 0;
         UnsMult(regRead(rs1), regRead(rs2), &high, &low);
-        DEBUGMSG("MULHU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                 regName[rs2], high);
+        DISASSMSG("MULHU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                  regName[rs2], high);
         regWrite(rd, high);
         break;
       }
       case OP_SLTU_FUNC7: {
-        DEBUGMSG("SLTU %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
-                 regName[rs1], regRead(rs1), regRead(rs2));
+        DISASSMSG("SLTU %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                  regName[rs1], regRead(rs1), regRead(rs2));
         regWrite(rd, Word(regRead(rs1)) < Word(regRead(rs2)) ? 1 : 0);
         break;
       }
@@ -1069,8 +1013,8 @@ bool Processor::execInstr(Word instr) {
       case OP_DIV_FUNC7: {
         if (regRead(rs2) != 0) {
           Word r = (Word)regRead(rs1) / (Word)regRead(rs2);
-          DEBUGMSG("DIV %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                   regName[rs2], r);
+          DISASSMSG("DIV %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                    regName[rs2], r);
           regWrite(rd, r);
         } else {
           ERRORMSG("Division by zero detected");
@@ -1078,7 +1022,7 @@ bool Processor::execInstr(Word instr) {
         break;
       }
       case OP_XOR_FUNC7: {
-        DEBUGMSG("XOR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        DISASSMSG("XOR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
         regWrite(rd, regRead(rs1) ^ regRead(rs2));
         break;
       }
@@ -1097,21 +1041,21 @@ bool Processor::execInstr(Word instr) {
       case OP_DIVU_FUNC7: {
         if (regRead(rs2) != 0) {
           SWord r = (SWord)regRead(rs1) / (SWord)regRead(rs2);
-          DEBUGMSG("DIVU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                   regName[rs2], r);
+          DISASSMSG("DIVU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                    regName[rs2], r);
           regWrite(rd, r);
         }
         break;
       }
       case OP_SRA_FUNC7: {
-        DEBUGMSG("SRA %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        DISASSMSG("SRA %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
         uint8_t msb = rs1 & 0x80000000;
         regWrite(rd, regRead(rs1) >> regRead(rs2) | msb);
         regWrite(rd, regRead(rs1) ^ regRead(rs2));
         break;
       }
       case OP_SRL_FUNC7: {
-        DEBUGMSG("SRL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        DISASSMSG("SRL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
         regWrite(rd, regRead(rs1) >> regRead(rs2));
         break;
       }
@@ -1130,14 +1074,14 @@ bool Processor::execInstr(Word instr) {
       case OP_REM_FUNC7: {
         if (regRead(rs2) != 0) {
           SWord r = (SWord)regRead(rs1) % (SWord)regRead(rs2);
-          DEBUGMSG("REM %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                   regName[rs2], r);
+          DISASSMSG("REM %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                    regName[rs2], r);
           regWrite(rd, r);
         }
         break;
       }
       case OP_OR_FUNC7: {
-        DEBUGMSG("OR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        DISASSMSG("OR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
         regWrite(rd, regRead(rs1) | regRead(rs2));
         break;
       }
@@ -1156,14 +1100,14 @@ bool Processor::execInstr(Word instr) {
       case OP_REMU_FUNC7: {
         if (regRead(rs2) != 0) {
           Word r = (Word)regRead(rs1) % (Word)regRead(rs2);
-          DEBUGMSG("REMU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                   regName[rs2], r);
+          DISASSMSG("REMU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                    regName[rs2], r);
           regWrite(rd, r);
         }
         break;
       }
       case OP_AND_FUNC7: {
-        DEBUGMSG("AND %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+        DISASSMSG("AND %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
         regWrite(rd, regRead(rs1) & regRead(rs2));
         break;
       }
@@ -1186,38 +1130,38 @@ bool Processor::execInstr(Word instr) {
     break;
   }
   case I_TYPE: {
-    DEBUGMSG("\tI-type | ");
+    DISASSMSG("\tI-type | ");
     int8_t rs1 = RS1(instr);
     SWord imm = I_IMM(instr);
     uint8_t rd = RD(instr);
     switch (FUNC3) {
     case OP_ADDI: {
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-      DEBUGMSG("ADDI %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
-               imm);
+      DISASSMSG("ADDI %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
+                imm);
       regWrite(rd, (Word)(regRead(rs1) + imm));
       break;
     }
     case OP_SLLI: {
-      DEBUGMSG("SLLI %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
-               regName[rs1], regRead(rs1), imm);
+      DISASSMSG("SLLI %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                regName[rs1], regRead(rs1), imm);
       regWrite(rd, regRead(rs1) << imm);
       break;
     }
     case OP_SLTI: {
-      DEBUGMSG("SLTI\n");
+      DISASSMSG("SLTI\n");
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       regWrite(rd, SWord(regRead(rs1)) < SWord(imm) ? 1 : 0);
       break;
     }
     case OP_SLTIU: {
-      DEBUGMSG("SLTIU\n");
+      DISASSMSG("SLTIU\n");
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       regWrite(rd, regRead(rs1) < Word(imm) ? 1 : 0);
       break;
     }
     case OP_XORI: {
-      DEBUGMSG("XORI\n");
+      DISASSMSG("XORI\n");
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       regWrite(rd, SWord(regRead(rs1)) ^ SWord(imm));
       break;
@@ -1226,14 +1170,14 @@ bool Processor::execInstr(Word instr) {
       uint8_t FUNC7 = FUNC7(instr);
       switch (FUNC7) {
       case OP_SRLI_FUNC7: {
-        DEBUGMSG("SRLI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
-                 imm);
+        DISASSMSG("SRLI %s,%s(%x),%x\n", regName[rd], regName[rs1],
+                  regRead(rs1), imm);
         regWrite(rd, regRead(rs1) >> imm);
         break;
       }
       case OP_SRAI_FUNC7: {
-        DEBUGMSG("SRAI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
-                 imm);
+        DISASSMSG("SRAI %s,%s(%x),%x\n", regName[rd], regName[rs1],
+                  regRead(rs1), imm);
         uint8_t msb = rs1 & 0x80000000;
         regWrite(rd, regRead(rs1) >> imm | msb);
         break;
@@ -1247,14 +1191,14 @@ bool Processor::execInstr(Word instr) {
     }
     case OP_ORI: {
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-      DEBUGMSG("ORI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
-               imm);
+      DISASSMSG("ORI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+                imm);
       regWrite(rd, SWord(regRead(rs1)) | SWord(imm));
       break;
     }
     case OP_ANDI: {
-      DEBUGMSG("ANDI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
-               imm);
+      DISASSMSG("ANDI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+                imm);
       imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
       regWrite(rd, SWord(regRead(rs1)) & SWord(imm));
       break;
@@ -1269,7 +1213,7 @@ bool Processor::execInstr(Word instr) {
     break;
   }
   case I2_TYPE: {
-    DEBUGMSG("\tI2-type | ");
+    DISASSMSG("\tI2-type | ");
     uint16_t imm = I_IMM(instr);
     int8_t rs1 = RS1(instr);
     uint8_t rd = RD(instr);
@@ -1281,7 +1225,7 @@ bool Processor::execInstr(Word instr) {
         // a0 - result of syscall
         //
         // https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/slides/14-ecf-pre.pdf
-        DEBUGMSG("ECALL %d\n", regRead(REG_A0));
+        DISASSMSG("ECALL %d\n", regRead(REG_A0));
         setNextPC(getPC() + WORDLEN);
         SignalExc(EXC_SYS);
         e = true;
@@ -1294,40 +1238,40 @@ bool Processor::execInstr(Word instr) {
         // }
         int mode = regRead(REG_A0);
         if (mode <= BIOS_SRV_HALT) {
-          DEBUGMSG("EBREAK\n");
+          DISASSMSG("EBREAK\n");
           SignalExc(EXC_BP);
           e = true;
         } else {
           unsigned int i;
-          DEBUGMSG("EBREAK");
+          DISASSMSG("EBREAK");
           switch (mode) {
           case BIOS_SRV_TLBP:
             // solution "by the book"
-            DEBUGMSG(" TLBP\n");
+            DISASSMSG(" TLBP\n");
             csrWrite(CSR_INDEX, SIGNMASK);
             if (probeTLB(&i, csrRead(CSR_ENTRYHI), csrRead(CSR_ENTRYHI)))
               csrWrite(CSR_INDEX, (i << RNDIDXOFFS));
             break;
 
           case BIOS_SRV_TLBR:
-            DEBUGMSG(" TLBR\n");
+            DISASSMSG(" TLBR\n");
             csrWrite(CSR_ENTRYHI, tlb[RNDIDX(csrRead(CSR_INDEX))].getHI());
             csrWrite(CSR_ENTRYLO, tlb[RNDIDX(csrRead(CSR_INDEX))].getLO());
             break;
 
           case BIOS_SRV_TLBWI:
-            DEBUGMSG(" TLBWI\n");
+            DISASSMSG(" TLBWI\n");
             tlb[RNDIDX(csrRead(CSR_INDEX))].setHI(csrRead(CSR_ENTRYHI));
             tlb[RNDIDX(csrRead(CSR_INDEX))].setLO(csrRead(CSR_ENTRYLO));
             SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
             break;
 
           case BIOS_SRV_TLBWR:
-            DEBUGMSG(" TLBWR\n");
+            DISASSMSG(" TLBWR\n");
             tlb[RNDIDX(csrRead(CSR_RANDOM))].setHI(csrRead(CSR_ENTRYHI));
             tlb[RNDIDX(csrRead(CSR_RANDOM))].setLO(csrRead(CSR_ENTRYLO));
-            DEBUGMSG("\n\nENTRYHI %x\n", csrRead(CSR_ENTRYHI));
-            DEBUGMSG("ENTRYLO %x\n\n", csrRead(CSR_ENTRYLO));
+            DISASSMSG("\n\nENTRYHI %x\n", csrRead(CSR_ENTRYHI));
+            DISASSMSG("ENTRYLO %x\n\n", csrRead(CSR_ENTRYLO));
             SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
             break;
 
@@ -1349,19 +1293,19 @@ bool Processor::execInstr(Word instr) {
         /*
          An xRET instruction can be executed in privilege mode x or higher,
          where executing a lower-privilege xRET instruction will pop the
-         relevant lower-privilege interrupt enable and privilege mode stack. In
-         addition to manipulating the privilege stack as described in
+         relevant lower-privilege interrupt enable and privilege mode stack.
+         In addition to manipulating the privilege stack as described in
          Section 3.1.6.1, xRET sets the pc to the value stored in the xepc
          register.
         */
         // TODO: change privilege mode
-        DEBUGMSG("MRET %x\n", csrRead(MEPC));
+        DISASSMSG("MRET %x\n", csrRead(MEPC));
         popKUIEStack();
         setNextPC(csrRead(MEPC));
         break;
       }
       case EWFI_IMM: {
-        DEBUGMSG("EWFI\n");
+        DISASSMSG("EWFI\n");
         setNextPC(getPC() + WORDLEN);
         suspend();
         break;
@@ -1376,8 +1320,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_CSRRW: {
-      DEBUGMSG("CSRRW %s(%x),%s(%x),%x\n", regName[rd], regRead(rd),
-               regName[rs1], regRead(rs1), imm);
+      DISASSMSG("CSRRW %s(%x),%s(%x),%x\n", regName[rd], regRead(rd),
+                regName[rs1], regRead(rs1), imm);
       if (rd != REG_ZERO)
         regWrite(rd, csrRead(imm));
       if (rs1 != REG_ZERO) {
@@ -1445,15 +1389,15 @@ bool Processor::execInstr(Word instr) {
     break;
   }
   case B_TYPE: {
-    DEBUGMSG("\tB-type | ");
+    DISASSMSG("\tB-type | ");
     int8_t rs1 = RS1(instr);
     int8_t rs2 = RS2(instr);
     int16_t imm = B_IMM(instr);
     imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
     switch (FUNC3) {
     case OP_BEQ: {
-      DEBUGMSG("BEQ %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-               regName[rs2], regRead(rs2), imm);
+      DISASSMSG("BEQ %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+                regName[rs2], regRead(rs2), imm);
       if ((SWord)regRead(rs1) == (SWord)regRead(rs2))
         setNextPC((SWord)getPC() + ((SWord)imm));
       else
@@ -1461,8 +1405,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BNE: {
-      DEBUGMSG("BNE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-               regName[rs2], regRead(rs2), imm);
+      DISASSMSG("BNE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+                regName[rs2], regRead(rs2), imm);
       if ((SWord)regRead(rs1) != (SWord)regRead(rs2))
         setNextPC((SWord)getPC() + ((SWord)imm));
       else
@@ -1470,8 +1414,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BLT: {
-      DEBUGMSG("BLT %s(%x),%s(%x),%d (%d)\n", regName[rs1], regRead(rs1),
-               regName[rs2], regRead(rs2), imm, regRead(rs1) < regRead(rs2));
+      DISASSMSG("BLT %s(%x),%s(%x),%d (%d)\n", regName[rs1], regRead(rs1),
+                regName[rs2], regRead(rs2), imm, regRead(rs1) < regRead(rs2));
       if ((SWord)regRead(rs1) < (SWord)regRead(rs2))
         setNextPC((SWord)getPC() + ((SWord)imm));
       else
@@ -1479,8 +1423,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BGE: {
-      DEBUGMSG("BGE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-               regName[rs2], regRead(rs2), imm);
+      DISASSMSG("BGE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+                regName[rs2], regRead(rs2), imm);
       if ((SWord)regRead(rs1) >= (SWord)regRead(rs2)) {
         setNextPC((SWord)getPC() + ((SWord)imm));
       } else
@@ -1488,8 +1432,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BLTU: {
-      DEBUGMSG("BLTU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-               regName[rs2], regRead(rs2), imm);
+      DISASSMSG("BLTU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+                regName[rs2], regRead(rs2), imm);
       if (regRead(rs1) < regRead(rs2))
         setNextPC(getPC() + (imm));
       else
@@ -1497,8 +1441,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_BGEU: {
-      DEBUGMSG("BGEU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-               regName[rs2], regRead(rs2), imm);
+      DISASSMSG("BGEU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+                regName[rs2], regRead(rs2), imm);
       if (regRead(rs1) >= regRead(rs2))
         setNextPC(getPC() + (imm));
       else
@@ -1514,7 +1458,7 @@ bool Processor::execInstr(Word instr) {
     break;
   }
   case S_TYPE: {
-    DEBUGMSG("\tS-type | ");
+    DISASSMSG("\tS-type | ");
     int8_t rs1 = RS1(instr);
     int8_t rs2 = RS2(instr);
     int16_t imm = S_IMM(instr);
@@ -1524,8 +1468,8 @@ bool Processor::execInstr(Word instr) {
     Word old = 0;
     switch (FUNC3) {
     case OP_SB: {
-      DEBUGMSG("SB %s(%x),%s(%x),%d\n", regName[rs2], regRead(rs2),
-               regName[rs1], regRead(rs1), imm);
+      DISASSMSG("SB %s(%x),%s(%x),%d\n", regName[rs2], regRead(rs2),
+                regName[rs1], regRead(rs1), imm);
       if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
           !bus->DataRead(paddr, &old, this)) {
         old = mergeByte(old, regRead(rs2), BYTEPOS(vaddr));
@@ -1537,8 +1481,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_SH: {
-      DEBUGMSG("SH %s(%x),%s(%x),%d -> %x\n", regName[rs2], regRead(rs2),
-               regName[rs1], regRead(rs1), imm, old);
+      DISASSMSG("SH %s(%x),%s(%x),%d -> %x\n", regName[rs2], regRead(rs2),
+                regName[rs1], regRead(rs1), imm, old);
       if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
           !bus->DataRead(paddr, &old, this)) {
         old = mergeHWord(old, regRead(rs2), HWORDPOS(vaddr));
@@ -1549,8 +1493,8 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     case OP_SW: {
-      DEBUGMSG("SW $(%s(%x)+%d)<-%s(%x)\n", regName[rs1], regRead(rs1), imm,
-               regName[rs2], regRead(rs2));
+      DISASSMSG("SW $(%s(%x)+%d)<-%s(%x)\n", regName[rs1], regRead(rs1), imm,
+                regName[rs2], regRead(rs2));
       if (!mapVirtual(vaddr, &paddr, WRITE) &&
           !this->bus->DataWrite(paddr, regRead(rs2), this)) {
         setNextPC(getPC() + WORDLEN);
@@ -1567,7 +1511,7 @@ bool Processor::execInstr(Word instr) {
     break;
   }
   case OP_AUIPC: {
-    DEBUGMSG("\tU-type | AUIPC\n");
+    DISASSMSG("\tU-type | AUIPC\n");
     uint8_t rd = RD(instr);
     SWord imm = U_IMM(instr);
     imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
@@ -1578,7 +1522,7 @@ bool Processor::execInstr(Word instr) {
   case OP_LUI: {
     uint8_t rd = RD(instr);
     SWord imm = SIGN_EXTENSION(U_IMM(instr), U_IMM_SIZE) << 12;
-    DEBUGMSG("\tU-type | LUI %s,%x\n", regName[rd], imm);
+    DISASSMSG("\tU-type | LUI %s,%x\n", regName[rd], imm);
     this->regWrite(rd, imm);
     setNextPC(getPC() + WORDLEN);
     break;
@@ -1586,7 +1530,7 @@ bool Processor::execInstr(Word instr) {
   case OP_JAL: {
     uint8_t rd = RD(instr);
     Word imm = SIGN_EXTENSION(J_IMM(instr), J_IMM_SIZE) & 0xfffffffe;
-    DEBUGMSG("\tJ-type | JAL %s,%x\n", regName[rd], getPC() + imm);
+    DISASSMSG("\tJ-type | JAL %s,%x\n", regName[rd], getPC() + imm);
     regWrite(rd, getPC() + WORDLEN);
     setNextPC(getPC() + imm);
     break;
@@ -1596,8 +1540,8 @@ bool Processor::execInstr(Word instr) {
     uint8_t rd = RD(instr);
     uint8_t rs1 = RS1(instr);
     Word imm = SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE);
-    DEBUGMSG("\tJ-type | JALR %s,%s(%x),%x\n", regName[rd], regName[rs1],
-             regRead(rs1), (regRead(rs1) + imm) & 0xfffffffe);
+    DISASSMSG("\tJ-type | JALR %s,%s(%x),%x\n", regName[rd], regName[rs1],
+              regRead(rs1), (regRead(rs1) + imm) & 0xfffffffe);
     regWrite(rd, getPC() + WORDLEN);
     setNextPC(((regRead(rs1) + imm) & 0xfffffffe));
     break;

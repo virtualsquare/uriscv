@@ -9,6 +9,7 @@
 #include <string>
 
 extern bool DEBUG;
+extern bool DISASS;
 
 #define ERROR(msg)                                                             \
   printf("\n[x] %s\n", msg);                                                   \
@@ -16,6 +17,10 @@ extern bool DEBUG;
 
 #define DEBUGMSG(...)                                                          \
   if (DEBUG)                                                                   \
+    printf(__VA_ARGS__);
+
+#define DISASSMSG(...)                                                         \
+  if (DISASS)                                                                  \
     printf(__VA_ARGS__);
 
 #define ERRORMSG(...) printf(__VA_ARGS__);

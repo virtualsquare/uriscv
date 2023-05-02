@@ -7,7 +7,7 @@ foreach(TYPE ${ROM_TYPES})
         #         DESTINATION ${URISCV_DATA_DIR})
 endforeach()
 
-set(BIOS_CFLAGS -fno-pic -ffreestanding -static -march=rv32imfd -mabi=ilp32d )
+set(BIOS_CFLAGS -fno-pic -ffreestanding -static -g -march=rv32imfd -mabi=ilp32d )
 set(BIOS_CPPFLAGS -I${PROJECT_SOURCE_DIR}/include)
 
 foreach(TYPE ${ROM_TYPES})
