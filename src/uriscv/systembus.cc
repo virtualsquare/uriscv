@@ -195,7 +195,7 @@ bool SystemBus::DataRead(Word addr, Word *datap, Processor *cpu) {
 
   if (busRead(addr, datap, cpu)) {
     // address invalid: signal exception to processor
-    cpu->SignalExc(EXC_DBE);
+    cpu->SignalExc(EXC_LAF);
     return true;
   }
 
@@ -225,7 +225,7 @@ bool SystemBus::DataWrite(Word addr, Word data, Processor *proc) {
 
   if (busWrite(addr, data, proc)) {
     // data write is out of valid write bounds
-    proc->SignalExc(EXC_DBE);
+    proc->SignalExc(EXC_SAF);
     return true;
   }
   return false;
@@ -242,7 +242,7 @@ bool SystemBus::CompareAndSet(Word addr, Word oldval, Word newval, bool *result,
     *result = false;
     return false;
   } else {
-    cpu->SignalExc(EXC_DBE);
+    cpu->SignalExc(EXC_SAF);
     return true;
   }
 }
@@ -317,7 +317,7 @@ bool SystemBus::InstrRead(Word addr, Word *instrp, Processor *proc) {
 
   if (busRead(addr, instrp)) {
     // address invalid: signal exception to processor
-    proc->SignalExc(EXC_IBE);
+    proc->SignalExc(EXC_IAF);
     return true;
   } else {
     // address was valid

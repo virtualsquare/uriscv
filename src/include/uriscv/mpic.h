@@ -42,14 +42,10 @@ public:
   Word Read(Word addr, const Processor *cpu) const;
   void Write(Word addr, Word data, const Processor *cpu);
 
-  Word GetIP(Word cpuId) const {
-    // TODO: check this
-    return 0;
-    // return cpuData[cpuId].ipMask << CAUSE_IP_BIT(0);
-  }
+  Word GetIP(Word cpuId) const { return cpuData[cpuId].ipMask << (0); }
 
 private:
-  static const unsigned int kBaseIL = 2;
+  static const unsigned int kBaseIL = 16;
   static const unsigned int kSharedILBase = 1;
 
   static const Word kInvalidCpuId = ~0U;
@@ -101,7 +97,7 @@ private:
   // destinations with equal task priorities
   unsigned int arbiter;
 
-  // Incoming int. sources
+  // Incoming int. sources (first N_EXT_IL are devices, the last one is TIMER)
   Source sources[N_EXT_IL + 1][N_DEV_PER_IL];
 
   // Int. controller cpu interface, for each core

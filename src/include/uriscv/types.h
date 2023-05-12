@@ -22,22 +22,6 @@ typedef struct csr_t {
   uint8_t perm;
 } csr_t;
 
-enum exception_t {
-  EXC_OK = -1,
-  EXC_INSTR_ADDR_MIS = 0,
-  EXC_INSTR_ACC_FAULT = 1,
-  EXC_ILL_INSTR = 2,
-  EXC_BREAKPOINT = 3,
-  EXC_LOAD_ADDR_MIS = 4,
-  EXC_LOAD_ACC_FAULT = 5,
-  EXC_MEM_OPER_MIS = 6,
-  EXC_MEM_OPER_ACC_FAULT = 7,
-  EXC_ENV_CALL_U = 8,
-  EXC_ENV_CALL_S = 9,
-  EXC_ENV_CALL_H = 10, // not used
-  EXC_ENV_CALL_M = 11,
-};
-
 enum interrupt_t {
   INT_NONE = -1,
   INT_USIP = 0,

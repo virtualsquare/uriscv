@@ -3,7 +3,6 @@
 #include "uriscv/error.h"
 #include "uriscv/machine.h"
 #include "uriscv/machine_config.h"
-#include "uriscv/mybus.h"
 #include "uriscv/processor.h"
 #include "uriscv/stoppoint.h"
 #include "uriscv/symbol_table.h"

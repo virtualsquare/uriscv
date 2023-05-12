@@ -24,6 +24,7 @@
 #include <boost/bind/bind.hpp>
 #include <cassert>
 
+#include "uriscv/arch.h"
 #include "uriscv/machine_config.h"
 #include "uriscv/processor.h"
 #include "uriscv/systembus.h"
@@ -36,11 +37,21 @@ InterruptController::InterruptController(const MachineConfig *config,
       cpuData(config->getNumProcessors()) {}
 
 void InterruptController::StartIRQ(unsigned int il, unsigned int devNo) {
+  uint irq = il;
   il -= kBaseIL;
-  assert(il >= kSharedILBase || !devNo);
+  assert((int)il >= kSharedILBase || !devNo);
+
+  uint sIndex = il;
+
+  // IL_TIMER
+  if ((int)sIndex <= 0) {
+    sIndex = 0;
+    il = 0;
+    irq = IL_TIMER;
+  }
 
   // Obtain source routing info
-  Source &source = sources[il][devNo];
+  Source &source = sources[sIndex][devNo];
   Word target = kInvalidCpuId;
   if (source.route.policy == IRT_POLICY_FIXED) {
     if (source.route.destination < cpuData.size())
@@ -71,16 +82,26 @@ void InterruptController::StartIRQ(unsigned int il, unsigned int devNo) {
   if (il >= kSharedILBase)
     cpuData[target].idb[il - kSharedILBase] |= 1U << devNo;
 
-  bus->AssertIRQ(kBaseIL + il, target);
+  bus->AssertIRQ(irq, target);
 }
 
 void InterruptController::EndIRQ(unsigned int il, unsigned int devNo) {
+  uint irq = il;
   il -= kBaseIL;
-  assert(il >= kSharedILBase || !devNo);
+  assert((int)il >= kSharedILBase || !devNo);
+
+  uint sIndex = il;
+
+  // IL_TIMER
+  if ((int)sIndex <= 0) {
+    sIndex = 0;
+    il = 0;
+    irq = IL_TIMER;
+  }
 
   // This might be a "spurious" acknowledge message in case the
   // interrupt wasn't delivered to any core.
-  Word target = sources[il][devNo].lastTarget;
+  Word target = sources[sIndex][devNo].lastTarget;
   if (target == kInvalidCpuId)
     return;
 
@@ -88,15 +109,15 @@ void InterruptController::EndIRQ(unsigned int il, unsigned int devNo) {
   if (il >= kSharedILBase) {
     cpuData[target].idb[il - kSharedILBase] &= ~(1U << devNo);
     if (!cpuData[target].idb[il - kSharedILBase]) {
-      cpuData[target].ipMask &= ~(1U << (kBaseIL + il));
-      bus->DeassertIRQ(kBaseIL + il, target);
+      cpuData[target].ipMask &= ~(1U << (irq));
+      bus->DeassertIRQ(irq, target);
     }
   } else {
-    cpuData[target].ipMask &= ~(1U << (kBaseIL + il));
-    bus->DeassertIRQ(kBaseIL + il, target);
+    cpuData[target].ipMask &= ~(1U << (irq));
+    bus->DeassertIRQ(irq, target);
   }
 
-  sources[il][devNo].lastTarget = kInvalidCpuId;
+  sources[sIndex][devNo].lastTarget = kInvalidCpuId;
 }
 
 Word InterruptController::Read(Word addr, const Processor *cpu) const {

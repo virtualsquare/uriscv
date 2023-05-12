@@ -48,13 +48,6 @@
 
 #define NULL ((void *)0)
 
-/* device interrupts */
-#define DISKINT 3
-#define FLASHINT 4
-#define NETWINT 5
-#define PRNTINT 6
-#define TERMINT 7
-
 #define DEVINTNUM 5 /* interrupt lines used by devices */
 #define DEVPERINT 8 /* devices per interrupt line */
 #define DEVREGLEN                                                              \

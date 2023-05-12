@@ -7,10 +7,8 @@ add_library(uriscv-lib STATIC
   uriscv/utility.cc
   uriscv/config.cc
   uriscv/stoppoint.cc
-  uriscv/mybus.cc
   uriscv/disassemble.cc
   uriscv/systembus.cc
-  uriscv/hart.cc
   uriscv/processor.cc
   uriscv/machine_config.cc
   uriscv/blockdev.cc

@@ -281,6 +281,7 @@ void Processor::Reset(Word pc, Word sp) {
   csrWrite(MSTATUS, MSTATUS_MPP_M);
   csrWrite(MIE, 0);
   csrWrite(MCAUSE, 0);
+  csrWrite(TIME, 0);
   mode = 0x3;
 
   currPC = pc;
@@ -410,13 +411,12 @@ void Processor::Skip(uint32_t cycles) {
 void Processor::SignalExc(unsigned int exc, Word cpuNum) {
   excCause = exc;
   SignalException.emit(excCause);
-  // used only for EXC_CPU handling
+  // used only for EXC_II handling
   copENum = cpuNum;
 }
 
 void Processor::AssertIRQ(unsigned int il) {
 
-  // cpreg[CAUSE] |= CAUSE_IP(il);
   csrWrite(MIP, csrRead(MIP) | CAUSE_IP(il));
 
   // If in standby mode, go back to being a power hog.
@@ -425,7 +425,6 @@ void Processor::AssertIRQ(unsigned int il) {
 }
 
 void Processor::DeassertIRQ(unsigned int il) {
-  // cpreg[CAUSE] &= ~CAUSE_IP(il);
   csrWrite(MIP, csrRead(MIP) & ~CAUSE_IP(il));
 }
 
@@ -634,7 +633,13 @@ void Processor::popKUIEStack() {
 bool Processor::checkForInt() {
   // check if interrupts are enabled and pending
   if (csrRead(MSTATUS) & MSTATUS_MIE_MASK && (csrRead(MIE) & csrRead(MIP))) {
-    SignalExc(EXC_INT);
+    uint l = 0;
+    uint mip = csrRead(MIP);
+    while (mip > 1) {
+      mip >>= 1;
+      l++;
+    }
+    SignalExc((1 << 31) | l);
     return true;
   } else {
     // No interrupt on this cycle
@@ -663,14 +668,10 @@ void Processor::handleExc() {
 
   unsigned int mcause = excCause;
 
-  if (excCause == EXC_INT) {
-    mcause |= 1 << 31;
-  }
-
   csrWrite(MCAUSE, mcause);
   csrWrite(MEPC, currPC);
 
-  if (excCause == EXC_INT) {
+  if (CAUSE_IS_INT(mcause)) {
     // interrupt: test is before istruction fetch, so handling
     // could start immediately
     currPC = excVector;
@@ -722,9 +723,9 @@ bool Processor::mapVirtual(Word vaddr, Word *paddr, Word accType) {
     csrWrite(CSR_BADVADDR, vaddr);
 
     if (accType == WRITE)
-      SignalExc(EXC_ADES);
+      SignalExc(EXC_SAF);
     else {
-      SignalExc(EXC_ADEL);
+      SignalExc(EXC_LAF);
     }
 
     return true;
@@ -803,7 +804,7 @@ bool Processor::execInstr(Word instr) {
     // }
     DISASSMSG("<FUN %s\n", prevFunc.c_str());
     if (strcmp("pandos_memcpy", prevFunc.c_str()) == 0) {
-      // DEBUG = true;
+      // DISASS = true;
     }
     prevFunc = sym->getName();
     DISASSMSG("\n>FUN %s\n", sym->getName());
@@ -812,7 +813,7 @@ bool Processor::execInstr(Word instr) {
       // _pause = true;
     }
     if (strcmp("pandos_memcpy", prevFunc.c_str()) == 0) {
-      // DEBUG = false;
+      // DISASS = false;
     }
   }
   if (_pause)
@@ -886,7 +887,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(EXC_CPU, 0);
+      SignalExc(EXC_II, 0);
       e = true;
       break;
     }
@@ -922,7 +923,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("ADD not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         break;
       }
@@ -948,7 +949,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         break;
       }
@@ -974,7 +975,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         break;
       }
@@ -1000,7 +1001,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         break;
       }
@@ -1028,7 +1029,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         break;
       }
@@ -1061,7 +1062,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         break;
       }
@@ -1087,7 +1088,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         break;
       }
@@ -1113,7 +1114,7 @@ bool Processor::execInstr(Word instr) {
       }
       default: {
         ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         break;
       }
@@ -1121,7 +1122,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(EXC_CPU, 0);
+      SignalExc(EXC_II, 0);
       e = true;
       break;
     }
@@ -1183,7 +1184,7 @@ bool Processor::execInstr(Word instr) {
         break;
       }
       default:
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         break;
       }
@@ -1204,7 +1205,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(EXC_CPU, 0);
+      SignalExc(EXC_II, 0);
       e = true;
       break;
     }
@@ -1224,26 +1225,26 @@ bool Processor::execInstr(Word instr) {
         // a7 - syscall number
         // a0 - result of syscall
         //
-        // https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/slides/14-ecf-pre.pdf
         DISASSMSG("ECALL %d\n", regRead(REG_A0));
         setNextPC(getPC() + WORDLEN);
-        SignalExc(EXC_SYS);
+        // only M or U modes are possible
+        if (mode == 0x3)
+          SignalExc(EXC_ECM);
+        else
+          SignalExc(EXC_ECU);
         e = true;
         break;
       }
       case EBREAK_IMM: {
-        // // TODO : remove
-        // if (regRead(REG_A0) == 2 || regRead(REG_A0) == 3) {
-        //   exit(0);
-        // }
         int mode = regRead(REG_A0);
+        DISASSMSG("EBREAK\n");
+        if (mode == BIOS_SRV_PANIC)
+          exit(0);
         if (mode <= BIOS_SRV_HALT) {
-          DISASSMSG("EBREAK\n");
           SignalExc(EXC_BP);
           e = true;
         } else {
           unsigned int i;
-          DISASSMSG("EBREAK");
           switch (mode) {
           case BIOS_SRV_TLBP:
             // solution "by the book"
@@ -1282,7 +1283,7 @@ bool Processor::execInstr(Word instr) {
           default:
             ERRORMSG(" NOT FOUND\n");
             // invalid instruction
-            SignalExc(EXC_CPU, 0);
+            SignalExc(EXC_II, 0);
             e = true;
           }
           setNextPC(getPC() + WORDLEN);
@@ -1311,7 +1312,7 @@ bool Processor::execInstr(Word instr) {
         break;
       }
       default: {
-        SignalExc(EXC_CPU, 0);
+        SignalExc(EXC_II, 0);
         e = true;
         ERROR("not found");
         break;
@@ -1380,7 +1381,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(EXC_CPU, 0);
+      SignalExc(EXC_II, 0);
       e = true;
       ERROR("not found");
       break;
@@ -1450,7 +1451,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(EXC_CPU, 0);
+      SignalExc(EXC_II, 0);
       e = true;
       break;
     }
@@ -1503,7 +1504,7 @@ bool Processor::execInstr(Word instr) {
       break;
     }
     default: {
-      SignalExc(EXC_CPU, 0);
+      SignalExc(EXC_II, 0);
       e = true;
       break;
     }
@@ -1548,7 +1549,7 @@ bool Processor::execInstr(Word instr) {
   }
   default: {
     ERRORMSG("OpCode not handled %x\n", instr);
-    SignalExc(EXC_CPU, 0);
+    SignalExc(EXC_II, 0);
     e = true;
     ERROR("opcode not handled");
     break;

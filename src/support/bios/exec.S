@@ -153,9 +153,8 @@ LEXCHandler:
   li t1,EXC_UTLBL
   bgeu t0,t1,LUTLBHandler
 
-
   csrrw t0,mcause,zero
-  addi t0,t0,-9
+  addi t0,t0,-3
   beq t0,zero,LBreakHandler
 
 	/* lw	k1, BIOS_PC_AREA_BASE */

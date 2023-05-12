@@ -153,6 +153,7 @@ private:
   std::string prevFunc;
   bool skipCycle;
 
+  // 3 - M ... 0 - U
   unsigned int mode;
   ProcessorStatus status;
 

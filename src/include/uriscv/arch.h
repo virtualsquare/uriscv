@@ -63,8 +63,9 @@
 /* Devices per interrupt line */
 #define N_DEV_PER_IL 8
 
-#define DEV_IL_START (N_INTERRUPT_LINES - N_EXT_IL)
+#define DEV_IL_START 17
 
+/*
 #define IL_IPI 0
 #define IL_CPUTIMER 1
 #define IL_TIMER 2
@@ -73,8 +74,19 @@
 #define IL_ETHERNET 5
 #define IL_PRINTER 6
 #define IL_TERMINAL 7
+*/
 
-#define EXT_IL_INDEX(il) ((il)-DEV_IL_START)
+#define IL_TIMER 3
+#define IL_CPUTIMER 7
+
+#define IL_IPI 16
+#define IL_DISK 17
+#define IL_FLASH 18
+#define IL_ETHERNET 19
+#define IL_PRINTER 20
+#define IL_TERMINAL 21
+
+#define EXT_IL_INDEX(il) ((il)-IL_DISK)
 
 /*
  * Bus and device register definitions
