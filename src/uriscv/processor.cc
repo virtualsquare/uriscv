@@ -35,7 +35,6 @@
 #include <complex>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <unistd.h>
 
 #include "uriscv/arch.h"
@@ -505,9 +504,7 @@ SWord Processor::getGPR(unsigned int num) { return (gpr[num]); }
 
 // This method allows to get the value of the CP0 special register indexed
 // by num. num coding itself is internal (see h/processor.h for mapping)
-Word Processor::getCP0Reg(unsigned int num) {
-  return (0);
-}
+Word Processor::getCP0Reg(unsigned int num) { return (0); }
 
 void Processor::getTLB(unsigned int index, Word *hi, Word *lo) const {
   *hi = tlb[index].getHI();
@@ -523,7 +520,7 @@ Word Processor::getTLBLo(unsigned int index) const {
 }
 
 Word Processor::regRead(Word reg) {
-  assert(reg >= 0 && reg < CPUGPRNUM);
+  assert(reg >= 0 && reg < CPUREGNUM);
   if (reg == REG_ZERO)
     return 0;
   return gpr[reg];

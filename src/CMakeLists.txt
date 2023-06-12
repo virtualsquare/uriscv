@@ -22,7 +22,9 @@ add_library(uriscv-lib STATIC
   uriscv/mp_controller.cc
   uriscv/machine.cc
   uriscv/symbol_table.cc
+  gdb/gdb.cc
 )
+target_link_libraries(uriscv-lib dl)
 
 set_property(SOURCE support/liburiscv/liburiscv.S PROPERTY LANGUAGE C)
 set(URISCV_DATA_DIR ${CMAKE_INSTALL_FULL_DATADIR}/uriscv)
@@ -59,13 +61,11 @@ target_link_libraries(uriscv-objdump)
 
 install(TARGETS uriscv-mkdev RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-install(TARGETS testdis RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-add_subdirectory(frontends)
+# add_subdirectory(frontends)
 add_subdirectory(support)
 
 set(URISCV_INCLUDE_DIR ${CMAKE_INSTALL_INCLUDEDIR}/uriscv)
 set(LIBURISCV_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include/uriscv)
 
-install(FILES ${LIBURISCV_INCLUDE_DIR}/arch.h ${LIBURISCV_INCLUDE_DIR}/aout.h ${LIBURISCV_INCLUDE_DIR}/regdef.h ${LIBURISCV_INCLUDE_DIR}/bios.h ${LIBURISCV_INCLUDE_DIR}/cp0.h
+install(FILES ${LIBURISCV_INCLUDE_DIR}/arch.h ${LIBURISCV_INCLUDE_DIR}/aout.h ${LIBURISCV_INCLUDE_DIR}/regdef.h ${LIBURISCV_INCLUDE_DIR}/bios.h  ${LIBURISCV_INCLUDE_DIR}/const.h ${CMAKE_INSTALL_INCLUDEDIR}/uriscv/csr.h
 	DESTINATION ${URISCV_INCLUDE_DIR})

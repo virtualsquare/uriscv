@@ -23,6 +23,7 @@
 #include "uriscv/arch.h"
 #include "uriscv/cp0.h"
 #include "uriscv/bios.h"
+#include "uriscv/const.h"
 
 /* Constants */
 

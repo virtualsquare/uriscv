@@ -1,54 +1,6 @@
 #ifndef URISCV_CONST_H
 #define URISCV_CONST_H
 
-// CSRs permissions
-#define NNR 0x1
-#define NNW 0x2
-#define NWW 0xA
-#define RRR 0x15
-#define WWW 0x2A
-
-#define NUM_HARTS 2
-#define MODE_USER 0
-#define MODE_SUPERVISOR 1
-#define MODE_MACHINE 2
-
-#define CYCLE 0xC00 // Clock	cycle	counter
-#define MCYCLE 0xB00
-#define CYCLEH 0xC80 // Upper half of cycle (RV32 only)
-#define MCYCLEH 0xB80
-#define TIME 0xC01    // Current time in ticks
-#define TIMEH 0xC81   // Upper half of time (RV32 only)
-#define INSTRET 0xC02 // Number of instructions retired
-#define MINSTRET 0xB02
-#define INSTRETH 0xC82 // Upper half of instret (RV32 only)
-#define MINSTRETH 0xB82
-#define UTVEC 0x005   // Trap	handler	base	address
-#define SEDELEG 0x102 // Exception	delegation	register
-#define MEDELEG 0x302
-#define SIDELEG 0x103 // Interrupt delegation	register
-#define MIDELEG 0x303
-#define STVEC 0x105
-#define MTVEC 0x305
-#define USCRATCH 0x40 // Previous value of PC
-#define SSCRATCH 0x140
-#define MSCRATCH 0x340
-#define UEPC 0x41 // Previous value of PC
-#define SEPC 0x141
-#define MEPC 0x341
-#define UCAUSE 0x42 // Trap cause code
-#define SCAUSE 0x142
-#define MCAUSE 0x342
-#define UTVAL 0x43 // Bad	address	or	bad	instruction
-#define STVAL 0x143
-#define MTVAL 0x343
-
-#define MSTATUS 0x300
-
-// Custom CSR
-#define CSR_ENTRYLO 0x800
-#define CSR_ENTRYHI 0x801
-
 /*
  *
  * The mip register is an MXLEN-bit read/write register containing information
@@ -56,6 +8,8 @@
  * register containing interrupt enable bits.
  *
  */
+#include "csr.h"
+
 #define UIE 0x4
 #define UIP 0x44
 
@@ -79,22 +33,22 @@
 #define MSTATUS_MPP_U 0x0000
 #define MSTATUS_MPP_MASK 0x1800
 
-// general configuration constants
+/* general configuration constants */
 #define MPSFILETYPE ".uriscv"
 #define AOUTFILETYPE ".aout.uriscv"
 #define BIOSFILETYPE ".rom.uriscv"
 #define COREFILETYPE ".core.uriscv"
 #define STABFILETYPE ".stab.uriscv"
 
-// maximum area size for trace ranges: a little more than 4KB
-// to avoid troubles in browser refresh if area is too large
+/* maximum area size for trace ranges: a little more than 4KB
+ to avoid troubles in browser refresh if area is too large */
 #define MAXTRACESIZE (FRAMESIZE + 1)
 
 /***************************************************************************/
 
-// no more user-serviceable parts below this line
+/* no more user-serviceable parts below this line */
 
-// some utility constants
+/* some utility constants */
 #define HIDDEN static
 
 #define EOS '\0'
@@ -102,40 +56,40 @@
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 
-// host specific constants
+/* host specific constants */
 #ifdef WORDS_BIGENDIAN
 #define BIGENDIANCPU 1
 #else
 #define BIGENDIANCPU 0
 #endif
 
-// hardware constants
+/* hardware constants */
 
-// physical memory page frame size (in words)
+/* physical memory page frame size (in words) */
 #define FRAMESIZE 1024
 
-// KB per frame
+/* KB per frame */
 #define FRAMEKB 4
 
-// block device size in words
+/* block device size in words */
 #define BLOCKSIZE FRAMESIZE
 
-// eth packet size
+/* eth packet size */
 #define PACKETSIZE 1514
 
-// DMA transfer time
+/* DMA transfer time */
 #define DMATICKS BLOCKSIZE
 
-// miscellaneous MIPS alignment and size definitions needed by modules
-// other by processor.cc
+/* miscellaneous MIPS alignment and size definitions needed by modules
+ other by processor.cc */
 
-// number of ASIDs
+/* number of ASIDs */
 #define MAXASID 64
 
-// MIPS NOP instruction
+/* MIPS NOP instruction */
 #define NOP 0x00000013
 
-// word length in bytes, byte length in bits, sign masks, etc.
+/* word length in bytes, byte length in bits, sign masks, etc. */
 #define WORDLEN 4
 #define BYTELEN 8
 #define WORDLENBITS WORDLEN *BYTELEN
@@ -147,60 +101,61 @@
 #define BYTEMASK 0x000000FFUL
 #define HWORDMASK 0x000000FFUL
 
-// immediate/lower halfword part mask
+/* immediate/lower halfword part mask */
 #define IMMMASK 0x0000FFFFUL
 
-// word alignment mask
+/* word alignment mask */
 #define ALIGNMASK 0x00000003UL
 
-// halfword bit length
+/* halfword bit length */
 #define HWORDLEN 16
 
-// exception type constants (simulator internal coding)
+/* exception type constants (simulator internal coding) */
 #define NOEXCEPTION 0
 #define UTLBLEXCEPTION 3
 #define UTLBSEXCEPTION 5
 
-// interrupt handling related constants
+/* interrupt handling related constants */
 
-// timer interrupt line
+/* timer interrupt line */
 #define TIMERINT 2
 
-// device starting interrupt line
+/* device starting interrupt line */
 #define DEVINTBASE 3
 
-// device register length
+/* device register length */
 #define DEVREGLEN 4
 
-// interrupts available for registers
+/* interrupts available for registers */
 #define DEVINTUSED 5
 
-// devices per interrupt line
+/* devices per interrupt line */
 #define DEVPERINT 8
 
-// segments base addresses
+/* segments base addresses */
 #define KSEG0BASE 0x00000000UL
 #define KSEG0TOP 0x20000000UL
 #define KUSEGBASE 0x80000000UL
 
 #define CORE_TEXT_VADDR 0x20001000
 
-// bus memory mapping constants (BIOS/BIOS Data Page/device registers/BOOT/RAM)
+/* bus memory mapping constants (BIOS/BIOS Data Page/device registers/BOOT/RAM)
+ */
 #define BIOSBASE 0x00000000UL
 #define BIOSDATABASE 0x0FFFF000UL
 #define DEVBASE 0x10000000UL
 #define BOOTBASE 0x1FC00000UL
 #define RAMBASE 0x20000000UL
 
-// size of bios data page (in words)
+/* size of bios data page (in words) */
 #define BIOSDATASIZE ((DEVBASE - BIOSDATABASE) / WORDLEN)
 
-// Processor structure register numbers
-#define CPUREGNUM 34
+/* Processor structure register numbers */
+#define CPUREGNUM 32
 #define CPUGPRNUM 32
 #define CP0REGNUM 10
 
-// device type codes
+/* device type codes */
 #define NULLDEV 0
 #define DISKDEV 1
 #define FLASHDEV 2
@@ -208,13 +163,13 @@
 #define PRNTDEV 4
 #define TERMDEV 5
 
-// interrupt line offset used for terminals
-// (lots of code must be modified if this changes)
+/* interrupt line offset used for terminals
+ (lots of code must be modified if this changes) */
 
 #define TERMINT 4
 
-// memory access types for brkpt/susp/trace ranges in watch.cc and appforms.cc
-// modules
+/* memory access types for brkpt/susp/trace ranges in watch.cc and appforms.cc
+ modules */
 #define READWRITE 0x6
 #define READ 0x4
 #define WRITE 0x2
@@ -255,18 +210,18 @@
 #define REG_A6 16
 #define REG_A7 17
 
-// some useful macros
+/* some useful macros */
 
-// recognizes bad (unaligned) virtual address
+/* recognizes bad (unaligned) virtual address */
 #define BADADDR(w) ((w & ALIGNMASK) != 0UL)
 
-// returns the sign bit of a word
+/* returns the sign bit of a word */
 #define SIGNBIT(w) (w & SIGNMASK)
 
-// returns 1 if the two strings are equal, 0 otherwise
+/* returns 1 if the two strings are equal, 0 otherwise */
 #define SAMESTRING(s, t) (strcmp(s, t) == 0)
 
-// returns 1 if a is in open-ended interval [b, c[, 0 otherwise
+/* returns 1 if a is in open-ended interval [b, c[, 0 otherwise */
 #define INBOUNDS(a, b, c) (a >= b && a < c)
 
 #endif

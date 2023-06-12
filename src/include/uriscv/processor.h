@@ -27,6 +27,8 @@
 #include <sigc++/sigc++.h>
 
 #include "base/lang.h"
+#include <cstring>
+#include <string>
 #include "uriscv/const.h"
 #include "uriscv/types.h"
 
@@ -40,9 +42,8 @@ enum ProcessorStatus { PS_HALTED, PS_RUNNING, PS_IDLE };
 class Processor {
 public:
   // Register file size:
-  static const unsigned int kNumCPURegisters = 34;
+  static const unsigned int kNumCPURegisters = 32;
   static const unsigned int kNumCSRRegisters = 4096;
-  static const unsigned int kNumCP0Registers = 9;
 
   Processor(const MachineConfig *config, Word id, Machine *machine,
             SystemBus *bus);

@@ -5,7 +5,7 @@ project(uriscv VERSION 3.0.0)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_options(-D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic)
+add_compile_options(-D_FORTIFY_SOURCE=2 -O2 -Wall -pedantic -ldl)
 
 include(GNUInstallDirs)
 
@@ -19,7 +19,7 @@ if(NOT XT_PREFIXES)
         #         set(XT_PREFIXES mips-linux-gnu- mips-linux-
         #                 mips-elf- ${XT_PREFIXES})
         # else()
-                set(XT_PREFIXES riscv32-unknown-linux-gnu- 
+                set(XT_PREFIXES riscv64-unknown-elf-
                         ${XT_PREFIXES})
         # endif()
 endif()
