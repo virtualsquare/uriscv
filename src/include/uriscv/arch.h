@@ -65,17 +65,6 @@
 
 #define DEV_IL_START 17
 
-/*
-#define IL_IPI 0
-#define IL_CPUTIMER 1
-#define IL_TIMER 2
-#define IL_DISK 3
-#define IL_FLASH 4
-#define IL_ETHERNET 5
-#define IL_PRINTER 6
-#define IL_TERMINAL 7
-*/
-
 #define IL_TIMER 3
 #define IL_CPUTIMER 7
 

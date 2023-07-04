@@ -128,7 +128,6 @@ LUTLBHandler:
   li t1,11
   sub t0,t0,t1
   csrrw zero,mcause,t0
-	/* lw	k1, BIOS_PC_AREA_BASE */
   li t0,BIOS_PC_AREA_BASE // load BIOS_PC_AREA_BASE in to t1
   lw t1,0(t0) // so we can do t0 = mem[t1]
   WRITEK1(t1)
@@ -157,7 +156,6 @@ LEXCHandler:
   addi t0,t0,-3
   beq t0,zero,LBreakHandler
 
-	/* lw	k1, BIOS_PC_AREA_BASE */
   li t0,BIOS_PC_AREA_BASE // load BIOS_PC_AREA_BASE in to t1
   lw t1,0(t0) // so we can do t0 = mem[t1]
   addi t1,t1,8
@@ -165,7 +163,6 @@ LEXCHandler:
 	j	LSaveExcptAndJmp
 
 LIntHandler:
-	/* lw	k1, BIOS_PC_AREA_BASE */
   li t0,BIOS_PC_AREA_BASE // load BIOS_PC_AREA_BASE in to t1
   lw t1,0(t0) // so we can do t0 = mem[t1]
   addi t1,t1,8
@@ -174,50 +171,26 @@ LIntHandler:
 
 LBreakHandler:
 
-	/* any other break is passed up to SYS handler */
-	/* li	k1, BIOS_PC_AREA_BASE */
-  /*
-  li t1, BIOS_PC_AREA_BASE
-  WRITEK1(t1)
-  */
-	/* addi	k1, k1, 8 */
-  /*
-  READK1(t1)
-  addi t1, t1, 8
-  WRITEK1(t1)
-  */
-  // TODO: check if in kernel mode
-
 	/* 0 is LDCXT(stackPtr, STATUS, PC) */
-	/* beq	0, k1, LLDCXT */
   add t1, a0,0
   beq zero, t1, LLDCXT
 
-	/* addi	k1, -1 */
   addi t1, t1, -1
 
 	/* 1 is LDST */
-  /* beq	0, k1, LLDST */
   beq zero, t1, LLDST
 
-	/* addi	k1, -1 */
   addi t1, t1, -1
 
 	/* 2 is PANIC routine */
-	/* beq	0, k1, LPanic */
   beq zero, t1, LPanic 
 
-	/* addi	k1, -1 */
   addi t1, t1, -1
 
 	/* 3 is HALT routine */
-	/* beq	0, k1, LHalt */
   beq zero, t1, LHalt
 
-	/* If in user mode, pass along to kernel */
-	/* li	k1, BUS_REG_RAM_BASE */
   li t1, BUS_REG_RAM_BASE
-	/* addi	k1, k1, 8 */
   addi t1, t1, 8
   WRITEK1(t1)
 	j	LSaveExcptAndJmp
@@ -226,39 +199,25 @@ LLDCXT:
 	# a1 is stackPtr, a2 is new STATUS, a3 is PC
 
 	# STATUS preparation
-  /* move	k1, a2 */
   move t1, a2
 	# this for BIOS safety: no KU or IE bits on
-	/* li	k0, SAFESTATUSMASK */
   li t0, SAFESTATUSMASK
-	/* and	k1, k1, k0 */
   and t1, t1, t0
 
 	# STATUS loading
-	/* mtc0	k1, CP0_Status // CP0 not enabled */
   csrrw zero,mstatus,t1
 
 	# stackPtr loading
 	move	sp, a1
 
 	# get new PC and jump
-	/* move	k1, a3 */
   move t1, a3
   csrrw zero,mepc,a3
-  /* TODO: check if it is useful */
-	/* move	t9, a3 */
 
-	//.set	noreorder
-	//.set	nomacro
-	/* jr	k1 */
 	mret
   jr t1
-	//.set	reorder
-	//.set	macro
 
 LLDST:
-	# this means load from physical address in a1
-	/* move	k0, a1 */
   WRITEK0(a1)
 	j	LLoadStart
 
@@ -272,18 +231,7 @@ LSaveExcptAndJmp:
   lw t0,0(t0)
   WRITEK0(t0)
 LSave:
-  /* addi sp, sp, -33*4 */
   READK0(t0)
-
-  /* salvare
-    entry_hi
-    cause
-    status
-    pc_epc
-    gpr (fatto)
-    hi
-    lo
-  */
 
 	sw	ra, 24(t0)
 	sw	sp, 28(t0)
@@ -325,7 +273,6 @@ LSave:
   csrrw t1,mstatus,zero
 	sw	t1, 8(t0)
 
-  // epc
   csrrw t1,mepc,zero
 	sw	t1, 12(t0)
 
@@ -339,7 +286,6 @@ LSave:
   READK1(t1)
   lw sp, 4(t1)
 
-	/* jr	k1 */
   lw t1,0(t1)
   csrrw zero,mepc,t1
 
@@ -350,22 +296,6 @@ LSave:
  * Load CPU/CP0 registers from (state_t*) k0
  */
 LLoadStart:
-
-  /* salvare
-    entry_hi
-    cause (fatto)
-    status (fatto)
-    pc_epc (fatto)
-    gpr (fatto)
-    hi
-    lo
-  */
-
-  /* pc_epc */
-  /*
-	lw	t0, 16(t0)
-  csrrw zero,mepc,t0
-  */
 
   READK0(t0)
 
@@ -414,21 +344,15 @@ LLoadStart:
   lw t6, 8(t0)
 	srl 	t6,t6, 4 
 	sll 	t6,t6, 4 
-  /*
-  li t5,MSTATUSMPPM
-  or   t6,t6,t5
-  */
   csrrw zero,mstatus,t6
 
   // has to be the last one
-  lw t6, 12(t0) // epc (mhhh using of t6)
+  lw t6, 12(t0) 
   csrrw zero,mepc,t6
   WRITEK1(t6)
 
   lw t6, 16(t0)
   csrrw zero,mie,t6
-
-  // TODO: save status etc....
 
   READK0(t0)
 	lw	t6, 64(t0)
@@ -437,10 +361,6 @@ LLoadStart:
   READK1(t6)
 
 	mret
-  // jr t6
-
-	//.set	reorder
-	//.set	macro
 
 	.end	jios
 	.size	jios, . - bios

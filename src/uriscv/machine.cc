@@ -122,7 +122,6 @@ void Machine::onCpuStatusChanged(const Processor *cpu) {
     pauseRequested = true;
 }
 
-// TODO : check for breakpoints,suspects to not be null
 void Machine::HandleBusAccess(Word pAddr, Word access, Processor *cpu) {
   // Check for breakpoints and suspects
   switch (access) {

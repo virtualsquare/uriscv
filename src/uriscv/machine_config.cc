@@ -189,7 +189,6 @@ void MachineConfig::Save() {
   std::string buf;
   root->Serialize(buf, true);
 
-  printf("Filename machine config : %s\n", fileName.c_str());
   std::ofstream file(fileName.c_str(),
                      std::ios_base::trunc | std::ios_base::out);
   if (file.fail() || !(file << buf))

@@ -13,31 +13,50 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <sys/stat.h>
 
 namespace po = boost::program_options;
 
+char defFileName[] = "config_machine.json";
+
 void Panic(const char *message) { ERROR(message); }
+
+bool fileExists(const char *filename) {
+  struct stat buf;
+  return (stat(filename, &buf) == 0);
+}
 
 int main(int argc, char **argv) {
 
+  po::positional_options_description p;
+  p.add("config", -1);
+
   // Declare the supported options.
-  po::options_description desc("Allowed options");
-  desc.add_options()("help", "produce help message")("debug", "enable debug")(
-      "disass", "enable disassembler")("iter", po::value<int>(),
-                                       "iterations")("gdb", "start gdb server");
+  po::options_description desc("Syntax");
+  desc.add_options()("help", "show this help")(
+      "config", po::value<std::string>()->default_value(defFileName))(
+      "debug", "enable debug")("disass", "enable disassembler")(
+      "iter", po::value<int>(), "iterations")("gdb", "start gdb server");
 
   po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::store(
+      po::command_line_parser(argc, argv).options(desc).positional(p).run(),
+      vm);
   po::notify(vm);
 
   if (vm.count("help")) {
-    std::cout << desc << "\n";
-    return 1;
+    std::cerr << desc << "\n";
+    return EXIT_FAILURE;
+  }
+
+  const char *filename = vm["config"].as<std::string>().c_str();
+  if (!fileExists(filename)) {
+    std::cerr << "Config file not exists\n";
+    return EXIT_FAILURE;
   }
 
   std::string error;
-  MachineConfig *config =
-      MachineConfig::LoadFromFile("config_machine.json", error);
+  MachineConfig *config = MachineConfig::LoadFromFile(filename, error);
 
   if (error != "")
     Panic(error.c_str());
@@ -64,7 +83,6 @@ int main(int argc, char **argv) {
     GDBServer *gdb = new GDBServer(mac);
     gdb->StartServer();
   } else {
-
     bool stopped = false;
     for (int i = 0; i < iter || unlimited; i++) {
       mac->step(&stopped);
@@ -73,5 +91,5 @@ int main(int argc, char **argv) {
       }
     }
   }
-  return 0;
+  return EXIT_SUCCESS;
 }

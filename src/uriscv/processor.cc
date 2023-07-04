@@ -52,9 +52,6 @@
 #include "uriscv/types.h"
 #include "uriscv/utility.h"
 
-// TODO: to remove
-bool _pause = false;
-
 const char *const regName[] = {
     "zero", "ra", "sp", "gp", "tp",  "t0",  "t1", "t2", "s0/fp", "s1", "a0",
     "a1",   "a2", "a3", "a4", "a5",  "a6",  "a7", "s2", "s3",    "s4", "s5",
@@ -524,12 +521,10 @@ void Processor::regWrite(Word reg, Word value) {
     gpr[reg] = value;
 }
 Word Processor::csrRead(Word reg) {
-  // TODO: check perm
   assert(reg >= 0 && reg < kNumCSRRegisters);
   return csr[reg].value;
 }
 void Processor::csrWrite(Word reg, Word value) {
-  // TODO: check perm
   assert(reg >= 0 && reg < kNumCSRRegisters);
   csr[reg].value = value;
 }
@@ -799,25 +794,10 @@ bool Processor::execInstr(Word instr) {
   const Symbol *sym =
       machine->getStab()->Probe(config->getSymbolTableASID(), getPC(), true);
   if (sym != NULL && sym->getName() != prevFunc) {
-    // if (strcmp("p5b", prevFunc.c_str()) == 0) {
-    //   sleep(1);
-    // }
     DISASSMSG("<FUN %s\n", prevFunc.c_str());
-    if (strcmp("pandos_memcpy", prevFunc.c_str()) == 0) {
-      // DISASS = true;
-    }
     prevFunc = sym->getName();
     DISASSMSG("\n>FUN %s\n", sym->getName());
-    if (strcmp("trap", prevFunc.c_str()) == 0) {
-      // sleep(1);
-      // _pause = true;
-    }
-    if (strcmp("pandos_memcpy", prevFunc.c_str()) == 0) {
-      // DISASS = false;
-    }
   }
-  if (_pause)
-    sleep(1);
   DISASSMSG("[%08x] (%08x) ", getPC(), instr);
 
   switch (opcode) {
@@ -1299,7 +1279,6 @@ bool Processor::execInstr(Word instr) {
          Section 3.1.6.1, xRET sets the pc to the value stored in the xepc
          register.
         */
-        // TODO: change privilege mode
         DISASSMSG("MRET %x\n", csrRead(MEPC));
         popKUIEStack();
         setNextPC(csrRead(MEPC));
@@ -1537,7 +1516,6 @@ bool Processor::execInstr(Word instr) {
     break;
   }
   case OP_JALR: {
-    // TODO: understand diffs with JAL
     uint8_t rd = RD(instr);
     uint8_t rs1 = RS1(instr);
     Word imm = SIGN_EXTENSION(I_IMM(instr), I_IMM_SIZE);

@@ -15,13 +15,8 @@ configure_file(config.h.in config.h)
 
 set(XT_PREFIXES ${RISCV_TOOL_PREFIX})
 if(NOT XT_PREFIXES)
-        # if(WORDS_BIGENDIAN)
-        #         set(XT_PREFIXES mips-linux-gnu- mips-linux-
-        #                 mips-elf- ${XT_PREFIXES})
-        # else()
-                set(XT_PREFIXES riscv32-unknown-linux-gnu- 
-                        ${XT_PREFIXES})
-        # endif()
+      set(XT_PREFIXES riscv32-unknown-linux-gnu- 
+        ${XT_PREFIXES})
 endif()
 
 foreach(PREF ${XT_PREFIXES})

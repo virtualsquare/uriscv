@@ -38,12 +38,6 @@ target_link_libraries(uriscv-elf2uriscv ${LIBELF})
 
 install(TARGETS uriscv-elf2uriscv RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-add_executable(testdis uriscv/testdis.cc uriscv/disassemble.cc)
-target_include_directories(testdis
-        PUBLIC ${PROJECT_SOURCE_DIR}/include
-    )
-target_link_libraries(testdis)
-
 add_executable(uriscv-objdump uriscv/objdump.cc uriscv/disassemble.cc uriscv/symbol_table.cc uriscv/utility.cc)
 target_include_directories(uriscv-objdump
         PUBLIC ${PROJECT_SOURCE_DIR}/include
@@ -54,9 +48,14 @@ add_executable(uriscv-mkdev uriscv/mkdev.cc)
 target_include_directories(uriscv-mkdev
         PUBLIC ${PROJECT_SOURCE_DIR}/include
     )
-target_link_libraries(uriscv-objdump)
+add_executable(uriscv-mkconfig uriscv/mkconfig.cc)
+target_include_directories(uriscv-mkconfig
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
+    )
+  target_link_libraries(uriscv-mkconfig PUBLIC uriscv-lib ${SIGCPP_LIBRARIES} ${Boost_LIBRARIES})
 
 install(TARGETS uriscv-mkdev RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS uriscv-mkconfig RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # add_subdirectory(frontends)
 add_subdirectory(support)

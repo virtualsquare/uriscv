@@ -39,28 +39,11 @@
 
 	.globl	__start
 	.type	__start, @function
-  /*
-	.ent	__start
-  */
 	.extern	main
 __start:
-  /*
-	.frame	$sp, 16, $ra
-	.mask	0x00000000, 0
-	.fmask	0x00000000, 0
-  */
 
 	li	t0, TEXT_VADDR + (AOUT_HE_GP_VALUE << 2)
 	lw	gp, 0(t0)
-
-  /*
-  TODO: check this one
-  la t0, LEXCHandler
-  csrw mtvec, t0
-  addi t1,t1,31
-  lla t0, t1
-  csrw mepc, t0
-  */
 
 	/* Call main */
 	addi	sp, sp, -16
