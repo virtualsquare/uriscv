@@ -25,6 +25,7 @@
 #define URISCV_PROCESSOR_H
 
 #include <sigc++/sigc++.h>
+#include <string>
 
 #include "base/lang.h"
 #include "uriscv/const.h"

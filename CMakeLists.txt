@@ -13,10 +13,18 @@ include(TestBigEndian)
 TEST_BIG_ENDIAN(WORDS_BIGENDIAN)
 configure_file(config.h.in config.h)
 
+
+
 set(XT_PREFIXES ${RISCV_TOOL_PREFIX})
 if(NOT XT_PREFIXES)
-      set(XT_PREFIXES riscv32-unknown-linux-gnu- 
-        ${XT_PREFIXES})
+      find_program(GCC_TEST riscv32-unknown-linux-gnu-gcc)
+      if (GCC_TEST)
+        set(XT_PREFIXES riscv32-unknown-linux-gnu- 
+          ${XT_PREFIXES})
+      else ()
+        set(XT_PREFIXES riscv64-unknown-elf- 
+          ${XT_PREFIXES})
+      endif()
 endif()
 
 foreach(PREF ${XT_PREFIXES})

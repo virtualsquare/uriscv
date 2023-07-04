@@ -29,6 +29,7 @@ target_compile_definitions(uriscv-lib PRIVATE -DPACKAGE_DATA_DIR="${URISCV_DATA_
 target_include_directories(uriscv-lib
         PUBLIC ${PROJECT_SOURCE_DIR}/include
     )
+target_link_libraries(uriscv-lib PUBLIC "-lpthread -ldl")
 
 add_executable(uriscv-elf2uriscv uriscv/elf2uriscv.cc)
 target_include_directories(uriscv-elf2uriscv
@@ -52,7 +53,7 @@ add_executable(uriscv-mkconfig uriscv/mkconfig.cc)
 target_include_directories(uriscv-mkconfig
         PUBLIC ${PROJECT_SOURCE_DIR}/include
     )
-  target_link_libraries(uriscv-mkconfig PUBLIC uriscv-lib ${SIGCPP_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(uriscv-mkconfig PUBLIC uriscv-lib ${SIGCPP_LIBRARIES} ${Boost_LIBRARIES})
 
 install(TARGETS uriscv-mkdev RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(TARGETS uriscv-mkconfig RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
