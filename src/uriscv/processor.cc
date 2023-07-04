@@ -785,578 +785,507 @@ void Processor::setTLBRegs(Word vaddr) {
   csrWrite(CSR_ENTRYHI, VPN(vaddr) | ASID(csrRead(CSR_ENTRYHI)));
 }
 
-// This method make Processor execute a single MIPS instruction, emulating
-// pipeline constraints and load delay slots (see external doc).
-bool Processor::execInstr(Word instr) {
-  Word e = NOEXCEPTION;
-  uint8_t opcode = OPCODE(instr);
+bool Processor::execInstrL(Word instr) {
+  DISASSMSG("\tI-type | ");
+  bool e = false;
+  int8_t rd = RD(instr);
+  int8_t rs1 = RS1(instr);
+  int16_t imm = I_IMM(instr);
+  imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
   uint8_t FUNC3 = FUNC3(instr);
-  const Symbol *sym =
-      machine->getStab()->Probe(config->getSymbolTableASID(), getPC(), true);
-  if (sym != NULL && sym->getName() != prevFunc) {
-    DISASSMSG("<FUN %s\n", prevFunc.c_str());
-    prevFunc = sym->getName();
-    DISASSMSG("\n>FUN %s\n", sym->getName());
-  }
-  DISASSMSG("[%08x] (%08x) ", getPC(), instr);
+  Word read = 0;
+  Word vaddr = regRead(rs1) + imm, paddr = 0;
 
-  switch (opcode) {
-  case OP_L: {
-    DISASSMSG("\tI-type | ");
-    int8_t rd = RD(instr);
-    int8_t rs1 = RS1(instr);
-    int16_t imm = I_IMM(instr);
+  switch (FUNC3) {
+  case OP_LB: {
+    DISASSMSG("LB\n");
+    // just 8 bits
+    if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
+        !this->bus->DataRead(paddr, &read, this)) {
+      regWrite(rd, signExtByte(read, BYTEPOS(vaddr)));
+      setNextPC(getPC() + WORDLEN);
+    } else
+      e = true;
+    break;
+  }
+  case OP_LH: {
+    DISASSMSG("LBH\n");
+    // just 16 bits
+    if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
+        !this->bus->DataRead(paddr, &read, this)) {
+      regWrite(rd, signExtHWord(read, HWORDPOS(vaddr)));
+      setNextPC(getPC() + WORDLEN);
+    } else
+      e = true;
+    break;
+  }
+  case OP_LW: {
+    DISASSMSG("LW %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
+              (Word)imm);
+    if (!mapVirtual(vaddr, &paddr, READ) &&
+        !this->bus->DataRead(paddr, &read, this)) {
+      regWrite(rd, read);
+      setNextPC(getPC() + WORDLEN);
+    } else
+      e = true;
+    break;
+  }
+  case OP_LBU: {
+    // just 8 bits
+    if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
+        !this->bus->DataRead(paddr, &read, this)) {
+      DISASSMSG("LBU %s,%s(%x),%d -> %x\n", regName[rd], regName[rs1],
+                regRead(rs1), imm, read);
+      regWrite(rd, zExtByte(read, BYTEPOS(vaddr)));
+      setNextPC(getPC() + WORDLEN);
+    } else
+      e = true;
+    break;
+  }
+  case OP_LHU: {
+    // just 16 bits
+    if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
+        !this->bus->DataRead(paddr, &read, this)) {
+      DISASSMSG("LHU\n");
+      regWrite(rd, zExtHWord(read, HWORDPOS(vaddr)));
+      setNextPC(getPC() + WORDLEN);
+    } else
+      e = true;
+    break;
+  }
+  default: {
+    SignalExc(EXC_II, 0);
+    e = true;
+    break;
+  }
+  }
+  return e;
+}
+
+bool Processor::execInstrR(Word instr) {
+  DISASSMSG("\tR-type | ");
+  bool e = false;
+  int8_t rs1 = RS1(instr);
+  int8_t rs2 = RS2(instr);
+  uint8_t rd = RD(instr);
+  uint8_t FUNC7 = FUNC7(instr);
+  uint8_t FUNC3 = FUNC3(instr);
+  switch (FUNC3) {
+  /* 0x0 */
+  case OP_ADD_FUNC3: {
+    switch (FUNC7) {
+    case OP_ADD_FUNC7: {
+      DISASSMSG("ADD %s,%s(%x),%s(%x) -> %x\n", regName[rd], regName[rs1],
+                regRead(rs1), regName[rs2], regRead(rs2),
+                regRead(rs1) + regRead(rs2));
+      regWrite(rd, regRead(rs1) + regRead(rs2));
+      break;
+    }
+    case OP_SUB_FUNC7: {
+      DISASSMSG("SUB %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+      regWrite(rd, regRead(rs1) - regRead(rs2));
+      break;
+    }
+    case OP_MUL_FUNC7: {
+      DISASSMSG("MUL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+      regWrite(rd, regRead(rs1) * regRead(rs2));
+      break;
+    }
+    default: {
+      ERRORMSG("ADD not recognized (%x)\n", FUNC7);
+      SignalExc(EXC_II, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+    /* 0x1 */
+  case OP_MULH_FUNC3 || OP_SLL_FUNC3: {
+    switch (FUNC7) {
+    case OP_MULH_FUNC7: {
+      SWord high = 0, low = 0;
+      SignMult(regRead(rs1), regRead(rs2), &high, &low);
+      DISASSMSG("MULH %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                regName[rs2], high);
+      regWrite(rd, high);
+      break;
+    }
+    case OP_SLL_FUNC7: {
+      DISASSMSG("SLL %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                regName[rs1], regRead(rs1), regRead(rs2));
+      regWrite(rd, regRead(rs1) << regRead(rs2));
+      break;
+    }
+    default: {
+      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      SignalExc(EXC_II, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+    /* 0x2 */
+  case OP_MULHSU_FUNC3 | OP_SLT_FUNC3: {
+    switch (FUNC7) {
+    case OP_MULHSU_FUNC7: {
+      SWord high = 0, low = 0;
+      UnsSignMult((SWord)regRead(rs1), (SWord)regRead(rs2), &high, &low);
+      DISASSMSG("MULHSU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                regName[rs2], high);
+      regWrite(rd, high);
+      break;
+    }
+    case OP_SLT_FUNC7: {
+      DISASSMSG("SLT %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                regName[rs1], regRead(rs1), regRead(rs2));
+      regWrite(rd, SWord(regRead(rs1)) < SWord(regRead(rs2)) ? 1 : 0);
+      break;
+    }
+    default: {
+      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      SignalExc(EXC_II, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+    /* 0x3 */
+  case OP_MULHU_FUNC3 | OP_SLTU_FUNC3: {
+    switch (FUNC7) {
+    case OP_MULHU_FUNC7: {
+      Word high = 0, low = 0;
+      UnsMult(regRead(rs1), regRead(rs2), &high, &low);
+      DISASSMSG("MULHU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                regName[rs2], high);
+      regWrite(rd, high);
+      break;
+    }
+    case OP_SLTU_FUNC7: {
+      DISASSMSG("SLTU %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
+                regName[rs1], regRead(rs1), regRead(rs2));
+      regWrite(rd, Word(regRead(rs1)) < Word(regRead(rs2)) ? 1 : 0);
+      break;
+    }
+    default: {
+      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      SignalExc(EXC_II, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+    /* 0x4 */
+  case OP_DIV_FUNC3 | OP_XOR_FUNC3: {
+    switch (FUNC7) {
+    case OP_DIV_FUNC7: {
+      if (regRead(rs2) != 0) {
+        Word r = (Word)regRead(rs1) / (Word)regRead(rs2);
+        DISASSMSG("DIV %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                  regName[rs2], r);
+        regWrite(rd, r);
+      } else {
+        ERRORMSG("Division by zero detected");
+      }
+      break;
+    }
+    case OP_XOR_FUNC7: {
+      DISASSMSG("XOR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+      regWrite(rd, regRead(rs1) ^ regRead(rs2));
+      break;
+    }
+    default: {
+      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      SignalExc(EXC_II, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+    /* 0x5 */
+  case OP_DIVU_FUNC3 | OP_SRL_FUNC3 | OP_SRA_FUNC3: {
+    switch (FUNC7) {
+    case OP_DIVU_FUNC7: {
+      if (regRead(rs2) != 0) {
+        SWord r = (SWord)regRead(rs1) / (SWord)regRead(rs2);
+        DISASSMSG("DIVU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                  regName[rs2], r);
+        regWrite(rd, r);
+      }
+      break;
+    }
+    case OP_SRA_FUNC7: {
+      DISASSMSG("SRA %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+      uint8_t msb = rs1 & 0x80000000;
+      regWrite(rd, regRead(rs1) >> regRead(rs2) | msb);
+      regWrite(rd, regRead(rs1) ^ regRead(rs2));
+      break;
+    }
+    case OP_SRL_FUNC7: {
+      DISASSMSG("SRL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+      regWrite(rd, regRead(rs1) >> regRead(rs2));
+      break;
+    }
+    default: {
+      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      SignalExc(EXC_II, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+    /* 0x6 */
+  case OP_REM_FUNC3 | OP_OR_FUNC3: {
+    switch (FUNC7) {
+    case OP_REM_FUNC7: {
+      if (regRead(rs2) != 0) {
+        SWord r = (SWord)regRead(rs1) % (SWord)regRead(rs2);
+        DISASSMSG("REM %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                  regName[rs2], r);
+        regWrite(rd, r);
+      }
+      break;
+    }
+    case OP_OR_FUNC7: {
+      DISASSMSG("OR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+      regWrite(rd, regRead(rs1) | regRead(rs2));
+      break;
+    }
+    default: {
+      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      SignalExc(EXC_II, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+    /* 0x7 */
+  case OP_REMU_FUNC3 | OP_AND_FUNC3: {
+    switch (FUNC7) {
+    case OP_REMU_FUNC7: {
+      if (regRead(rs2) != 0) {
+        Word r = (Word)regRead(rs1) % (Word)regRead(rs2);
+        DISASSMSG("REMU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
+                  regName[rs2], r);
+        regWrite(rd, r);
+      }
+      break;
+    }
+    case OP_AND_FUNC7: {
+      DISASSMSG("AND %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
+      regWrite(rd, regRead(rs1) & regRead(rs2));
+      break;
+    }
+    default: {
+      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      SignalExc(EXC_II, 0);
+      e = true;
+      break;
+    }
+    }
+    break;
+  }
+  default: {
+    SignalExc(EXC_II, 0);
+    e = true;
+    break;
+  }
+  }
+  setNextPC(getPC() + WORDLEN);
+  return e;
+}
+
+bool Processor::execInstrI(Word instr) {
+  DISASSMSG("\tI-type | ");
+  bool e = false;
+  int8_t rs1 = RS1(instr);
+  SWord imm = I_IMM(instr);
+  uint8_t rd = RD(instr);
+  uint8_t FUNC3 = FUNC3(instr);
+
+  switch (FUNC3) {
+  case OP_ADDI: {
     imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-    Word read = 0;
-    Word vaddr = regRead(rs1) + imm, paddr = 0;
-    switch (FUNC3) {
-    case OP_LB: {
-      DISASSMSG("LB\n");
-      // just 8 bits
-      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !this->bus->DataRead(paddr, &read, this)) {
-        regWrite(rd, signExtByte(read, BYTEPOS(vaddr)));
-        setNextPC(getPC() + WORDLEN);
-      } else
-        e = true;
-      break;
-    }
-    case OP_LH: {
-      DISASSMSG("LBH\n");
-      // just 16 bits
-      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !this->bus->DataRead(paddr, &read, this)) {
-        regWrite(rd, signExtHWord(read, HWORDPOS(vaddr)));
-        setNextPC(getPC() + WORDLEN);
-      } else
-        e = true;
-      break;
-    }
-    case OP_LW: {
-      DISASSMSG("LW %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
-                (Word)imm);
-      if (!mapVirtual(vaddr, &paddr, READ) &&
-          !this->bus->DataRead(paddr, &read, this)) {
-        regWrite(rd, read);
-        setNextPC(getPC() + WORDLEN);
-      } else
-        e = true;
-      break;
-    }
-    case OP_LBU: {
-      // just 8 bits
-      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !this->bus->DataRead(paddr, &read, this)) {
-        DISASSMSG("LBU %s,%s(%x),%d -> %x\n", regName[rd], regName[rs1],
-                  regRead(rs1), imm, read);
-        regWrite(rd, zExtByte(read, BYTEPOS(vaddr)));
-        setNextPC(getPC() + WORDLEN);
-      } else
-        e = true;
-      break;
-    }
-    case OP_LHU: {
-      // just 16 bits
-      if (!mapVirtual(ALIGN(vaddr), &paddr, READ) &&
-          !this->bus->DataRead(paddr, &read, this)) {
-        DISASSMSG("LHU\n");
-        regWrite(rd, zExtHWord(read, HWORDPOS(vaddr)));
-        setNextPC(getPC() + WORDLEN);
-      } else
-        e = true;
-      break;
-    }
-    default: {
-      SignalExc(EXC_II, 0);
-      e = true;
-      break;
-    }
-    }
+    DISASSMSG("ADDI %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
+              imm);
+    regWrite(rd, (Word)(regRead(rs1) + imm));
     break;
   }
-  case R_TYPE: {
-    DISASSMSG("\tR-type | ");
-    int8_t rs1 = RS1(instr);
-    int8_t rs2 = RS2(instr);
-    uint8_t rd = RD(instr);
+  case OP_SLLI: {
+    DISASSMSG("SLLI %s(%x),%s(%x),%d\n", regName[rd], regRead(rd), regName[rs1],
+              regRead(rs1), imm);
+    regWrite(rd, regRead(rs1) << imm);
+    break;
+  }
+  case OP_SLTI: {
+    DISASSMSG("SLTI\n");
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    regWrite(rd, SWord(regRead(rs1)) < SWord(imm) ? 1 : 0);
+    break;
+  }
+  case OP_SLTIU: {
+    DISASSMSG("SLTIU\n");
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    regWrite(rd, regRead(rs1) < Word(imm) ? 1 : 0);
+    break;
+  }
+  case OP_XORI: {
+    DISASSMSG("XORI\n");
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    regWrite(rd, SWord(regRead(rs1)) ^ SWord(imm));
+    break;
+  }
+  case OP_SR: {
     uint8_t FUNC7 = FUNC7(instr);
-    switch (FUNC3) {
-    /* 0x0 */
-    case OP_ADD_FUNC3: {
-      switch (FUNC7) {
-      case OP_ADD_FUNC7: {
-        DISASSMSG("ADD %s,%s(%x),%s(%x) -> %x\n", regName[rd], regName[rs1],
-                  regRead(rs1), regName[rs2], regRead(rs2),
-                  regRead(rs1) + regRead(rs2));
-        regWrite(rd, regRead(rs1) + regRead(rs2));
-        break;
-      }
-      case OP_SUB_FUNC7: {
-        DISASSMSG("SUB %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-        regWrite(rd, regRead(rs1) - regRead(rs2));
-        break;
-      }
-      case OP_MUL_FUNC7: {
-        DISASSMSG("MUL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-        regWrite(rd, regRead(rs1) * regRead(rs2));
-        break;
-      }
-      default: {
-        ERRORMSG("ADD not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_II, 0);
-        e = true;
-        break;
-      }
-      }
+    switch (FUNC7) {
+    case OP_SRLI_FUNC7: {
+      DISASSMSG("SRLI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+                imm);
+      regWrite(rd, regRead(rs1) >> imm);
       break;
     }
-      /* 0x1 */
-    case OP_MULH_FUNC3 || OP_SLL_FUNC3: {
-      switch (FUNC7) {
-      case OP_MULH_FUNC7: {
-        SWord high = 0, low = 0;
-        SignMult(regRead(rs1), regRead(rs2), &high, &low);
-        DISASSMSG("MULH %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                  regName[rs2], high);
-        regWrite(rd, high);
-        break;
-      }
-      case OP_SLL_FUNC7: {
-        DISASSMSG("SLL %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
-                  regName[rs1], regRead(rs1), regRead(rs2));
-        regWrite(rd, regRead(rs1) << regRead(rs2));
-        break;
-      }
-      default: {
-        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_II, 0);
-        e = true;
-        break;
-      }
-      }
+    case OP_SRAI_FUNC7: {
+      DISASSMSG("SRAI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+                imm);
+      uint8_t msb = rs1 & 0x80000000;
+      regWrite(rd, regRead(rs1) >> imm | msb);
       break;
     }
-      /* 0x2 */
-    case OP_MULHSU_FUNC3 | OP_SLT_FUNC3: {
-      switch (FUNC7) {
-      case OP_MULHSU_FUNC7: {
-        SWord high = 0, low = 0;
-        UnsSignMult((SWord)regRead(rs1), (SWord)regRead(rs2), &high, &low);
-        DISASSMSG("MULHSU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                  regName[rs2], high);
-        regWrite(rd, high);
-        break;
-      }
-      case OP_SLT_FUNC7: {
-        DISASSMSG("SLT %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
-                  regName[rs1], regRead(rs1), regRead(rs2));
-        regWrite(rd, SWord(regRead(rs1)) < SWord(regRead(rs2)) ? 1 : 0);
-        break;
-      }
-      default: {
-        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_II, 0);
-        e = true;
-        break;
-      }
-      }
-      break;
-    }
-      /* 0x3 */
-    case OP_MULHU_FUNC3 | OP_SLTU_FUNC3: {
-      switch (FUNC7) {
-      case OP_MULHU_FUNC7: {
-        Word high = 0, low = 0;
-        UnsMult(regRead(rs1), regRead(rs2), &high, &low);
-        DISASSMSG("MULHU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                  regName[rs2], high);
-        regWrite(rd, high);
-        break;
-      }
-      case OP_SLTU_FUNC7: {
-        DISASSMSG("SLTU %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
-                  regName[rs1], regRead(rs1), regRead(rs2));
-        regWrite(rd, Word(regRead(rs1)) < Word(regRead(rs2)) ? 1 : 0);
-        break;
-      }
-      default: {
-        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_II, 0);
-        e = true;
-        break;
-      }
-      }
-      break;
-    }
-      /* 0x4 */
-    case OP_DIV_FUNC3 | OP_XOR_FUNC3: {
-      switch (FUNC7) {
-      case OP_DIV_FUNC7: {
-        if (regRead(rs2) != 0) {
-          Word r = (Word)regRead(rs1) / (Word)regRead(rs2);
-          DISASSMSG("DIV %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                    regName[rs2], r);
-          regWrite(rd, r);
-        } else {
-          ERRORMSG("Division by zero detected");
-        }
-        break;
-      }
-      case OP_XOR_FUNC7: {
-        DISASSMSG("XOR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-        regWrite(rd, regRead(rs1) ^ regRead(rs2));
-        break;
-      }
-      default: {
-        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_II, 0);
-        e = true;
-        break;
-      }
-      }
-      break;
-    }
-      /* 0x5 */
-    case OP_DIVU_FUNC3 | OP_SRL_FUNC3 | OP_SRA_FUNC3: {
-      switch (FUNC7) {
-      case OP_DIVU_FUNC7: {
-        if (regRead(rs2) != 0) {
-          SWord r = (SWord)regRead(rs1) / (SWord)regRead(rs2);
-          DISASSMSG("DIVU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                    regName[rs2], r);
-          regWrite(rd, r);
-        }
-        break;
-      }
-      case OP_SRA_FUNC7: {
-        DISASSMSG("SRA %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-        uint8_t msb = rs1 & 0x80000000;
-        regWrite(rd, regRead(rs1) >> regRead(rs2) | msb);
-        regWrite(rd, regRead(rs1) ^ regRead(rs2));
-        break;
-      }
-      case OP_SRL_FUNC7: {
-        DISASSMSG("SRL %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-        regWrite(rd, regRead(rs1) >> regRead(rs2));
-        break;
-      }
-      default: {
-        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_II, 0);
-        e = true;
-        break;
-      }
-      }
-      break;
-    }
-      /* 0x6 */
-    case OP_REM_FUNC3 | OP_OR_FUNC3: {
-      switch (FUNC7) {
-      case OP_REM_FUNC7: {
-        if (regRead(rs2) != 0) {
-          SWord r = (SWord)regRead(rs1) % (SWord)regRead(rs2);
-          DISASSMSG("REM %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                    regName[rs2], r);
-          regWrite(rd, r);
-        }
-        break;
-      }
-      case OP_OR_FUNC7: {
-        DISASSMSG("OR %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-        regWrite(rd, regRead(rs1) | regRead(rs2));
-        break;
-      }
-      default: {
-        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_II, 0);
-        e = true;
-        break;
-      }
-      }
-      break;
-    }
-      /* 0x7 */
-    case OP_REMU_FUNC3 | OP_AND_FUNC3: {
-      switch (FUNC7) {
-      case OP_REMU_FUNC7: {
-        if (regRead(rs2) != 0) {
-          Word r = (Word)regRead(rs1) % (Word)regRead(rs2);
-          DISASSMSG("REMU %s,%s,%s -> %x\n", regName[rd], regName[rs1],
-                    regName[rs2], r);
-          regWrite(rd, r);
-        }
-        break;
-      }
-      case OP_AND_FUNC7: {
-        DISASSMSG("AND %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-        regWrite(rd, regRead(rs1) & regRead(rs2));
-        break;
-      }
-      default: {
-        ERRORMSG("R-type not recognized (%x)\n", FUNC7);
-        SignalExc(EXC_II, 0);
-        e = true;
-        break;
-      }
-      }
-      break;
-    }
-    default: {
+    default:
       SignalExc(EXC_II, 0);
       e = true;
       break;
     }
-    }
-    setNextPC(getPC() + WORDLEN);
     break;
   }
-  case I_TYPE: {
-    DISASSMSG("\tI-type | ");
-    int8_t rs1 = RS1(instr);
-    SWord imm = I_IMM(instr);
-    uint8_t rd = RD(instr);
-    switch (FUNC3) {
-    case OP_ADDI: {
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-      DISASSMSG("ADDI %s,%s(%x),%d\n", regName[rd], regName[rs1], regRead(rs1),
-                imm);
-      regWrite(rd, (Word)(regRead(rs1) + imm));
-      break;
-    }
-    case OP_SLLI: {
-      DISASSMSG("SLLI %s(%x),%s(%x),%d\n", regName[rd], regRead(rd),
-                regName[rs1], regRead(rs1), imm);
-      regWrite(rd, regRead(rs1) << imm);
-      break;
-    }
-    case OP_SLTI: {
-      DISASSMSG("SLTI\n");
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-      regWrite(rd, SWord(regRead(rs1)) < SWord(imm) ? 1 : 0);
-      break;
-    }
-    case OP_SLTIU: {
-      DISASSMSG("SLTIU\n");
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-      regWrite(rd, regRead(rs1) < Word(imm) ? 1 : 0);
-      break;
-    }
-    case OP_XORI: {
-      DISASSMSG("XORI\n");
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-      regWrite(rd, SWord(regRead(rs1)) ^ SWord(imm));
-      break;
-    }
-    case OP_SR: {
-      uint8_t FUNC7 = FUNC7(instr);
-      switch (FUNC7) {
-      case OP_SRLI_FUNC7: {
-        DISASSMSG("SRLI %s,%s(%x),%x\n", regName[rd], regName[rs1],
-                  regRead(rs1), imm);
-        regWrite(rd, regRead(rs1) >> imm);
-        break;
-      }
-      case OP_SRAI_FUNC7: {
-        DISASSMSG("SRAI %s,%s(%x),%x\n", regName[rd], regName[rs1],
-                  regRead(rs1), imm);
-        uint8_t msb = rs1 & 0x80000000;
-        regWrite(rd, regRead(rs1) >> imm | msb);
-        break;
-      }
-      default:
-        SignalExc(EXC_II, 0);
-        e = true;
-        break;
-      }
-      break;
-    }
-    case OP_ORI: {
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-      DISASSMSG("ORI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
-                imm);
-      regWrite(rd, SWord(regRead(rs1)) | SWord(imm));
-      break;
-    }
-    case OP_ANDI: {
-      DISASSMSG("ANDI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
-                imm);
-      imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-      regWrite(rd, SWord(regRead(rs1)) & SWord(imm));
-      break;
-    }
-    default: {
-      SignalExc(EXC_II, 0);
+  case OP_ORI: {
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    DISASSMSG("ORI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+              imm);
+    regWrite(rd, SWord(regRead(rs1)) | SWord(imm));
+    break;
+  }
+  case OP_ANDI: {
+    DISASSMSG("ANDI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
+              imm);
+    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+    regWrite(rd, SWord(regRead(rs1)) & SWord(imm));
+    break;
+  }
+  default: {
+    SignalExc(EXC_II, 0);
+    e = true;
+    break;
+  }
+  }
+  setNextPC(getPC() + WORDLEN);
+  return e;
+}
+
+bool Processor::execInstrI2(Word instr) {
+  DISASSMSG("\tI2-type | ");
+  Word e = NOEXCEPTION;
+  uint16_t imm = I_IMM(instr);
+  int8_t rs1 = RS1(instr);
+  uint8_t rd = RD(instr);
+  uint8_t FUNC3 = FUNC3(instr);
+
+  switch (FUNC3) {
+  case OP_ECALL_EBREAK: {
+    switch (imm) {
+    case ECALL_IMM: {
+      // a7 - syscall number
+      // a0 - result of syscall
+      //
+      DISASSMSG("ECALL %d\n", regRead(REG_A0));
+      setNextPC(getPC() + WORDLEN);
+      // only M or U modes are possible
+      if (mode == 0x3)
+        SignalExc(EXC_ECM);
+      else
+        SignalExc(EXC_ECU);
       e = true;
       break;
     }
-    }
-    setNextPC(getPC() + WORDLEN);
-    break;
-  }
-  case I2_TYPE: {
-    DISASSMSG("\tI2-type | ");
-    uint16_t imm = I_IMM(instr);
-    int8_t rs1 = RS1(instr);
-    uint8_t rd = RD(instr);
-    switch (FUNC3) {
-    case OP_ECALL_EBREAK: {
-      switch (imm) {
-      case ECALL_IMM: {
-        // a7 - syscall number
-        // a0 - result of syscall
-        //
-        DISASSMSG("ECALL %d\n", regRead(REG_A0));
-        setNextPC(getPC() + WORDLEN);
-        // only M or U modes are possible
-        if (mode == 0x3)
-          SignalExc(EXC_ECM);
-        else
-          SignalExc(EXC_ECU);
+    case EBREAK_IMM: {
+      int mode = regRead(REG_A0);
+      DISASSMSG("EBREAK\n");
+      if (mode == BIOS_SRV_PANIC)
+        exit(0);
+      if (mode <= BIOS_SRV_HALT) {
+        SignalExc(EXC_BP);
         e = true;
-        break;
-      }
-      case EBREAK_IMM: {
-        int mode = regRead(REG_A0);
-        DISASSMSG("EBREAK\n");
-        if (mode == BIOS_SRV_PANIC)
-          exit(0);
-        if (mode <= BIOS_SRV_HALT) {
-          SignalExc(EXC_BP);
+      } else {
+        unsigned int i;
+        switch (mode) {
+        case BIOS_SRV_TLBP:
+          // solution "by the book"
+          DISASSMSG(" TLBP\n");
+          csrWrite(CSR_INDEX, SIGNMASK);
+          if (probeTLB(&i, csrRead(CSR_ENTRYHI), csrRead(CSR_ENTRYHI)))
+            csrWrite(CSR_INDEX, (i << RNDIDXOFFS));
+          break;
+
+        case BIOS_SRV_TLBR:
+          DISASSMSG(" TLBR\n");
+          csrWrite(CSR_ENTRYHI, tlb[RNDIDX(csrRead(CSR_INDEX))].getHI());
+          csrWrite(CSR_ENTRYLO, tlb[RNDIDX(csrRead(CSR_INDEX))].getLO());
+          break;
+
+        case BIOS_SRV_TLBWI:
+          DISASSMSG(" TLBWI\n");
+          tlb[RNDIDX(csrRead(CSR_INDEX))].setHI(csrRead(CSR_ENTRYHI));
+          tlb[RNDIDX(csrRead(CSR_INDEX))].setLO(csrRead(CSR_ENTRYLO));
+          SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
+          break;
+
+        case BIOS_SRV_TLBWR:
+          DISASSMSG(" TLBWR\n");
+          tlb[RNDIDX(csrRead(CSR_RANDOM))].setHI(csrRead(CSR_ENTRYHI));
+          tlb[RNDIDX(csrRead(CSR_RANDOM))].setLO(csrRead(CSR_ENTRYLO));
+          DISASSMSG("\n\nENTRYHI %x\n", csrRead(CSR_ENTRYHI));
+          DISASSMSG("ENTRYLO %x\n\n", csrRead(CSR_ENTRYLO));
+          SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
+          break;
+
+        case BIOS_SRV_TLBCLR:
+          zapTLB();
+          break;
+
+        default:
+          ERRORMSG(" NOT FOUND\n");
+          // invalid instruction
+          SignalExc(EXC_II, 0);
           e = true;
-        } else {
-          unsigned int i;
-          switch (mode) {
-          case BIOS_SRV_TLBP:
-            // solution "by the book"
-            DISASSMSG(" TLBP\n");
-            csrWrite(CSR_INDEX, SIGNMASK);
-            if (probeTLB(&i, csrRead(CSR_ENTRYHI), csrRead(CSR_ENTRYHI)))
-              csrWrite(CSR_INDEX, (i << RNDIDXOFFS));
-            break;
-
-          case BIOS_SRV_TLBR:
-            DISASSMSG(" TLBR\n");
-            csrWrite(CSR_ENTRYHI, tlb[RNDIDX(csrRead(CSR_INDEX))].getHI());
-            csrWrite(CSR_ENTRYLO, tlb[RNDIDX(csrRead(CSR_INDEX))].getLO());
-            break;
-
-          case BIOS_SRV_TLBWI:
-            DISASSMSG(" TLBWI\n");
-            tlb[RNDIDX(csrRead(CSR_INDEX))].setHI(csrRead(CSR_ENTRYHI));
-            tlb[RNDIDX(csrRead(CSR_INDEX))].setLO(csrRead(CSR_ENTRYLO));
-            SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
-            break;
-
-          case BIOS_SRV_TLBWR:
-            DISASSMSG(" TLBWR\n");
-            tlb[RNDIDX(csrRead(CSR_RANDOM))].setHI(csrRead(CSR_ENTRYHI));
-            tlb[RNDIDX(csrRead(CSR_RANDOM))].setLO(csrRead(CSR_ENTRYLO));
-            DISASSMSG("\n\nENTRYHI %x\n", csrRead(CSR_ENTRYHI));
-            DISASSMSG("ENTRYLO %x\n\n", csrRead(CSR_ENTRYLO));
-            SignalTLBChanged(RNDIDX(csrRead(CSR_INDEX)));
-            break;
-
-          case BIOS_SRV_TLBCLR:
-            zapTLB();
-            break;
-
-          default:
-            ERRORMSG(" NOT FOUND\n");
-            // invalid instruction
-            SignalExc(EXC_II, 0);
-            e = true;
-          }
-          setNextPC(getPC() + WORDLEN);
         }
-        break;
-      }
-      case MRET_IMM: {
-        /*
-         An xRET instruction can be executed in privilege mode x or higher,
-         where executing a lower-privilege xRET instruction will pop the
-         relevant lower-privilege interrupt enable and privilege mode stack.
-         In addition to manipulating the privilege stack as described in
-         Section 3.1.6.1, xRET sets the pc to the value stored in the xepc
-         register.
-        */
-        DISASSMSG("MRET %x\n", csrRead(MEPC));
-        popKUIEStack();
-        setNextPC(csrRead(MEPC));
-        break;
-      }
-      case EWFI_IMM: {
-        DISASSMSG("EWFI\n");
         setNextPC(getPC() + WORDLEN);
-        suspend();
-        break;
-      }
-      default: {
-        SignalExc(EXC_II, 0);
-        e = true;
-        ERROR("not found");
-        break;
-      }
       }
       break;
     }
-    case OP_CSRRW: {
-      DISASSMSG("CSRRW %s(%x),%s(%x),%x\n", regName[rd], regRead(rd),
-                regName[rs1], regRead(rs1), imm);
-      if (rd != REG_ZERO)
-        regWrite(rd, csrRead(imm));
-      if (rs1 != REG_ZERO) {
-        csrWrite(imm, regRead(rs1));
-        if (imm == TIME)
-          DeassertIRQ(IL_CPUTIMER);
-      }
-      setNextPC(getPC() + WORDLEN);
+    case MRET_IMM: {
+      /*
+       An xRET instruction can be executed in privilege mode x or higher,
+       where executing a lower-privilege xRET instruction will pop the
+       relevant lower-privilege interrupt enable and privilege mode stack.
+       In addition to manipulating the privilege stack as described in
+       Section 3.1.6.1, xRET sets the pc to the value stored in the xepc
+       register.
+      */
+      DISASSMSG("MRET %x\n", csrRead(MEPC));
+      popKUIEStack();
+      setNextPC(csrRead(MEPC));
       break;
     }
-    case OP_CSRRS: {
-      std::cout << "CSRRS\n";
-      regWrite(rd, csrRead(imm));
-      csrWrite(imm, csrRead(imm) | regRead(rs1));
-      if (imm == TIME)
-        DeassertIRQ(IL_CPUTIMER);
+    case EWFI_IMM: {
+      DISASSMSG("EWFI\n");
       setNextPC(getPC() + WORDLEN);
-      break;
-    }
-    case OP_CSRRC: {
-      std::cout << "CSRRC\n";
-      regWrite(rd, csrRead(imm));
-      if (rs1 != 0x0) {
-        csrWrite(imm, csrRead(imm) & ~regRead(rs1));
-        if (imm == TIME)
-          DeassertIRQ(IL_CPUTIMER);
-      }
-      setNextPC(getPC() + WORDLEN);
-      break;
-    }
-    case OP_CSRRWI: {
-      std::cout << "CSRRWI\n";
-      regWrite(rd, csrRead(imm));
-      csrWrite(imm, csrRead(imm) & ~rs1);
-      if (imm == TIME)
-        DeassertIRQ(IL_CPUTIMER);
-      setNextPC(getPC() + WORDLEN);
-      break;
-    }
-    case OP_CSRRSI: {
-      std::cout << "CSRRSI\n";
-      regWrite(rd, csrRead(imm));
-      csrWrite(imm, csrRead(imm) | rs1);
-      if (imm == TIME)
-        DeassertIRQ(IL_CPUTIMER);
-      setNextPC(getPC() + WORDLEN);
-      break;
-    }
-    case OP_CSRRCI: {
-      std::cout << "CSRRCI\n";
-      regWrite(rd, csrRead(imm));
-      csrWrite(imm, csrRead(imm) & ~rs1);
-      if (imm == TIME)
-        DeassertIRQ(IL_CPUTIMER);
-      setNextPC(getPC() + WORDLEN);
+      suspend();
       break;
     }
     default: {
@@ -1368,126 +1297,243 @@ bool Processor::execInstr(Word instr) {
     }
     break;
   }
-  case B_TYPE: {
-    DISASSMSG("\tB-type | ");
-    int8_t rs1 = RS1(instr);
-    int8_t rs2 = RS2(instr);
-    int16_t imm = B_IMM(instr);
-    imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
-    switch (FUNC3) {
-    case OP_BEQ: {
-      DISASSMSG("BEQ %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-                regName[rs2], regRead(rs2), imm);
-      if ((SWord)regRead(rs1) == (SWord)regRead(rs2))
-        setNextPC((SWord)getPC() + ((SWord)imm));
-      else
-        setNextPC(getPC() + WORDLEN);
-      break;
+  case OP_CSRRW: {
+    DISASSMSG("CSRRW %s(%x),%s(%x),%x\n", regName[rd], regRead(rd),
+              regName[rs1], regRead(rs1), imm);
+    if (rd != REG_ZERO)
+      regWrite(rd, csrRead(imm));
+    if (rs1 != REG_ZERO) {
+      csrWrite(imm, regRead(rs1));
+      if (imm == TIME)
+        DeassertIRQ(IL_CPUTIMER);
     }
-    case OP_BNE: {
-      DISASSMSG("BNE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-                regName[rs2], regRead(rs2), imm);
-      if ((SWord)regRead(rs1) != (SWord)regRead(rs2))
-        setNextPC((SWord)getPC() + ((SWord)imm));
-      else
-        setNextPC(getPC() + WORDLEN);
-      break;
+    setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_CSRRS: {
+    std::cout << "CSRRS\n";
+    regWrite(rd, csrRead(imm));
+    csrWrite(imm, csrRead(imm) | regRead(rs1));
+    if (imm == TIME)
+      DeassertIRQ(IL_CPUTIMER);
+    setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_CSRRC: {
+    std::cout << "CSRRC\n";
+    regWrite(rd, csrRead(imm));
+    if (rs1 != 0x0) {
+      csrWrite(imm, csrRead(imm) & ~regRead(rs1));
+      if (imm == TIME)
+        DeassertIRQ(IL_CPUTIMER);
     }
-    case OP_BLT: {
-      DISASSMSG("BLT %s(%x),%s(%x),%d (%d)\n", regName[rs1], regRead(rs1),
-                regName[rs2], regRead(rs2), imm, regRead(rs1) < regRead(rs2));
-      if ((SWord)regRead(rs1) < (SWord)regRead(rs2))
-        setNextPC((SWord)getPC() + ((SWord)imm));
-      else
-        setNextPC(getPC() + WORDLEN);
-      break;
-    }
-    case OP_BGE: {
-      DISASSMSG("BGE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-                regName[rs2], regRead(rs2), imm);
-      if ((SWord)regRead(rs1) >= (SWord)regRead(rs2)) {
-        setNextPC((SWord)getPC() + ((SWord)imm));
-      } else
-        setNextPC(getPC() + WORDLEN);
-      break;
-    }
-    case OP_BLTU: {
-      DISASSMSG("BLTU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-                regName[rs2], regRead(rs2), imm);
-      if (regRead(rs1) < regRead(rs2))
-        setNextPC(getPC() + (imm));
-      else
-        setNextPC(getPC() + WORDLEN);
-      break;
-    }
-    case OP_BGEU: {
-      DISASSMSG("BGEU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
-                regName[rs2], regRead(rs2), imm);
-      if (regRead(rs1) >= regRead(rs2))
-        setNextPC(getPC() + (imm));
-      else
-        setNextPC(getPC() + WORDLEN);
-      break;
-    }
-    default: {
-      SignalExc(EXC_II, 0);
+    setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_CSRRWI: {
+    std::cout << "CSRRWI\n";
+    regWrite(rd, csrRead(imm));
+    csrWrite(imm, csrRead(imm) & ~rs1);
+    if (imm == TIME)
+      DeassertIRQ(IL_CPUTIMER);
+    setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_CSRRSI: {
+    std::cout << "CSRRSI\n";
+    regWrite(rd, csrRead(imm));
+    csrWrite(imm, csrRead(imm) | rs1);
+    if (imm == TIME)
+      DeassertIRQ(IL_CPUTIMER);
+    setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_CSRRCI: {
+    std::cout << "CSRRCI\n";
+    regWrite(rd, csrRead(imm));
+    csrWrite(imm, csrRead(imm) & ~rs1);
+    if (imm == TIME)
+      DeassertIRQ(IL_CPUTIMER);
+    setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  default: {
+    SignalExc(EXC_II, 0);
+    e = true;
+    ERROR("not found");
+    break;
+  }
+  }
+  return e;
+}
+
+bool Processor::execInstrB(Word instr) {
+  DISASSMSG("\tB-type | ");
+  Word e = NOEXCEPTION;
+  int8_t rs1 = RS1(instr);
+  int8_t rs2 = RS2(instr);
+  int16_t imm = B_IMM(instr);
+  imm = SIGN_EXTENSION(imm, I_IMM_SIZE);
+  uint8_t FUNC3 = FUNC3(instr);
+
+  switch (FUNC3) {
+  case OP_BEQ: {
+    DISASSMSG("BEQ %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+              regName[rs2], regRead(rs2), imm);
+    if ((SWord)regRead(rs1) == (SWord)regRead(rs2))
+      setNextPC((SWord)getPC() + ((SWord)imm));
+    else
+      setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_BNE: {
+    DISASSMSG("BNE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+              regName[rs2], regRead(rs2), imm);
+    if ((SWord)regRead(rs1) != (SWord)regRead(rs2))
+      setNextPC((SWord)getPC() + ((SWord)imm));
+    else
+      setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_BLT: {
+    DISASSMSG("BLT %s(%x),%s(%x),%d (%d)\n", regName[rs1], regRead(rs1),
+              regName[rs2], regRead(rs2), imm, regRead(rs1) < regRead(rs2));
+    if ((SWord)regRead(rs1) < (SWord)regRead(rs2))
+      setNextPC((SWord)getPC() + ((SWord)imm));
+    else
+      setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_BGE: {
+    DISASSMSG("BGE %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+              regName[rs2], regRead(rs2), imm);
+    if ((SWord)regRead(rs1) >= (SWord)regRead(rs2)) {
+      setNextPC((SWord)getPC() + ((SWord)imm));
+    } else
+      setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_BLTU: {
+    DISASSMSG("BLTU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+              regName[rs2], regRead(rs2), imm);
+    if (regRead(rs1) < regRead(rs2))
+      setNextPC(getPC() + (imm));
+    else
+      setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  case OP_BGEU: {
+    DISASSMSG("BGEU %s(%x),%s(%x),%d\n", regName[rs1], regRead(rs1),
+              regName[rs2], regRead(rs2), imm);
+    if (regRead(rs1) >= regRead(rs2))
+      setNextPC(getPC() + (imm));
+    else
+      setNextPC(getPC() + WORDLEN);
+    break;
+  }
+  default: {
+    SignalExc(EXC_II, 0);
+    e = true;
+    break;
+  }
+  }
+  return e;
+}
+
+bool Processor::execInstrS(Word instr) {
+  DISASSMSG("\tS-type | ");
+  Word e = NOEXCEPTION;
+  int8_t rs1 = RS1(instr);
+  int8_t rs2 = RS2(instr);
+  int16_t imm = S_IMM(instr);
+  imm = SIGN_EXTENSION(imm, S_IMM_SIZE);
+  uint8_t FUNC3 = FUNC3(instr);
+  Word vaddr = (SWord)regRead(rs1) + (SWord)imm;
+  Word paddr = 0;
+  Word old = 0;
+
+  switch (FUNC3) {
+  case OP_SB: {
+    DISASSMSG("SB %s(%x),%s(%x),%d\n", regName[rs2], regRead(rs2), regName[rs1],
+              regRead(rs1), imm);
+    if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
+        !bus->DataRead(paddr, &old, this)) {
+      old = mergeByte(old, regRead(rs2), BYTEPOS(vaddr));
+      e = this->bus->DataWrite(paddr, old, this);
+      setNextPC(getPC() + WORDLEN);
+    } else
       e = true;
-      break;
-    }
-    }
+
+    break;
+  }
+  case OP_SH: {
+    DISASSMSG("SH %s(%x),%s(%x),%d -> %x\n", regName[rs2], regRead(rs2),
+              regName[rs1], regRead(rs1), imm, old);
+    if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
+        !bus->DataRead(paddr, &old, this)) {
+      old = mergeHWord(old, regRead(rs2), HWORDPOS(vaddr));
+      e = this->bus->DataWrite(paddr, old, this);
+      setNextPC(getPC() + WORDLEN);
+    } else
+      e = true;
+    break;
+  }
+  case OP_SW: {
+    DISASSMSG("SW $(%s(%x)+%d)<-%s(%x)\n", regName[rs1], regRead(rs1), imm,
+              regName[rs2], regRead(rs2));
+    if (!mapVirtual(vaddr, &paddr, WRITE) &&
+        !this->bus->DataWrite(paddr, regRead(rs2), this)) {
+      setNextPC(getPC() + WORDLEN);
+    } else
+      e = true;
+    break;
+  }
+  default: {
+    SignalExc(EXC_II, 0);
+    e = true;
+    break;
+  }
+  }
+  return e;
+}
+
+// This method make Processor execute a single MIPS instruction, emulating
+// pipeline constraints and load delay slots (see external doc).
+bool Processor::execInstr(Word instr) {
+  Word e = NOEXCEPTION;
+  uint8_t opcode = OPCODE(instr);
+  const Symbol *sym =
+      machine->getStab()->Probe(config->getSymbolTableASID(), getPC(), true);
+  if (sym != NULL && sym->getName() != prevFunc) {
+    DISASSMSG("<FUN %s\n", prevFunc.c_str());
+    prevFunc = sym->getName();
+    DISASSMSG("\n>FUN %s\n", sym->getName());
+  }
+  DISASSMSG("[%08x] (%08x) ", getPC(), instr);
+
+  switch (opcode) {
+  case OP_L: {
+    e = execInstrL(instr);
+    break;
+  }
+  case R_TYPE: {
+    e = execInstrR(instr);
+    break;
+  }
+  case I_TYPE: {
+    e = execInstrI(instr);
+    break;
+  }
+  case I2_TYPE: {
+    e = execInstrI2(instr);
+    break;
+  }
+  case B_TYPE: {
+    e = execInstrB(instr);
     break;
   }
   case S_TYPE: {
-    DISASSMSG("\tS-type | ");
-    int8_t rs1 = RS1(instr);
-    int8_t rs2 = RS2(instr);
-    int16_t imm = S_IMM(instr);
-    imm = SIGN_EXTENSION(imm, S_IMM_SIZE);
-    Word vaddr = (SWord)regRead(rs1) + (SWord)imm;
-    Word paddr = 0;
-    Word old = 0;
-    switch (FUNC3) {
-    case OP_SB: {
-      DISASSMSG("SB %s(%x),%s(%x),%d\n", regName[rs2], regRead(rs2),
-                regName[rs1], regRead(rs1), imm);
-      if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
-          !bus->DataRead(paddr, &old, this)) {
-        old = mergeByte(old, regRead(rs2), BYTEPOS(vaddr));
-        e = this->bus->DataWrite(paddr, old, this);
-        setNextPC(getPC() + WORDLEN);
-      } else
-        e = true;
-
-      break;
-    }
-    case OP_SH: {
-      DISASSMSG("SH %s(%x),%s(%x),%d -> %x\n", regName[rs2], regRead(rs2),
-                regName[rs1], regRead(rs1), imm, old);
-      if (!mapVirtual(ALIGN(vaddr), &paddr, WRITE) &&
-          !bus->DataRead(paddr, &old, this)) {
-        old = mergeHWord(old, regRead(rs2), HWORDPOS(vaddr));
-        e = this->bus->DataWrite(paddr, old, this);
-        setNextPC(getPC() + WORDLEN);
-      } else
-        e = true;
-      break;
-    }
-    case OP_SW: {
-      DISASSMSG("SW $(%s(%x)+%d)<-%s(%x)\n", regName[rs1], regRead(rs1), imm,
-                regName[rs2], regRead(rs2));
-      if (!mapVirtual(vaddr, &paddr, WRITE) &&
-          !this->bus->DataWrite(paddr, regRead(rs2), this)) {
-        setNextPC(getPC() + WORDLEN);
-      } else
-        e = true;
-      break;
-    }
-    default: {
-      SignalExc(EXC_II, 0);
-      e = true;
-      break;
-    }
-    }
+    e = execInstrS(instr);
     break;
   }
   case OP_AUIPC: {
@@ -1676,30 +1722,3 @@ Word Processor::merge(Word dest, Word src, unsigned int bytep, bool loadBig,
   }
   return (dest);
 }
-
-// This method executes a MIPS register-type instruction, following MIPS
-// guidelines; returns instruction result thru res pointer, and branch delay
-// slot indication if needed (due to JR/JALR presence). It also returns TRUE
-// if an exception occurred, FALSE otherwise
-bool Processor::execRegInstr(Word *res, Word instr, bool *isBD) { return true; }
-
-// This method executes a MIPS immediate-type instruction, following MIPS
-// guidelines; returns instruction result thru res pointer. It also returns
-// TRUE if an exception occurred, FALSE otherwise
-bool Processor::execImmInstr(Word *res, Word instr) { return true; }
-
-// This method executes a MIPS branch-type instruction, following MIPS
-// guidelines; returns instruction result thru res pointer, and branch delay
-// slot indication if needed. It also returns TRUE if an exception occurred,
-// FALSE otherwise
-bool Processor::execBranchInstr(Word instr, bool *isBD) { return true; }
-
-// This method executes a MIPS load-type instruction, following MIPS
-// guidelines. It returns TRUE if an exception occurred, FALSE
-// otherwise.
-bool Processor::execLoadInstr(Word instr) { return true; }
-
-// This method executes a MIPS store-type instruction, following MIPS
-// guidelines; It returns TRUE if an exception occurred, FALSE
-// otherwise.
-bool Processor::execStoreInstr(Word instr) { return true; }

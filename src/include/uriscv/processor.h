@@ -218,13 +218,12 @@ private:
   void zapTLB(void);
 
   bool execInstr(Word instr);
-  bool execRegInstr(Word *res, Word instr, bool *isBD);
-  bool execImmInstr(Word *res, Word instr);
-  bool execBranchInstr(Word instr, bool *isBD);
-  bool execLoadInstr(Word instr);
-  bool execStoreInstr(Word instr);
-  bool execLoadCopInstr(Word instr);
-  bool execStoreCopInstr(Word instr);
+  bool execInstrL(Word instr);
+  bool execInstrR(Word instr);
+  bool execInstrI(Word instr);
+  bool execInstrI2(Word instr);
+  bool execInstrB(Word instr);
+  bool execInstrS(Word instr);
 
   bool mapVirtual(Word vaddr, Word *paddr, Word accType);
   bool probeTLB(unsigned int *index, Word asid, Word vpn);
