@@ -27,9 +27,10 @@ set_property(SOURCE support/liburiscv/liburiscv.S PROPERTY LANGUAGE C)
 set(URISCV_DATA_DIR ${CMAKE_INSTALL_FULL_DATADIR}/uriscv)
 target_compile_definitions(uriscv-lib PRIVATE -DPACKAGE_DATA_DIR="${URISCV_DATA_DIR}")
 target_include_directories(uriscv-lib
-        PUBLIC ${PROJECT_SOURCE_DIR}/include
+	PUBLIC ${PROJECT_SOURCE_DIR}/include ${SIGCPP_INCLUDE_DIRS}
     )
-target_link_libraries(uriscv-lib PUBLIC "-lpthread -ldl")
+target_compile_options(uriscv-lib PUBLIC ${SIGCPP_CFLAGS_OTHER})
+target_link_libraries(uriscv-lib ${SIGCPP_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(uriscv-elf2uriscv uriscv/elf2uriscv.cc)
 target_include_directories(uriscv-elf2uriscv

@@ -44,8 +44,12 @@ if(NOT LIBELF)
         message(FATAL_ERROR "libelf not found.")
 endif()
 
-include(FindPkgConfig)
+find_package(PkgConfig REQUIRED)
 pkg_check_modules(SIGCPP REQUIRED sigc++-2.0)
+
+if (NOT SIGCPP_LIBRARIES)
+        message(FATAL_ERROR "sigc++ not found.")
+endif()
 
 find_package(Boost 1.34 COMPONENTS program_options REQUIRED)
 # find_package(Qt6 COMPONENTS Widgets REQUIRED)
