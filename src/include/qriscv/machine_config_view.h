@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  * Copyright (C) 2020 Mattia Biondi
@@ -16,7 +16,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_MACHINE_CONFIG_VIEW_H
@@ -27,32 +28,32 @@
 class QLabel;
 
 class MachineConfigView : public QWidget {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-MachineConfigView(QWidget* parent = 0);
+  MachineConfigView(QWidget *parent = 0);
 
 public Q_SLOTS:
-void Update();
+  void Update();
 
 private:
-static QString checkedFileName(const QString& fileName);
+  static QString checkedFileName(const QString &fileName);
 
-QLabel* numCpusLabel;
-QLabel* clockRateLabel;
-QLabel* tlbSizeLabel;
-QLabel* ramSizeLabel;
-QLabel* ramtopLabel;
-QLabel* tlbFloorAddressLabel;
+  QLabel *numCpusLabel;
+  QLabel *clockRateLabel;
+  QLabel *tlbSizeLabel;
+  QLabel *ramSizeLabel;
+  QLabel *ramtopLabel;
+  QLabel *tlbFloorAddressLabel;
 
-QLabel* bootstrapROMLabel;
-QLabel* executionROMLabel;
+  QLabel *bootstrapROMLabel;
+  QLabel *executionROMLabel;
 
-QLabel* loadCoreLabel;
-QLabel* coreFileLabel;
+  QLabel *loadCoreLabel;
+  QLabel *coreFileLabel;
 
-QLabel* stabLabel;
-QLabel* stabAsidLabel;
+  QLabel *stabLabel;
+  QLabel *stabAsidLabel;
 };
 
 #endif // QRISCV_MACHINE_CONFIG_VIEW_H

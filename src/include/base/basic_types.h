@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef BASE_BASIC_TYPES_H
@@ -24,14 +25,14 @@
 // Not everyone has stdint.h appearently. Guess who lags behind?
 #ifndef _MSC_VER
 // Just use C99 `stdint.h'. Should be "anywhere it matters".
-# include <stdint.h>
+#include <stdint.h>
 #else
-# include <boost/cstdint.hpp>
+#include <boost/cstdint.hpp>
 // Pollute namespace as need arises!
-using boost::uint8_t;
-using boost::uint32_t;
 using boost::int32_t;
+using boost::uint32_t;
 using boost::uint64_t;
+using boost::uint8_t;
 #endif
 
 #include <cstddef>

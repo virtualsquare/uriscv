@@ -7,13 +7,7 @@
 
 ### Eseguire l'emulatore
 ```bash
-uriscv
-```
-
-### Compilare i test
-```bash 
-cd tests
-make
+uriscv-cli
 ```
 
 #### Setup Clang LSP

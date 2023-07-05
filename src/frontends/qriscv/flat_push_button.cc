@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,39 +15,35 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #include "qriscv/flat_push_button.h"
 
 #include "base/lang.h"
 
-FlatPushButton::FlatPushButton(QWidget* parent)
-	: QPushButton(parent)
-{
-	setFlat(true);
+FlatPushButton::FlatPushButton(QWidget *parent) : QPushButton(parent) {
+  setFlat(true);
 }
 
-FlatPushButton::FlatPushButton(const QString& text, QWidget* parent)
-	: QPushButton(text, parent)
-{
-	setFlat(true);
+FlatPushButton::FlatPushButton(const QString &text, QWidget *parent)
+    : QPushButton(text, parent) {
+  setFlat(true);
 }
 
-FlatPushButton::FlatPushButton(const QIcon& icon, const QString& text, QWidget* parent)
-	: QPushButton(icon, text, parent)
-{
-	setFlat(true);
+FlatPushButton::FlatPushButton(const QIcon &icon, const QString &text,
+                               QWidget *parent)
+    : QPushButton(icon, text, parent) {
+  setFlat(true);
 }
 
-void FlatPushButton::enterEvent(QEvent* event)
-{
-	UNUSED_ARG(event);
-	setFlat(false);
+void FlatPushButton::enterEvent(QEvent *event) {
+  UNUSED_ARG(event);
+  setFlat(false);
 }
 
-void FlatPushButton::leaveEvent(QEvent* event)
-{
-	UNUSED_ARG(event);
-	setFlat(true);
+void FlatPushButton::leaveEvent(QEvent *event) {
+  UNUSED_ARG(event);
+  setFlat(true);
 }

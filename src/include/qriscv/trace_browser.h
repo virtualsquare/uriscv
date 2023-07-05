@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_TRACE_BROWSER_H
@@ -23,13 +24,13 @@
 
 #include <boost/function.hpp>
 
-#include <QWidget>
 #include <QPointer>
+#include <QWidget>
 
 #include "base/lang.h"
-#include "uriscv/types.h"
-#include "qriscv/stoppoint_list_model.h"
 #include "qriscv/hex_view.h"
+#include "qriscv/stoppoint_list_model.h"
+#include "uriscv/types.h"
 
 class QAction;
 class QListView;
@@ -40,60 +41,60 @@ class QSplitter;
 class QStackedWidget;
 class TracepointListModel;
 
-class TraceBrowser: public QWidget {
-	Q_OBJECT
+class TraceBrowser : public QWidget {
+  Q_OBJECT
 
 public:
-	TraceBrowser(QAction* insertAction, QAction* removeAction, QWidget* parent = 0);
-	~TraceBrowser();
+  TraceBrowser(QAction *insertAction, QAction *removeAction,
+               QWidget *parent = 0);
+  ~TraceBrowser();
 
-	bool AddTracepoint(Word start, Word end);
+  bool AddTracepoint(Word start, Word end);
 
 private Q_SLOTS:
-	void onMachineStarted();
-	void onMachineHalted();
+  void onMachineStarted();
+  void onMachineHalted();
 
-	void onTracepointAdded();
-	void removeTracepoint();
-	void onSelectionChanged(const QItemSelection&);
-	void onDelegateTypeChanged(int index);
-	void refreshView();
+  void onTracepointAdded();
+  void removeTracepoint();
+  void onSelectionChanged(const QItemSelection &);
+  void onDelegateTypeChanged(int index);
+  void refreshView();
 
 private:
-	static const int kDefaultViewDelegate = 0;
+  static const int kDefaultViewDelegate = 0;
 
-	struct ViewDelegateInfo {
-		int type;
-		QPointer<QWidget> widget;
-	};
+  struct ViewDelegateInfo {
+    int type;
+    QPointer<QWidget> widget;
+  };
 
-	typedef boost::function<QWidget * (Word, Word)> DelegateFactoryFunc;
+  typedef boost::function<QWidget *(Word, Word)> DelegateFactoryFunc;
 
-	struct ViewDelegateType {
-		ViewDelegateType(const char* name, DelegateFactoryFunc func)
-			: name(name), ctor(func) {
-		}
-		const char* name;
-		DelegateFactoryFunc ctor;
-	};
+  struct ViewDelegateType {
+    ViewDelegateType(const char *name, DelegateFactoryFunc func)
+        : name(name), ctor(func) {}
+    const char *name;
+    DelegateFactoryFunc ctor;
+  };
 
-	Stoppoint* selectedTracepoint() const;
+  Stoppoint *selectedTracepoint() const;
 
-	static QWidget* createHexView(Word start, Word end, bool nativeOrder);
+  static QWidget *createHexView(Word start, Word end, bool nativeOrder);
 
-	DebugSession* const dbgSession;
+  DebugSession *const dbgSession;
 
-	scoped_ptr<TracepointListModel> tplModel;
+  scoped_ptr<TracepointListModel> tplModel;
 
-	QComboBox* delegateTypeCombo;
-	QSplitter* splitter;
-	QListView* tplView;
-	QStackedWidget* viewStack;
+  QComboBox *delegateTypeCombo;
+  QSplitter *splitter;
+  QListView *tplView;
+  QStackedWidget *viewStack;
 
-	typedef std::map<unsigned int, ViewDelegateInfo> ViewDelegateMap;
-	ViewDelegateMap viewMap;
+  typedef std::map<unsigned int, ViewDelegateInfo> ViewDelegateMap;
+  ViewDelegateMap viewMap;
 
-	std::vector<ViewDelegateType> delegateFactory;
+  std::vector<ViewDelegateType> delegateFactory;
 };
 
 #endif // QRISCV_TRACE_BROWSER_H

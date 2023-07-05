@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_TERMINAL_WINDOW_H
@@ -30,28 +31,28 @@ class TerminalView;
 class TerminalStatusWidget;
 
 class TerminalWindow : public QMainWindow {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-TerminalWindow(unsigned int devNo, QWidget* parent = 0);
+  TerminalWindow(unsigned int devNo, QWidget *parent = 0);
 
 protected:
-virtual void closeEvent(QCloseEvent* event);
+  virtual void closeEvent(QCloseEvent *event);
 
 private Q_SLOTS:
-void onMachineReset();
+  void onMachineReset();
 
 private:
-static const int kDefaultCols = 60;
-static const int kDefaultRows = 20;
+  static const int kDefaultCols = 60;
+  static const int kDefaultRows = 20;
 
-static TerminalDevice* getTerminal(unsigned int devNo);
+  static TerminalDevice *getTerminal(unsigned int devNo);
 
-const unsigned int devNo;
+  const unsigned int devNo;
 
-QVBoxLayout* layout;
-TerminalView* terminalView;
-TerminalStatusWidget* statusWidget;
+  QVBoxLayout *layout;
+  TerminalView *terminalView;
+  TerminalStatusWidget *statusWidget;
 };
 
 #endif // QRISCV_TERMINAL_WINDOW_H

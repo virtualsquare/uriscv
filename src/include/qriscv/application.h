@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_APPLICATION_H
@@ -26,58 +27,54 @@
 #include <QSettings>
 
 #include "base/lang.h"
-#include "uriscv/machine_config.h"
-#include "uriscv/machine.h"
 #include "qriscv/debug_session.h"
+#include "uriscv/machine.h"
+#include "uriscv/machine_config.h"
 
 class MonitorWindow;
 class QWidget;
 
-class Application: public QApplication {
-	Q_OBJECT
+class Application : public QApplication {
+  Q_OBJECT
 
 public:
-	static const unsigned int kMaxRecentConfigs = 5;
+  static const unsigned int kMaxRecentConfigs = 5;
 
-	Application(int& argc, char** argv);
-	~Application();
+  Application(int &argc, char **argv);
+  ~Application();
 
-	MachineConfig* getConfig();
-	void CreateConfig(const QString& path);
-	void LoadConfig(const QString& path);
-	void LoadRecentConfig(unsigned int i);
+  MachineConfig *getConfig();
+  void CreateConfig(const QString &path);
+  void LoadConfig(const QString &path);
+  void LoadRecentConfig(unsigned int i);
 
-	DebugSession* getDebugSession() {
-		return dbgSession.get();
-	}
-	QWidget* getApplWindow();
+  DebugSession *getDebugSession() { return dbgSession.get(); }
+  QWidget *getApplWindow();
 
-	const QString& getCurrentDir() const {
-		return dir;
-	}
+  const QString &getCurrentDir() const { return dir; }
 
-	QFont getMonospaceFont();
-	QFont getBoldFont();
+  QFont getMonospaceFont();
+  QFont getBoldFont();
 
-	QSettings settings;
+  QSettings settings;
 
-	QString document;
+  QString document;
 
 Q_SIGNALS:
-	void MachineConfigChanged();
+  void MachineConfigChanged();
 
 private:
-	void setCurrentConfig(const QString& path, MachineConfig* newConfig);
+  void setCurrentConfig(const QString &path, MachineConfig *newConfig);
 
-	scoped_ptr<DebugSession> dbgSession;
+  scoped_ptr<DebugSession> dbgSession;
 
-	scoped_ptr<MachineConfig> config;
-	QString dir;
+  scoped_ptr<MachineConfig> config;
+  QString dir;
 
-	scoped_ptr<MonitorWindow> monitorWindow;
+  scoped_ptr<MonitorWindow> monitorWindow;
 };
 
-Application* Appl();
+Application *Appl();
 
 #define debugSession (Appl()->getDebugSession())
 

@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010, 2011 Tomislav Jonjic
  * Copyright (C) 2020 Mattia Biondi, Mikey Goldweber
@@ -21,7 +21,7 @@
  */
 
 /*
- * uMPS machine-specific constants, most notably bus & device memory
+ * uRISCV machine-specific constants, most notably bus & device memory
  * mapped register addresses.
  *
  * IMPORTANT: Keep this header assembler-safe!

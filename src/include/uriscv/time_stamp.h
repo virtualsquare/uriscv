@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2004 Mauro Morsiani
  * Copyright (C) 2011 Tomislav Jonjic

@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_CREATE_MACHINE_DIALOG_H
@@ -27,23 +28,23 @@ class QLineEdit;
 class QPushButton;
 
 class CreateMachineDialog : public QDialog {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-CreateMachineDialog(QWidget* parent = 0);
+  CreateMachineDialog(QWidget *parent = 0);
 
-QString getFileName() const;
+  QString getFileName() const;
 
 private:
-bool hasValidInput() const;
+  bool hasValidInput() const;
 
-QLineEdit* dirEdit;
-QLineEdit* nameEdit;
-QPushButton* createButton;
+  QLineEdit *dirEdit;
+  QLineEdit *nameEdit;
+  QPushButton *createButton;
 
 private Q_SLOTS:
-void validate();
-void browseDir();
+  void validate();
+  void browseDir();
 };
 
 #endif // QRISCV_CREATE_MACHINE_DIALOG_H

@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,61 +15,55 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_TRACE_BROWSER_PRIV_H
 #define QRISCV_TRACE_BROWSER_PRIV_H
 
-#include <vector>
 #include <sigc++/sigc++.h>
+#include <vector>
 
 #include <QPlainTextEdit>
 
 #include "base/trackable_mixin.h"
-#include "uriscv/types.h"
-#include "qriscv/stoppoint_list_model.h"
 #include "qriscv/memory_view_delegate.h"
+#include "qriscv/stoppoint_list_model.h"
+#include "uriscv/types.h"
 
 class Stoppoint;
 class StoppointSet;
 class Processor;
 
-class TracepointListModel: public BaseStoppointListModel,
-public TrackableMixin
-{
-	Q_OBJECT
+class TracepointListModel : public BaseStoppointListModel,
+                            public TrackableMixin {
+  Q_OBJECT
 
 public:
-	TracepointListModel(StoppointSet* tracepoints, QObject* parent = 0);
+  TracepointListModel(StoppointSet *tracepoints, QObject *parent = 0);
 
-	int columnCount(const QModelIndex&) const {
-		return 1;
-	}
+  int columnCount(const QModelIndex &) const { return 1; }
 
-	QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-	QVariant data(const QModelIndex& index, int role) const;
+  QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+  QVariant data(const QModelIndex &index, int role) const;
 
-	bool IsDirty(int row) const {
-		return dirtySet[row];
-	}
-	void ClearDirty(int row);
+  bool IsDirty(int row) const { return dirtySet[row]; }
+  void ClearDirty(int row);
 
 protected:
-	virtual void StoppointAdded();
-	virtual void StoppointRemoved(int index);
+  virtual void StoppointAdded();
+  virtual void StoppointRemoved(int index);
 
 private:
-	void onHit(size_t spIndex,
-	           const Stoppoint* stoppoint,
-	           Word addr,
-	           const Processor* cpu);
+  void onHit(size_t spIndex, const Stoppoint *stoppoint, Word addr,
+             const Processor *cpu);
 
-// For the uninitiated: beware of the vector<bool> specialization!
-// It might be efficient but has weird semantics. Just ask the
-// mighty Internet.
-	typedef std::vector<bool> BitSet;
-	BitSet dirtySet;
+  // For the uninitiated: beware of the vector<bool> specialization!
+  // It might be efficient but has weird semantics. Just ask the
+  // mighty Internet.
+  typedef std::vector<bool> BitSet;
+  BitSet dirtySet;
 
 // We keep this here because of pure desperation: in a perfect
 // world disconnections should work automagically via
@@ -80,22 +74,20 @@ private:
 #endif
 };
 
-class AsciiView: public QPlainTextEdit,
-public MemoryViewDelegate
-{
-	Q_OBJECT
+class AsciiView : public QPlainTextEdit, public MemoryViewDelegate {
+  Q_OBJECT
 
 public:
-	static AsciiView* Create(Word start, Word end);
-	virtual void Refresh();
+  static AsciiView *Create(Word start, Word end);
+  virtual void Refresh();
 
 private:
-	static const unsigned int kUnicodeReplacementChar = 0xFFFD;
+  static const unsigned int kUnicodeReplacementChar = 0xFFFD;
 
-	AsciiView(Word start, Word end);
+  AsciiView(Word start, Word end);
 
-	const Word start;
-	const Word end;
+  const Word start;
+  const Word end;
 };
 
 #endif // QRISCV_TRACE_BROWSER_PRIV_H

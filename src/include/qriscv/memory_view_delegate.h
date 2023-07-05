@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_MEMORY_VIEW_DELEGATE_H
@@ -23,7 +24,7 @@
 
 class MemoryViewDelegate {
 public:
-virtual void Refresh() = 0;
+  virtual void Refresh() = 0;
 };
 
 #endif // QRISCV_MEMORY_VIEW_DELEGATE_H

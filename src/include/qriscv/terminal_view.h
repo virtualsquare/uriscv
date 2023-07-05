@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_TERMINAL_VIEW_H
@@ -23,32 +24,30 @@
 
 #include <sigc++/sigc++.h>
 
-#include <QPlainTextEdit>
 #include <QByteArray>
+#include <QPlainTextEdit>
 
 class TerminalDevice;
 
-class TerminalView : public QPlainTextEdit,
-	public sigc::trackable
-{
-Q_OBJECT
+class TerminalView : public QPlainTextEdit, public sigc::trackable {
+  Q_OBJECT
 
 public:
-TerminalView(TerminalDevice* terminal, QWidget* parent = 0);
+  TerminalView(TerminalDevice *terminal, QWidget *parent = 0);
 
 protected:
-virtual void keyPressEvent(QKeyEvent* e);
-virtual void mousePressEvent(QMouseEvent* e);
+  virtual void keyPressEvent(QKeyEvent *e);
+  virtual void mousePressEvent(QMouseEvent *e);
 
-virtual bool canInsertFromMimeData(const QMimeData* source) const;
-virtual void insertFromMimeData(const QMimeData* source);
+  virtual bool canInsertFromMimeData(const QMimeData *source) const;
+  virtual void insertFromMimeData(const QMimeData *source);
 
 private:
-void flushInput();
-void onCharTransmitted(char c);
+  void flushInput();
+  void onCharTransmitted(char c);
 
-TerminalDevice* const terminal;
-QByteArray input;
+  TerminalDevice *const terminal;
+  QByteArray input;
 };
 
 #endif // QRISCV_TERMINAL_VIEW_H

@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_ADDRESS_LINE_EDIT_H
@@ -26,21 +27,21 @@
 #include "uriscv/types.h"
 
 class AddressLineEdit : public QLineEdit {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-AddressLineEdit(QWidget* parent = 0);
-Word getAddress() const;
-void setAddress(Word address);
+  AddressLineEdit(QWidget *parent = 0);
+  Word getAddress() const;
+  void setAddress(Word address);
 };
 
 class AsidLineEdit : public QLineEdit {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-AsidLineEdit(QWidget* parent = 0);
-Word getAsid() const;
-void setAsid(Word asid);
+  AsidLineEdit(QWidget *parent = 0);
+  Word getAsid() const;
+  void setAsid(Word asid);
 };
 
 #endif // QRISCV_ADDRESS_LINE_EDIT_H

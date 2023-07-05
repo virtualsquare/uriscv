@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_TERMINAL_WINDOW_PRIV_H
@@ -23,51 +24,49 @@
 
 #include <sigc++/sigc++.h>
 
-#include <QWidget>
 #include <QIcon>
+#include <QWidget>
 
 class QLabel;
 class QPushButton;
 class TerminalDevice;
 class QCheckBox;
 
-class TerminalStatusWidget : public QWidget,
-	public sigc::trackable
-{
-Q_OBJECT
+class TerminalStatusWidget : public QWidget, public sigc::trackable {
+  Q_OBJECT
 
 public:
-TerminalStatusWidget(TerminalDevice* terminal, QWidget* parent = 0);
+  TerminalStatusWidget(TerminalDevice *terminal, QWidget *parent = 0);
 
 private:
-// We _have_ to set the minimumSize() property on dynamic labels
-// in resizable containers; the constant is here mainly as a
-// remainder for that :-)
-static const int kStatusLabelsMinimumWidth = 16;
+  // We _have_ to set the minimumSize() property on dynamic labels
+  // in resizable containers; the constant is here mainly as a
+  // remainder for that :-)
+  static const int kStatusLabelsMinimumWidth = 16;
 
-void updateStatus();
-void onConditionChanged(bool isWorking);
+  void updateStatus();
+  void onConditionChanged(bool isWorking);
 
-TerminalDevice* const terminal;
+  TerminalDevice *const terminal;
 
-bool expanded;
-QWidget* statusAreaWidget;
+  bool expanded;
+  QWidget *statusAreaWidget;
 
-QLabel* rxStatusLabel;
-QLabel* rxCompletionTime;
-QLabel* txStatusLabel;
-QLabel* txCompletionTime;
+  QLabel *rxStatusLabel;
+  QLabel *rxCompletionTime;
+  QLabel *txStatusLabel;
+  QLabel *txCompletionTime;
 
-QIcon expandedIcon;
-QIcon collapsedIcon;
+  QIcon expandedIcon;
+  QIcon collapsedIcon;
 
-QPushButton* expanderButton;
+  QPushButton *expanderButton;
 
-QCheckBox* hwFailureCheckBox;
+  QCheckBox *hwFailureCheckBox;
 
 private Q_SLOTS:
-void onHardwareFailureButtonClicked(bool checked);
-void onExpanderButtonClicked();
+  void onHardwareFailureButtonClicked(bool checked);
+  void onExpanderButtonClicked();
 };
 
 #endif // QRISCV_TERMINAL_WINDOW_PRIV_H

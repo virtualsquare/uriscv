@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010, 2011 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_MACHINE_CONFIG_DIALOG_PRIV_H
@@ -30,47 +31,45 @@ class QCheckBox;
 class MacIdEdit;
 
 class DeviceFileChooser : public QWidget {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-DeviceFileChooser(const QString& deviceClassName,
-                  const QString& deviceName,
-                  unsigned int line,
-                  QWidget*       parent = 0);
+  DeviceFileChooser(const QString &deviceClassName, const QString &deviceName,
+                    unsigned int line, QWidget *parent = 0);
 
-QString getDeviceFile(unsigned int devNo);
-bool IsDeviceEnabled(unsigned int devNo);
+  QString getDeviceFile(unsigned int devNo);
+  bool IsDeviceEnabled(unsigned int devNo);
 
 public Q_SLOTS:
-void Save();
+  void Save();
 
 private:
-unsigned int il;
-QString deviceName;
-QLineEdit* fileNameEdit[N_DEV_PER_IL];
-QCheckBox* enabledCB[N_DEV_PER_IL];
+  unsigned int il;
+  QString deviceName;
+  QLineEdit *fileNameEdit[N_DEV_PER_IL];
+  QCheckBox *enabledCB[N_DEV_PER_IL];
 
 private Q_SLOTS:
-void browseDeviceFile(int devNo);
+  void browseDeviceFile(int devNo);
 };
 
 class NetworkConfigWidget : public QWidget {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-NetworkConfigWidget(QWidget* parent = 0);
+  NetworkConfigWidget(QWidget *parent = 0);
 
 public Q_SLOTS:
-void Save();
+  void Save();
 
 private:
-QCheckBox* enabledCB[N_DEV_PER_IL];
-QLineEdit* fileEdit[N_DEV_PER_IL];
-QCheckBox* fixedMacId[N_DEV_PER_IL];
-MacIdEdit* macIdEdit[N_DEV_PER_IL];
+  QCheckBox *enabledCB[N_DEV_PER_IL];
+  QLineEdit *fileEdit[N_DEV_PER_IL];
+  QCheckBox *fixedMacId[N_DEV_PER_IL];
+  MacIdEdit *macIdEdit[N_DEV_PER_IL];
 
 private Q_SLOTS:
-void browseDeviceFile(int devNo);
+  void browseDeviceFile(int devNo);
 };
 
 #endif // QRISCV_MACHINE_CONFIG_DIALOG_PRIV_H

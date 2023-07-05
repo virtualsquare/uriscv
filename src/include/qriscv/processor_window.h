@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  * Copyright (C) 2020 Mattia Biondi
@@ -16,7 +16,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_PROCESSOR_WINDOW_H
@@ -36,43 +37,43 @@ class QDockWidget;
 class RegisterSetWidget;
 
 class ProcessorWindow : public QMainWindow {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-ProcessorWindow(Word cpuId, QWidget* parent = 0);
+  ProcessorWindow(Word cpuId, QWidget *parent = 0);
 
 protected:
-virtual void closeEvent(QCloseEvent* event);
+  virtual void closeEvent(QCloseEvent *event);
 
 private:
-void createMenu();
-void createToolBar();
-QLayout* createInstrPanel();
-void createDockableWidgets();
+  void createMenu();
+  void createToolBar();
+  QLayout *createInstrPanel();
+  void createDockableWidgets();
 
-DebugSession* const dbgSession;
-const Word cpuId;
-Processor* cpu;
+  DebugSession *const dbgSession;
+  const Word cpuId;
+  Processor *cpu;
 
-QToolBar* toolBar;
-QLabel* statusLabel;
-CodeView* codeView;
+  QToolBar *toolBar;
+  QLabel *statusLabel;
+  CodeView *codeView;
 
-QLabel* prevPCLabel;
-QLabel* prevInstructionLabel;
-QLabel* pcLabel;
-QLabel* instructionLabel;
+  QLabel *prevPCLabel;
+  QLabel *prevInstructionLabel;
+  QLabel *pcLabel;
+  QLabel *instructionLabel;
 
-QLabel* bdIndicator;
-QLabel* ldIndicator;
+  QLabel *bdIndicator;
+  QLabel *ldIndicator;
 
-RegisterSetWidget* regView;
-QDockWidget* tlbWidget;
+  RegisterSetWidget *regView;
+  QDockWidget *tlbWidget;
 
 private Q_SLOTS:
-void onMachineReset();
-void updateStatusInfo();
-void updateTLBViewTitle(bool topLevel);
+  void onMachineReset();
+  void updateStatusInfo();
+  void updateTLBViewTitle(bool topLevel);
 };
 
 #endif // QRISCV_PROCESSOR_WINDOW_H

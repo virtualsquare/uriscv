@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_HEX_VIEW_PRIV_H
@@ -26,22 +27,22 @@
 class HexView;
 
 class HexViewMargin : public QWidget {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-static const int kLeftPadding = 3;
-static const int kRightPadding = 5;
+  static const int kLeftPadding = 3;
+  static const int kRightPadding = 5;
 
-HexViewMargin(HexView* hexView);
+  HexViewMargin(HexView *hexView);
 
-virtual QSize sizeHint() const;
+  virtual QSize sizeHint() const;
 
 protected:
-void paintEvent(QPaintEvent* event);
-void wheelEvent(QWheelEvent* event);
+  void paintEvent(QPaintEvent *event);
+  void wheelEvent(QWheelEvent *event);
 
 private:
-HexView* const hexView;
+  HexView *const hexView;
 };
 
 #endif // QRISCV_HEX_VIEW_PRIV_H

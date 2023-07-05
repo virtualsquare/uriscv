@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2011 Tomislav Jonjic
  *
@@ -39,7 +39,7 @@ InterruptController::InterruptController(const MachineConfig *config,
 void InterruptController::StartIRQ(unsigned int il, unsigned int devNo) {
   uint irq = il;
   il -= kBaseIL;
-  assert((int)il >= kSharedILBase || !devNo);
+  assert((int)il >= (int)kSharedILBase || !devNo);
 
   uint sIndex = il;
 
@@ -88,7 +88,7 @@ void InterruptController::StartIRQ(unsigned int il, unsigned int devNo) {
 void InterruptController::EndIRQ(unsigned int il, unsigned int devNo) {
   uint irq = il;
   il -= kBaseIL;
-  assert((int)il >= kSharedILBase || !devNo);
+  assert((int)il >= (int)kSharedILBase || !devNo);
 
   uint sIndex = il;
 

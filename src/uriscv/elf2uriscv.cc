@@ -1,8 +1,9 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2004 Mauro Morsiani
  * Copyright (C) 2011 Tomislav Jonjic
+ * Copyright (C) 2023 Gianmaria Rovelli
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -306,7 +307,7 @@ static Elf32_Addr getGPValue() {
 }
 
 /*
- * Convert an ELF executable into a uMPS a.out or core executable.
+ * Convert an ELF executable into a uRISCV a.out or core executable.
  */
 static void elf2aout(bool isCore) {
   // Check ELF object type
@@ -459,7 +460,7 @@ static void elf2aout(bool isCore) {
 
 /*
  * Extract the symbol table from an ELF object file (ET_EXEC or
- * ET_REL) and create a symbol table in uMPS .stab format.
+ * ET_REL) and create a symbol table in uRISCV .stab format.
  */
 static void createSymbolTable() {
   static const char *const typeName[] = {"", "OBJ", "FUN"};
@@ -517,7 +518,7 @@ static void createSymbolTable() {
 }
 
 /*
- * Convert an ELF relocatable object file into an uMPS ROM (BIOS) file.
+ * Convert an ELF relocatable object file into an uRISCV ROM (BIOS) file.
  */
 static void elf2bios() {
   // Check ELF object type

@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_DEVICE_TREE_VIEW_H
@@ -26,14 +27,14 @@
 class QAbstractItemModel;
 
 class DeviceTreeView : public QTreeView {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-DeviceTreeView(QWidget* parent = 0);
-virtual void setModel(QAbstractItemModel* model);
+  DeviceTreeView(QWidget *parent = 0);
+  virtual void setModel(QAbstractItemModel *model);
 
 private Q_SLOTS:
-void sectionResized(int logicalIndex, int oldSize, int newSize);
+  void sectionResized(int logicalIndex, int oldSize, int newSize);
 };
 
 #endif // QRISCV_DEVICE_TREE_VIEW_H

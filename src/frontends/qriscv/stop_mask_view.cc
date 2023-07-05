@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,33 +15,34 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
-#include <QGridLayout>
 #include <QAction>
 #include <QCheckBox>
+#include <QGridLayout>
 
 #include "qriscv/stop_mask_view.h"
 
-StopMaskView::StopMaskView(const std::map<StopCause, QAction*>& actions, QWidget* parent)
-	: QGroupBox("Stop Mask", parent)
-{
-	QGridLayout* layout = new QGridLayout;
+StopMaskView::StopMaskView(const std::map<StopCause, QAction *> &actions,
+                           QWidget *parent)
+    : QGroupBox("Stop Mask", parent) {
+  QGridLayout *layout = new QGridLayout;
 
-	std::map<StopCause, QAction*>::const_iterator it;
-	int col = 0;
-	for (it = actions.begin(); it != actions.end(); ++it) {
-		QAction* action = it->second;
-		QCheckBox* cb = new QCheckBox(action->text());
-		cb->setChecked(action->isChecked());
-		connect(action, SIGNAL(triggered(bool)), cb, SLOT(setChecked(bool)));
-		connect(cb, SIGNAL(toggled(bool)), action, SLOT(setChecked(bool)));
-		layout->addWidget(cb, 0, col++, Qt::AlignLeft);
-	}
-	--col;
-	layout->setColumnStretch(col, 1);
-	layout->setHorizontalSpacing(11);
+  std::map<StopCause, QAction *>::const_iterator it;
+  int col = 0;
+  for (it = actions.begin(); it != actions.end(); ++it) {
+    QAction *action = it->second;
+    QCheckBox *cb = new QCheckBox(action->text());
+    cb->setChecked(action->isChecked());
+    connect(action, SIGNAL(triggered(bool)), cb, SLOT(setChecked(bool)));
+    connect(cb, SIGNAL(toggled(bool)), action, SLOT(setChecked(bool)));
+    layout->addWidget(cb, 0, col++, Qt::AlignLeft);
+  }
+  --col;
+  layout->setColumnStretch(col, 1);
+  layout->setHorizontalSpacing(11);
 
-	setLayout(layout);
+  setLayout(layout);
 }

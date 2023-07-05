@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2004 Mauro Morsiani
  * Copyright (C) 2020 Mattia Biondi
@@ -66,9 +66,6 @@ public:
   // writes allowed). It returns TRUE if an exception was caused, FALSE
   // otherwise, and notifies access to Watch control object
   bool DataWrite(Word addr, Word data, Processor *proc);
-
-  bool CompareAndSet(Word addr, Word oldval, Word newval, bool *result,
-                     Processor *cpu);
 
   // This method reads a istruction from memory at physical address addr,
   // returning it thru istrp pointer. It also returns TRUE if the

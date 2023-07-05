@@ -1,8 +1,9 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2004 Mauro Morsiani
  * Copyright (C) 2020 Mikey Goldweber
+ * Copyright (C) 2023 Gianmaria Rovelli
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -86,8 +87,6 @@ typedef struct state {
   unsigned int pc_epc;
   unsigned int mie;
   unsigned int gpr[STATE_GPR_LEN];
-  unsigned int hi;
-  unsigned int lo;
 } state_t;
 
 #define reg_zero gpr[0]

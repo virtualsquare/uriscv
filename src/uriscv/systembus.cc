@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2004 Mauro Morsiani
  * Copyright (C) 2020 Mattia Biondi
@@ -229,22 +229,6 @@ bool SystemBus::DataWrite(Word addr, Word data, Processor *proc) {
     return true;
   }
   return false;
-}
-
-bool SystemBus::CompareAndSet(Word addr, Word oldval, Word newval, bool *result,
-                              Processor *cpu) {
-  // The CAS read-modify-write operation, as specified by the uMPS
-  // ISA, is required to fail for I/O locations.
-  if (RAMBASE <= addr && addr < RAMBASE + ram->Size()) {
-    *result = ram->CompareAndSet((addr - RAMBASE) >> 2, oldval, newval);
-    return false;
-  } else if (MMIO_BASE <= addr && addr < MMIO_END) {
-    *result = false;
-    return false;
-  } else {
-    cpu->SignalExc(EXC_SAF);
-    return true;
-  }
 }
 
 // This method transfers a block from or to memory, starting with address

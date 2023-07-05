@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010, 2011 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_REGISTER_SET_WIDGET_H
@@ -36,29 +37,27 @@ class QActionGroup;
 class QToolBar;
 
 class RegisterSetWidget : public QDockWidget {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-RegisterSetWidget(Word cpuId, QWidget* parent = 0);
+  RegisterSetWidget(Word cpuId, QWidget *parent = 0);
 
 protected:
-RegisterSetSnapshot* model;
+  RegisterSetSnapshot *model;
 
 private Q_SLOTS:
-void updateWindowTitle();
-void setDisplayType(QAction* action);
+  void updateWindowTitle();
+  void setDisplayType(QAction *action);
 
 private:
-void addDisplayAction(const QString& text,
-                      QStyledItemDelegate* delegate,
-                      QActionGroup* group,
-                      QToolBar* toolBar);
-int currentDelegate() const;
+  void addDisplayAction(const QString &text, QStyledItemDelegate *delegate,
+                        QActionGroup *group, QToolBar *toolBar);
+  int currentDelegate() const;
 
-const Word cpuId;
-QTreeView* treeView;
-std::vector<QStyledItemDelegate*> delegates;
-const QString delegateKey;
+  const Word cpuId;
+  QTreeView *treeView;
+  std::vector<QStyledItemDelegate *> delegates;
+  const QString delegateKey;
 };
 
 #endif // QRISCV_REGISTER_SET_WIDGET_H

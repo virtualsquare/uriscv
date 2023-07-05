@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2011 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_MAC_ID_EDIT_H
@@ -27,10 +28,10 @@
 
 class MacIdEdit : public QLineEdit {
 public:
-MacIdEdit(QWidget* parent = 0);
+  MacIdEdit(QWidget *parent = 0);
 
-uint8_t* getMacId(uint8_t* id) const;
-void setMacId(const uint8_t* id);
+  uint8_t *getMacId(uint8_t *id) const;
+  void setMacId(const uint8_t *id);
 };
 
 #endif // QRISCV_MAC_ID_EDIT_H

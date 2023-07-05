@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,47 +15,43 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_PROCESSOR_LIST_MODEL_H
 #define QRISCV_PROCESSOR_LIST_MODEL_H
 
-#include <QModelIndex>
 #include <QAbstractTableModel>
+#include <QModelIndex>
 
 class MachineConfig;
 class DebugSession;
 class CpuStatusMap;
 
 class ProcessorListModel : public QAbstractTableModel {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-enum {
-	COLUMN_CPU_ID,
-	COLUMN_CPU_STATUS,
-	COLUMN_CPU_ADDRESS,
-	N_COLUMNS
-};
+  enum { COLUMN_CPU_ID, COLUMN_CPU_STATUS, COLUMN_CPU_ADDRESS, N_COLUMNS };
 
-ProcessorListModel(QObject* parent = 0);
+  ProcessorListModel(QObject *parent = 0);
 
-int rowCount(const QModelIndex& parent) const;
-int columnCount(const QModelIndex& parent) const;
+  int rowCount(const QModelIndex &parent) const;
+  int columnCount(const QModelIndex &parent) const;
 
-QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-QVariant data(const QModelIndex& index, int role) const;
+  QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+  QVariant data(const QModelIndex &index, int role) const;
 
 private:
-static const char* headers[N_COLUMNS];
+  static const char *headers[N_COLUMNS];
 
-const MachineConfig* const config;
-const DebugSession* const dbgSession;
-const CpuStatusMap* const cpuStatusMap;
+  const MachineConfig *const config;
+  const DebugSession *const dbgSession;
+  const CpuStatusMap *const cpuStatusMap;
 
 private Q_SLOTS:
-void notifyStatusChanged();
+  void notifyStatusChanged();
 };
 
 #endif // QRISCV_PROCESSOR_LIST_MODEL_H

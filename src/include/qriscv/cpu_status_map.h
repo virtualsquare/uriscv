@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_CPU_STATUS_MAP_H
@@ -23,43 +24,43 @@
 
 #include <vector>
 
-#include <QString>
 #include <QObject>
+#include <QString>
 
 class DebugSession;
 class Machine;
 class Processor;
 
 class CpuStatusMap : public QObject {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-CpuStatusMap(DebugSession* dbgSession);
+  CpuStatusMap(DebugSession *dbgSession);
 
-const QString& getStatus(unsigned int cpuId) const;
-const QString& getLocation(unsigned int cpuId) const;
+  const QString &getStatus(unsigned int cpuId) const;
+  const QString &getLocation(unsigned int cpuId) const;
 
 Q_SIGNALS:
-void Changed();
+  void Changed();
 
 private:
-struct StatusInfo {
-	QString status;
-	QString location;
-};
+  struct StatusInfo {
+    QString status;
+    QString location;
+  };
 
-void formatActiveCpuStatus(Processor* cpu);
-void formatActiveCpuLocation(Processor* cpu);
+  void formatActiveCpuStatus(Processor *cpu);
+  void formatActiveCpuLocation(Processor *cpu);
 
-DebugSession* const dbgSession;
-Machine* const machine;
+  DebugSession *const dbgSession;
+  Machine *const machine;
 
-static const char* const statusTemplates[];
+  static const char *const statusTemplates[];
 
-std::vector<StatusInfo> statusMap;
+  std::vector<StatusInfo> statusMap;
 
 private Q_SLOTS:
-void update();
+  void update();
 };
 
 #endif // QRISCV_CPU_STATUS_MAP_H

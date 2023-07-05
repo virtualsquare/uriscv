@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2011 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_TREE_VIEW_H
@@ -28,24 +29,22 @@
 class QAbstractItemModel;
 
 class TreeView : public QTreeView {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-TreeView(const QString& name,
-         const std::list<int>& resizedToContents,
-         bool persistItemState = false,
-         QWidget* parent = 0);
+  TreeView(const QString &name, const std::list<int> &resizedToContents,
+           bool persistItemState = false, QWidget *parent = 0);
 
-void setModel(QAbstractItemModel* model);
+  void setModel(QAbstractItemModel *model);
 
 private Q_SLOTS:
-void sectionResized(int logicalIndex, int oldSize, int newSize);
-void saveItemState();
+  void sectionResized(int logicalIndex, int oldSize, int newSize);
+  void saveItemState();
 
 private:
-const std::list<int> resizedToContents;
-const bool persistItemState;
-QString itemStateKey;
+  const std::list<int> resizedToContents;
+  const bool persistItemState;
+  QString itemStateKey;
 };
 
 #endif // QRISCV_TREE_VIEW_H

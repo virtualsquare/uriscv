@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_MONITOR_WINDOW_PRIV_H
@@ -26,20 +27,20 @@
 class QLabel;
 
 class StatusDisplay : public QWidget {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-StatusDisplay(QWidget* parent = 0);
+  StatusDisplay(QWidget *parent = 0);
 
 private Q_SLOTS:
-void refreshAll();
-void refreshTod();
+  void refreshAll();
+  void refreshTod();
 
 private:
-static const int kFieldSpacing = 10;
+  static const int kFieldSpacing = 10;
 
-QLabel* statusLabel;
-QLabel* todLabel;
+  QLabel *statusLabel;
+  QLabel *todLabel;
 };
 
 #endif // QRISCV_MONITOR_WINDOW_PRIV_H

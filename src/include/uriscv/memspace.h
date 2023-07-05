@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2004 Mauro Morsiani
  *
@@ -43,8 +43,6 @@ public:
   // offset). SystemBus must check address validity and make
   // byte-to-word address conversion)
   void MemWrite(Word index, Word data) { ram[index] = data; }
-
-  bool CompareAndSet(Word index, Word oldval, Word newval);
 
   // This method returns RamSpace size in bytes
   Word Size() const { return size << 2; }

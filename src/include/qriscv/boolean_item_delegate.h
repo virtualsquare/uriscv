@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_BOOLEAN_ITEM_DELEGATE_H
@@ -24,25 +25,23 @@
 #include <QStyledItemDelegate>
 
 class BooleanItemDelegate : public QStyledItemDelegate {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-BooleanItemDelegate(QObject* parent = 0);
+  BooleanItemDelegate(QObject *parent = 0);
 
-void paint(QPainter* painter,
-           const QStyleOptionViewItem& option,
-           const QModelIndex& index) const;
+  void paint(QPainter *painter, const QStyleOptionViewItem &option,
+             const QModelIndex &index) const;
 
-// We reimplement `editorEvent' as the implementation in
-// QStyledItemDelegate isn't of any use for us (i.e. we don't want
-// a default editor!).
-bool editorEvent(QEvent* event,
-                 QAbstractItemModel* model,
-                 const QStyleOptionViewItem& option,
-                 const QModelIndex& index);
+  // We reimplement `editorEvent' as the implementation in
+  // QStyledItemDelegate isn't of any use for us (i.e. we don't want
+  // a default editor!).
+  bool editorEvent(QEvent *event, QAbstractItemModel *model,
+                   const QStyleOptionViewItem &option,
+                   const QModelIndex &index);
 
 private:
-static QRect buttonGeometry(const QRect& viewItemRect);
+  static QRect buttonGeometry(const QRect &viewItemRect);
 };
 
 #endif // QRISCV_BOOLEAN_ITEM_DELEGATE_H

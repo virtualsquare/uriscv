@@ -1,9 +1,10 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2004 Mauro Morsiani
  * Copyright (C) 2011 Tomislav Jonjic
  * Copyright (C) 2020 Mattia Biondi, Mikey Goldweber
+ * Copyright (C) 2023 Gianmaria Rovelli
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

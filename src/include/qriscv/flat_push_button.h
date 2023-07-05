@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_FLAT_PUSH_BUTTON_H
@@ -24,16 +25,16 @@
 #include <QPushButton>
 
 class FlatPushButton : public QPushButton {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-FlatPushButton(QWidget* parent = 0);
-FlatPushButton(const QString& text, QWidget* parent = 0);
-FlatPushButton(const QIcon& icon, const QString& text, QWidget* parent = 0);
+  FlatPushButton(QWidget *parent = 0);
+  FlatPushButton(const QString &text, QWidget *parent = 0);
+  FlatPushButton(const QIcon &icon, const QString &text, QWidget *parent = 0);
 
 protected:
-virtual void enterEvent(QEvent* event);
-virtual void leaveEvent(QEvent* event);
+  virtual void enterEvent(QEvent *event);
+  virtual void leaveEvent(QEvent *event);
 };
 
 #endif // QRISCV_FLAT_PUSH_BUTTON_H

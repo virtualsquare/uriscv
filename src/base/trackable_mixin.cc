@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  *
@@ -15,20 +15,19 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #include "base/trackable_mixin.h"
 
 #include "base/lang.h"
 
-TrackableMixin::~TrackableMixin()
-{
-	for (sigc::connection& c : connections)
-		c.disconnect();
+TrackableMixin::~TrackableMixin() {
+  for (sigc::connection &c : connections)
+    c.disconnect();
 }
 
-void TrackableMixin::RegisterSigc(sigc::connection c)
-{
-	connections.push_back(c);
+void TrackableMixin::RegisterSigc(sigc::connection c) {
+  connections.push_back(c);
 }

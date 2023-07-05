@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
  */
 
 /*
- * External declarations for uMPS library module.
+ * External declarations for uRISCV library module.
  */
 
 #ifndef URISCV_LIBURISCV_H

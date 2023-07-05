@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2010 Tomislav Jonjic
  * Copyright (C) 2020 Mattia Biondi
@@ -16,7 +16,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
  */
 
 #ifndef QRISCV_MACHINE_CONFIG_DIALOG_H
@@ -35,48 +36,46 @@ class QCheckBox;
 class AsidLineEdit;
 
 class MachineConfigDialog : public QDialog {
-Q_OBJECT
+  Q_OBJECT
 
 public:
-MachineConfigDialog(MachineConfig* config, QWidget* parent = 0);
+  MachineConfigDialog(MachineConfig *config, QWidget *parent = 0);
 
 private:
-QWidget* createGeneralTab();
-QWidget* createDeviceTab();
-void registerDeviceClass(const QString& label,
-                         const QString& icon,
-                         unsigned int devClassIndex,
-                         const QString& deviceClassName,
-                         const QString& deviceName,
-                         bool selected = false);
+  QWidget *createGeneralTab();
+  QWidget *createDeviceTab();
+  void registerDeviceClass(const QString &label, const QString &icon,
+                           unsigned int devClassIndex,
+                           const QString &deviceClassName,
+                           const QString &deviceName, bool selected = false);
 
-void setFileBrowser(QPushButton *button,
-                    std::function<void(QString)> callback);
+  void setFileBrowser(QPushButton *button,
+                      std::function<void(QString)> callback);
 
-MachineConfig* const config;
+  MachineConfig *const config;
 
-QSpinBox* cpuSpinner;
-QSpinBox* clockRateSpinner;
-QComboBox* tlbSizeList;
-QComboBox* tlbFloorAddressList;
-QSpinBox* ramSizeSpinner;
-QCheckBox* coreBootCheckBox;
-AsidLineEdit* stabAsidEdit;
+  QSpinBox *cpuSpinner;
+  QSpinBox *clockRateSpinner;
+  QComboBox *tlbSizeList;
+  QComboBox *tlbFloorAddressList;
+  QSpinBox *ramSizeSpinner;
+  QCheckBox *coreBootCheckBox;
+  AsidLineEdit *stabAsidEdit;
 
-struct {
-	const char* description;
-	QLineEdit* lineEdit;
-} romFileInfo[N_ROM_TYPES];
+  struct {
+    const char *description;
+    QLineEdit *lineEdit;
+  } romFileInfo[N_ROM_TYPES];
 
-QListWidget* devClassView;
-QStackedLayout* devFileChooserStack;
+  QListWidget *devClassView;
+  QStackedLayout *devFileChooserStack;
 
 private Q_SLOTS:
-void getROMFileName(int index);
+  void getROMFileName(int index);
 
-void onDeviceClassChanged();
+  void onDeviceClassChanged();
 
-void saveConfigChanges();
+  void saveConfigChanges();
 };
 
 #endif // QRISCV_MACHINE_CONFIG_DIALOG_H

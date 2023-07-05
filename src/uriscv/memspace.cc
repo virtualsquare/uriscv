@@ -1,5 +1,5 @@
 /*
- * uMPS - A general purpose computer system simulator
+ * uRISCV - A general purpose computer system simulator
  *
  * Copyright (C) 2004 Mauro Morsiani
  *
@@ -67,15 +67,6 @@ RamSpace::RamSpace(Word size_, const char *fName)
     }
 
     fclose(cFile);
-  }
-}
-
-bool RamSpace::CompareAndSet(Word index, Word oldval, Word newval) {
-  if (ram[index] == oldval) {
-    ram[index] = newval;
-    return true;
-  } else {
-    return false;
   }
 }
 
