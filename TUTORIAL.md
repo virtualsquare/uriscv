@@ -3,7 +3,7 @@
 
 ### Compilare e installare l'emulatore
 ```bash 
-mkdir -p build && cd build cmake .. && make && sudo make install 
+mkdir -p build && cd build && cmake .. && make && sudo make install 
 ```
 
 ### Eseguire l'emulatore
@@ -15,5 +15,5 @@ uriscv-cli --config <config.json>
 #### Debian
 
 ```bash
-sudo apt install git build-essential libc6 cmake libelf-dev libboost-dev libsigc++-2.0-dev gcc-riscv64-unknown-elf
+sudo apt install git build-essential libc6 cmake libelf-dev libboost-dev libboost-program-options-dev libsigc++-2.0-dev gcc-riscv64-unknown-elf
 ```
