@@ -59,7 +59,7 @@ target_link_libraries(uriscv-mkconfig PUBLIC uriscv-lib ${SIGCPP_LIBRARIES} ${Bo
 install(TARGETS uriscv-mkdev RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(TARGETS uriscv-mkconfig RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-# add_subdirectory(frontends)
+add_subdirectory(frontends)
 add_subdirectory(support)
 
 set(URISCV_INCLUDE_DIR ${CMAKE_INSTALL_INCLUDEDIR}/uriscv)

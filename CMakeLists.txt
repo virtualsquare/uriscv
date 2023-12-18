@@ -52,7 +52,7 @@ if (NOT SIGCPP_LIBRARIES)
 endif()
 
 find_package(Boost 1.34 COMPONENTS program_options REQUIRED)
-# find_package(Qt6 COMPONENTS Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
 add_subdirectory(src)
 add_subdirectory(app)

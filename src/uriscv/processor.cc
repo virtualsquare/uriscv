@@ -1503,14 +1503,14 @@ bool Processor::execInstrS(Word instr) {
 bool Processor::execInstr(Word instr) {
   Word e = NOEXCEPTION;
   uint8_t opcode = OPCODE(instr);
-  const Symbol *sym =
-      machine->getStab()->Probe(config->getSymbolTableASID(), getPC(), true);
-  if (sym != NULL && sym->getName() != prevFunc) {
-    DISASSMSG("<FUN %s\n", prevFunc.c_str());
-    prevFunc = sym->getName();
-    DISASSMSG("\n>FUN %s\n", sym->getName());
-  }
-  DISASSMSG("[%08x] (%08x) ", getPC(), instr);
+  // const Symbol *sym =
+  //     machine->getStab()->Probe(config->getSymbolTableASID(), getPC(), true);
+  // if (sym != NULL && sym->getName() != prevFunc) {
+  //   DISASSMSG("<FUN %s\n", prevFunc.c_str());
+  //   prevFunc = sym->getName();
+  //   DISASSMSG("\n>FUN %s\n", sym->getName());
+  // }
+  // DISASSMSG("[%08x] (%08x) ", getPC(), instr);
 
   switch (opcode) {
   case OP_L: {
