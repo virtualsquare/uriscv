@@ -261,6 +261,9 @@ void Processor::Reset(Word pc, Word sp) {
   loadReg = 0;
   loadVal = MAXSWORDVAL;
 
+  // first instruction should not be skipped
+  skipCycle = false;
+
   // clear general purpose registers
   for (i = 0; i < CPUREGNUM; i++)
     gpr[i] = 0;
