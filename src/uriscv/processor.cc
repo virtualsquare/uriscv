@@ -1024,9 +1024,8 @@ bool Processor::execInstrR(Word instr) {
     }
     case OP_SRA_FUNC7: {
       DISASSMSG("SRA %s,%s,%s\n", regName[rd], regName[rs1], regName[rs2]);
-      uint8_t msb = rs1 & 0x80000000;
+      uint8_t msb = regRead(rs1) & 0x80000000;
       regWrite(rd, regRead(rs1) >> regRead(rs2) | msb);
-      regWrite(rd, regRead(rs1) ^ regRead(rs2));
       break;
     }
     case OP_SRL_FUNC7: {
@@ -1157,7 +1156,7 @@ bool Processor::execInstrI(Word instr) {
     case OP_SRAI_FUNC7: {
       DISASSMSG("SRAI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
                 imm);
-      uint8_t msb = rs1 & 0x80000000;
+      uint8_t msb = regRead(rs1) & 0x80000000;
       regWrite(rd, regRead(rs1) >> imm | msb);
       break;
     }
