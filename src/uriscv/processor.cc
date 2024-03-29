@@ -1121,9 +1121,10 @@ bool Processor::execInstrI(Word instr) {
     break;
   }
   case OP_SLLI: {
+    SWord shamt = I_SHAMT(instr);
     DISASSMSG("SLLI %s(%x),%s(%x),%d\n", regName[rd], regRead(rd), regName[rs1],
-              regRead(rs1), imm);
-    regWrite(rd, regRead(rs1) << imm);
+              regRead(rs1), shamt);
+    regWrite(rd, regRead(rs1) << shamt);
     break;
   }
   case OP_SLTI: {
@@ -1146,18 +1147,19 @@ bool Processor::execInstrI(Word instr) {
   }
   case OP_SR: {
     uint8_t FUNC7 = FUNC7(instr);
+    SWord shamt = I_SHAMT(instr);
     switch (FUNC7) {
     case OP_SRLI_FUNC7: {
       DISASSMSG("SRLI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
-                imm);
-      regWrite(rd, regRead(rs1) >> imm);
+                shamt);
+      regWrite(rd, regRead(rs1) >> shamt);
       break;
     }
     case OP_SRAI_FUNC7: {
       DISASSMSG("SRAI %s,%s(%x),%x\n", regName[rd], regName[rs1], regRead(rs1),
-                imm);
+                shamt);
       uint8_t msb = regRead(rs1) & 0x80000000;
-      regWrite(rd, regRead(rs1) >> imm | msb);
+      regWrite(rd, regRead(rs1) >> shamt | msb);
       break;
     }
     default:

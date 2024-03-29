@@ -432,6 +432,7 @@
 
 #define I_IMM_SIZE 12
 #define I_IMM(instr) (instr >> 20)
+#define I_SHAMT(instr) ((instr >> 20) & 0x1F)
 #define B_IMM(instr)                                                           \
   (((instr & 0xF00) >> 7) | ((instr & 0x80) << 4) |                            \
    ((instr & 0x80000000) >> 19) | ((instr & 0x7E000000) >> 20))

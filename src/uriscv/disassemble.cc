@@ -269,7 +269,7 @@ HIDDEN void StrNonLoadIInstr(Word instr) {
     sprintf(strbuf, "%s\t%s,%s%s,%s0x%x",
             (func3 == OP_SLLI ? "slli" : (FUNC7(instr) == 0 ? "srli" : "srai")),
             regName[RD(instr)], sep, regName[RS1(instr)], sep,
-            RS2(instr) // shamt
+            I_SHAMT(instr)
     );
   } break;
 
