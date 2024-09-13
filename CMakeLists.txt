@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2020 Mattia Biondi
 # SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+# SPDX-FileCopyrightText: 2024 Luca Bassi
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -62,5 +63,9 @@ find_package(Qt6 COMPONENTS Widgets REQUIRED)
 add_subdirectory(src)
 add_subdirectory(app)
 
-
-
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6widgets6, libqt6svg6, libsigc++-2.0-0v5")
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "gcc-riscv64-unknown-elf")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "VirtualSquare")
+set(CPACK_RPM_PACKAGE_SUGGESTS "gcc-riscv64-linux-gnu")
+set(CPACK_RPM_SPEC_MORE_DEFINE "%define __spec_install_post /bin/true")
+include(CPack)

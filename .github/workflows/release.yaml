@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: 2024 Luca Bassi
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: Build package
+on: [push, pull_request]
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install cmake gcc-riscv64-unknown-elf libelf-dev libsigc++-2.0-dev libboost-dev libboost-program-options-dev qt6-base-dev libglx-dev libgl1-mesa-dev
+      - name: Create .deb
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cpack -G DEB
+          for filename in *.deb; do mv $filename ${filename%.*}-ubuntu.deb; done;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-ubuntu
+          path: build/*.deb
+  build-debian:
+    runs-on: ubuntu-latest
+    container: 'debian:latest'
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update -y
+          apt-get install -y g++ cmake gcc-riscv64-unknown-elf libelf-dev libsigc++-2.0-dev libboost-dev libboost-program-options-dev qt6-base-dev libglx-dev libgl1-mesa-dev
+      - name: Create .deb
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cpack -G DEB
+          for filename in *.deb; do mv $filename ${filename%.*}-debian.deb; done;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-debian
+          path: build/*.deb
+  build-fedora:
+    runs-on: ubuntu-latest
+    container: 'fedora:latest'
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          dnf upgrade -y
+          dnf install -y gcc-c++ cmake gcc-riscv64-linux-gnu elfutils-libelf-devel libsigc++20-devel boost-devel qt6-qtbase-devel rpm-build
+      - name: Create .rpm
+        run: |
+          mkdir build
+          cd build
+          cmake -DRISCV_TOOL_PREFIX="riscv64-linux-gnu-" ..
+          cpack -G RPM
+          for filename in *.rpm; do mv $filename ${filename%.*}-fedora.rpm; done;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-fedora
+          path: build/*.rpm
+  publish:
+    needs: [build-ubuntu, build-debian, build-fedora]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+      - name: Create release
+        run: |
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest --title "Latest release" --notes "Only Debian stable is officially supported" build-ubuntu/* build-debian/* build-fedora/*
