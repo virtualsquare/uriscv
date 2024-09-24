@@ -6,6 +6,7 @@
 #define QRISCV_DEBUG_SESSION_H
 
 #include <QObject>
+#include <thread>
 
 #include "base/lang.h"
 #include "qriscv/cpu_status_map.h"
@@ -13,6 +14,7 @@
 #include "uriscv/machine.h"
 #include "uriscv/stoppoint.h"
 #include "uriscv/symbol_table.h"
+#include "gdb/gdb.h"
 
 enum MachineStatus { MS_HALTED, MS_RUNNING, MS_STOPPED };
 
@@ -40,6 +42,7 @@ public:
   bool isStarted() const { return status != MS_HALTED; }
 
   void halt();
+  void killServer();
 
   unsigned int getStopMask() const { return stopMask; }
   int getSpeed() const { return speed; }
@@ -66,6 +69,10 @@ public:
   QAction *debugStopAction;
   QAction *debugToggleAction;
 
+  //GDB stub
+  void setGdbStatus(bool value);
+  bool isGdbEnabled() { return GdbStatus; }
+
 public Q_SLOTS:
   void setStopMask(unsigned int value);
   void setSpeed(int value);
@@ -89,6 +96,8 @@ private:
   void setStatus(MachineStatus newStatus);
 
   void initializeMachine();
+
+  void initializeThreadServer(MachineConfig*);
 
   void step(unsigned int steps);
   void runStepIteration();
@@ -125,6 +134,10 @@ private:
   QTimer *idleTimer;
 
   uint32_t idleSteps;
+
+  bool GdbStatus = false;
+  std::thread gts;
+  GDBServer *gdb;
 
 private Q_SLOTS:
   void onMachineConfigChanged();

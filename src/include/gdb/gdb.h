@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#ifndef GDB_SERVER_H
+#define GDB_SERVER_H
+
 #include "uriscv/machine.h"
 #include <cstring>
 #include <netinet/in.h>
@@ -16,6 +19,7 @@
 class GDBServer {
 public:
   GDBServer(Machine *mac);
+  ~GDBServer();
   void StartServer();
 
   static std::string GetChecksum(const std::string &msg) {
@@ -43,8 +47,11 @@ public:
   inline void Stop() { stopped = true; };
   bool IsStopped() const { return stopped; };
 
+  int killServer() ;
+  bool isKilled() { return killed; };
+
 private:
-  bool killed, stopped;
+  bool killed = true, stopped;
   Machine *mac;
   std::vector<uint> breakpoints;
 
@@ -61,9 +68,13 @@ private:
   inline void removeBreakpoint(const uint &addr);
 
   void sendMsg(const int &socket, const std::string &msg);
+
+  void stepIn();
 };
 
 typedef struct thread_arg_struct {
   GDBServer *gdb;
   int socket;
 } thread_arg_t;
+
+#endif // GDB_SERVER_H
