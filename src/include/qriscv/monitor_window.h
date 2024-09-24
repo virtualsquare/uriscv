@@ -95,6 +95,8 @@ private:
   QAction *addTraceAction;
   QAction *removeTraceAction;
 
+  QAction *enableGDBserver;
+
   QActionGroup *speedActionGroup;
   QAction *simSpeedActions[DebugSession::kNumSpeedLevels];
   static const char *const simSpeedMnemonics[DebugSession::kNumSpeedLevels];
@@ -159,6 +161,8 @@ private Q_SLOTS:
   void onAddSuspect();
   void onRemoveSuspect();
   void onAddTracepoint();
+
+  void onEnableGDBserver();
 };
 
 #endif // QRISCV_MONITOR_WINDOW_H

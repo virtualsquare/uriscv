@@ -11,6 +11,8 @@
 
 #include <QtWidgets>
 
+#include "gdb/gdb.h"
+
 #include "uriscv/device.h"
 #include "uriscv/error.h"
 #include "uriscv/machine.h"
@@ -173,6 +175,13 @@ void MonitorWindow::createActions() {
   removeTraceAction = new QAction("Remove Traced Region", this);
   removeTraceAction->setEnabled(false);
 
+  //GDB server 
+  enableGDBserver = new QAction("Enable GDB Server", this);
+  enableGDBserver->setCheckable(true);
+  enableGDBserver->setChecked(debugSession->isGdbEnabled());
+  connect(enableGDBserver, SIGNAL(triggered()),this, SLOT(onEnableGDBserver())); 
+  enableGDBserver->setEnabled(true);
+
   speedActionGroup = new QActionGroup(this);
   for (int i = 0; i < DebugSession::kNumSpeedLevels; i++) {
     simSpeedActions[i] = new QAction(simSpeedMnemonics[i], speedActionGroup);
@@ -278,6 +287,10 @@ void MonitorWindow::createMenu() {
        it != stopMaskActions.end(); ++it) {
     stopMaskSubMenu->addAction(it->second);
   }
+
+  debugMenu->addSeparator();
+  QMenu *gdbMenu = debugMenu->addMenu("GDB Server");
+  gdbMenu->addAction(enableGDBserver); //power one the server
 
   QMenu *settingsMenu = menuBar()->addMenu("Se&ttings");
   QMenu *speedLevelsSubMenu = settingsMenu->addMenu("Simulation Speed");
@@ -795,6 +808,10 @@ void MonitorWindow::onAddTracepoint() {
     QMessageBox::warning(this, "Warning",
                          "<b>Could not insert traced range:</b> "
                          "it overlaps with an already inserted range");
+}
+
+void MonitorWindow::onEnableGDBserver(){
+  dbgSession->setGdbStatus(!dbgSession->isGdbEnabled());
 }
 
 StatusDisplay::StatusDisplay(QWidget *parent) : QWidget(parent) {

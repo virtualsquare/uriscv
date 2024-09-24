@@ -47,10 +47,30 @@ pthread_mutex_t stopped_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t bp_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 GDBServer::GDBServer(Machine *mac) {
-  this->killed = false;
   this->stopped = false;
   this->mac = mac;
 }
+
+GDBServer::~GDBServer() {
+  this->mac = NULL;
+}
+
+GDBServer *gdb = NULL;
+bool *killed_ptr = NULL;
+
+int GDBServer::killServer() {
+    pthread_mutex_lock(&stopped_mutex);
+    stopped = true;                       // stop the machine
+    pthread_mutex_unlock(&stopped_mutex);
+
+    pthread_mutex_lock(&continue_mutex);
+    killed = true; 
+    pthread_cond_signal(&continue_cond);  // wake up the waiting thread
+    pthread_mutex_unlock(&continue_mutex);
+
+    return 1;
+}
+
 
 inline std::string GDBServer::getMsg(const std::string &msg) {
   static std::regex reg(R"(.*\$(.*)#.*)");
@@ -238,6 +258,10 @@ std::string GDBServer::ReadData(const std::string &msg) {
     return OKReply;
   } else if (body.c_str()[0] == 'c') {
 
+    pthread_mutex_lock(&stopped_mutex);
+      stopped = false;
+    pthread_mutex_unlock(&stopped_mutex);
+
     pthread_mutex_lock(&continue_mutex);
     pthread_cond_signal(&continue_cond);
     pthread_mutex_unlock(&continue_mutex);
@@ -252,6 +276,9 @@ std::string GDBServer::ReadData(const std::string &msg) {
     uint addr = parseBreakpoint(body);
     addBreakpoint(addr);
     return OKReply;
+  } else if (body.c_str()[0] == 's'){
+    stepIn();
+    return OKReply;
   } else if (strcmp(body.c_str(), vContMsg) == 0) {
     /* Not supported */
     return emptyReply;
@@ -262,14 +289,14 @@ std::string GDBServer::ReadData(const std::string &msg) {
 
 void *MachineStep(void *vargp) {
 
-  GDBServer *gdb = (GDBServer *)vargp;
-
-  while (true) {
-
+  while (!(*killed_ptr)) {
     pthread_mutex_lock(&continue_mutex);
-    pthread_cond_wait(&continue_cond, &continue_mutex);
+    pthread_cond_wait(&continue_cond, &continue_mutex); 
     pthread_mutex_unlock(&continue_mutex);
 
+    if (*killed_ptr) {
+      break;  // Exit the loop if killed
+    }
     bool s = false;
     do {
       gdb->Step();
@@ -277,7 +304,7 @@ void *MachineStep(void *vargp) {
       pthread_mutex_lock(&stopped_mutex);
       s = gdb->IsStopped();
       pthread_mutex_unlock(&stopped_mutex);
-    } while (!gdb->CheckBreakpoint() && !s);
+    } while (!(*killed_ptr) && !gdb->CheckBreakpoint() && !s);
 
     if (!s) {
       pthread_mutex_lock(&stopped_mutex);
@@ -297,6 +324,14 @@ void GDBServer::sendMsg(const int &socket, const std::string &msg) {
   send(socket, reply.c_str(), (reply).size(), 0);
 }
 
+void GDBServer::stepIn(){
+  gdb->Step();
+  
+  pthread_mutex_lock(&stopped_mutex);
+     gdb->Stop();
+  pthread_mutex_unlock(&stopped_mutex);
+}
+
 void GDBServer::StartServer() {
   DEBUGMSG("[GDB] Starting GDB Server\n");
 
@@ -305,6 +340,7 @@ void GDBServer::StartServer() {
   int opt = 1;
   int addrlen = sizeof(address);
   char buffer[1024] = {0};
+  this->killed = false;
 
   // Creating socket file descriptor
   if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -332,7 +368,9 @@ void GDBServer::StartServer() {
     exit(EXIT_FAILURE);
   }
 
-  for (;;) {
+    gdb = (GDBServer *)(this);
+
+    killed_ptr = &killed;
 
     pthread_t tid;
 
@@ -381,9 +419,8 @@ void GDBServer::StartServer() {
 
     pthread_kill(tid, SIGTERM);
 
-    // closing the connected socket
+    // clong the connected socket
     close(new_socket);
-  }
 
   // closing the listening socket
   shutdown(server_fd, SHUT_RDWR);

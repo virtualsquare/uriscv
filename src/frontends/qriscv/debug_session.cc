@@ -11,6 +11,7 @@
 #include <QAction>
 #include <QMessageBox>
 #include <QTimer>
+#include<unistd.h>
 
 #include "qriscv/application.h"
 #include "uriscv/error.h"
@@ -52,6 +53,19 @@ void DebugSession::halt() {
   setStatus(MS_HALTED);
 }
 
+void DebugSession::killServer(){
+  if(isGdbEnabled()){
+    int w = 0;
+    w = gdb->killServer();
+    while(w != 1){
+        //wait till the server correctly shutdown 
+      }
+    printf("gdb server terminated\n");
+
+    gdb->~GDBServer();
+   }
+}
+
 void DebugSession::setSpeed(int value) {
   value = qBound(0, value, kMaxSpeed);
   if (speed != value) {
@@ -68,6 +82,10 @@ void DebugSession::setStopMask(unsigned int value) {
 
   if (machine.get())
     machine->setStopMask(stopMask);
+}
+
+void DebugSession::setGdbStatus(bool newStatus){
+  GdbStatus = newStatus;
 }
 
 void DebugSession::createActions() {
@@ -174,6 +192,12 @@ void DebugSession::initializeMachine() {
 
   try {
     machine.reset(new Machine(config, &breakpoints, &suspects, &tracepoints));
+    if (isGdbEnabled()) {
+      gts = std::thread([&]() {
+            gdb = new GDBServer(machine.get());
+            gdb->StartServer(); });
+      gts.detach();
+    }
   } catch (const FileError &e) {
     QMessageBox::critical(
         Appl()->getApplWindow(),
@@ -266,6 +290,7 @@ void DebugSession::startMachine() {
 
 void DebugSession::onHaltMachine() {
   assert(status != MS_HALTED);
+  killServer();
   halt();
 }
 
@@ -282,6 +307,9 @@ void DebugSession::onResetMachine() {
   stop();
 
   machine.reset();
+
+  killServer();
+
   initializeMachine();
   if (machine) {
     Q_EMIT MachineReset();
