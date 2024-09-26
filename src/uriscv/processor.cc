@@ -909,7 +909,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -918,7 +918,7 @@ bool Processor::execInstrR(Word instr) {
     break;
   }
     /* 0x2 */
-  case OP_MULHSU_FUNC3 | OP_SLT_FUNC3: {
+  case OP_MULHSU_FUNC3 | OP_SLT_FUNC3 | OP_AMOSWAP_FUNC3: {
     switch (FUNC7) {
     case OP_MULHSU_FUNC7: {
       SWord high = 0, low = 0;
@@ -934,8 +934,20 @@ bool Processor::execInstrR(Word instr) {
       regWrite(rd, SWord(regRead(rs1)) < SWord(regRead(rs2)) ? 1 : 0);
       break;
     }
+	case OP_AMOSWAP_FUNC7:
+	case OP_AMOSWAP_RL_FUNC7:
+	case OP_AMOSWAP_AQ_FUNC7:
+	case OP_AMOSWAP_RL_AQ_FUNC7: {
+      DISASSMSG("AMOSWAP %d,%d,%s(%x)\n", regRead(rd), regRead(rs2), regName[rs1], regRead(rs1));
+      regWrite(rd, regRead(rs1));
+	  Word datap;
+	  this->bus->DataRead(regRead(rs1), &datap, this);
+      regWrite(rd, datap);
+	  this->bus->DataWrite(regRead(rs1), regRead(rs2), this);
+      break;
+    }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -961,7 +973,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -989,7 +1001,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -1021,7 +1033,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -1047,7 +1059,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -1073,7 +1085,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -1526,6 +1538,10 @@ bool Processor::execInstr(Word instr) {
   }
   case S_TYPE: {
     e = execInstrS(instr);
+    break;
+  }
+  case A_TYPE: {
+    e = execInstrR(instr);
     break;
   }
   case OP_AUIPC: {
