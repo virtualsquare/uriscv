@@ -2,7 +2,8 @@
 ### RISCV
 
 ### Compilare l'emulatore
-```bash mkdir -p build && cd build cmake .. && make && sudo make install 
+```bash
+mkdir -p build && cd build && cmake .. && make && sudo make install 
 ```
 
 ### Eseguire l'emulatore
