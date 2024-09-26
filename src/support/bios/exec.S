@@ -17,7 +17,7 @@
 
 #define ASIDSTEP    0x00000040
 #define VPNMASK     0xFFFFF000
-#define VECTSIZE    140
+#define STATE_T_SIZE_IN_BYTES 148
 
 /* NOP padding: 30 nops - string length (32 bytes) */
 #define PANIC_PADDING    (30 * 4) - 32
@@ -59,7 +59,7 @@ bios:
 	 * 0x00000000 address
 	 * This is the entry point for UTLB type exceptions.
 	 */
-	j	LEXCHandler
+	j   LEXCHandler
 	nop
 
 EndStr:
@@ -73,6 +73,45 @@ PanicStr:
 	 * 0x00000080: panic()
 	 * Print a message on terminal 0 and loop forever
 	 */
+    j   LPanic
+    nop
+
+	.space	0x80 - 0x8
+     /*
+	 * 0x00000100 address
+	 * Secondary processor startup routine
+	 */
+    j   LInitSecondaryProcessor
+	nop
+
+/*
+ * Get a cpu up and runing: initialize BIOS related structures and
+ * load the supplied processor state.
+ */
+LInitSecondaryProcessor:
+	/* Initialize ptr to exception state vector */
+	li	t0, STATE_T_SIZE_IN_BYTES
+    csrrw t1, PRID, zero
+	mul	t0, t0, t1
+	li	t2, BIOS_DATA_PAGE_BASE
+	add	t0, t0, t2
+	li	t2, BIOS_EXCPT_VECT_BASE
+	sw	t0, 0(t2)
+
+	/* Initialize ptr to PC/SP area */
+	li	t0, 16
+	mul t0, t0, t1
+	li	t1, BIOS_EXEC_HANDLERS_ADDRS
+	add	t0, t0, t1
+	li	t2, BIOS_PC_AREA_BASE
+	sw	t0, 0(t2)
+
+	/* Load the new state - address of start_state cached at start of exception vector */
+	li	t0, BIOS_EXCPT_VECT_BASE
+	lw	t2, 0(t0)
+    lw  t2, 0(t2)
+    WRITEK0(t2)
+	j	LLoadStart
 
 LPanic:
 	li	a0, PANICSTRADDR - 1

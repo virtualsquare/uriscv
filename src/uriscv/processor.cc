@@ -156,6 +156,7 @@ void Processor::initCSR() {
 
   csr[TIME].perm = RRR;
   csr[TIMEH].perm = RRR;
+  csr[PRID].perm = RRR;
 
   csr[INSTRET].perm = RRR;
   csr[MINSTRET].perm = NNW;
@@ -270,6 +271,9 @@ void Processor::Reset(Word pc, Word sp) {
   csrWrite(MIE, 0);
   csrWrite(MCAUSE, 0);
   csrWrite(TIME, 0);
+  csrWrite(PRID, id);
+  csrWrite(MIP, 0);
+  csrWrite(MTVEC, 0);
   mode = 0x3;
 
   currPC = pc;
@@ -451,7 +455,9 @@ void Processor::getPrevStatus(Word *pc, Word *instr) {
 // exception happened (thanks to excName[] array)
 const char *Processor::getExcCauseStr() {
   // 0 means no exception
-  if (excCause)
+  if (CAUSE_IS_INT(excCause))
+    return "INT";
+  else if (excCause)
     return excName[excCause];
   else
     return (EMPTYSTR);
@@ -618,9 +624,9 @@ void Processor::popKUIEStack() {
 // otherwise, and sets CP0 registers if needed
 bool Processor::checkForInt() {
   // check if interrupts are enabled and pending
-  if (csrRead(MSTATUS) & MSTATUS_MIE_MASK && (csrRead(MIE) & csrRead(MIP))) {
+  uint mip = csrRead(MIE) & csrRead(MIP);
+  if (csrRead(MSTATUS) & MSTATUS_MIE_MASK && mip) {
     uint l = 0;
-    uint mip = csrRead(MIP);
     while (mip > 1) {
       mip >>= 1;
       l++;
@@ -909,7 +915,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -918,7 +924,7 @@ bool Processor::execInstrR(Word instr) {
     break;
   }
     /* 0x2 */
-  case OP_MULHSU_FUNC3 | OP_SLT_FUNC3: {
+  case OP_MULHSU_FUNC3 | OP_SLT_FUNC3 | OP_AMOSWAP_FUNC3: {
     switch (FUNC7) {
     case OP_MULHSU_FUNC7: {
       SWord high = 0, low = 0;
@@ -934,8 +940,21 @@ bool Processor::execInstrR(Word instr) {
       regWrite(rd, SWord(regRead(rs1)) < SWord(regRead(rs2)) ? 1 : 0);
       break;
     }
+	case OP_AMOSWAP_FUNC7:
+	case OP_AMOSWAP_RL_FUNC7:
+	case OP_AMOSWAP_AQ_FUNC7:
+	case OP_AMOSWAP_RL_AQ_FUNC7: {
+      DISASSMSG("AMOSWAP %d,%d,%s(%x)\n", regRead(rd), regRead(rs2), regName[rs1], regRead(rs1));
+	  Word datap;
+      Word reg1 = regRead(rs1);
+      Word reg2 = regRead(rs2);
+	  this->bus->DataRead(reg1, &datap, this);
+      regWrite(rd, datap);
+	  this->bus->DataWrite(reg1, reg2, this);
+      break;
+    }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -961,7 +980,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -989,7 +1008,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -1021,7 +1040,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -1047,7 +1066,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -1073,7 +1092,7 @@ bool Processor::execInstrR(Word instr) {
       break;
     }
     default: {
-      ERRORMSG("R-type not recognized (%x)\n", FUNC7);
+      ERRORMSG("R-type not recognized (%x, %x)\n", FUNC3, FUNC7);
       SignalExc(EXC_II, 0);
       e = true;
       break;
@@ -1526,6 +1545,10 @@ bool Processor::execInstr(Word instr) {
   }
   case S_TYPE: {
     e = execInstrS(instr);
+    break;
+  }
+  case A_TYPE: {
+    e = execInstrR(instr);
     break;
   }
   case OP_AUIPC: {

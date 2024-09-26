@@ -277,6 +277,7 @@
 #define OP_CSRRSI 0x6
 #define OP_CSRRCI 0x7
 #define R_TYPE 0x33
+#define A_TYPE 0x2F
 
 #define OP_MUL_FUNC7 0x1
 #define OP_MUL_FUNC3 0x0
@@ -294,6 +295,12 @@
 #define OP_REM_FUNC7 0x1
 #define OP_REMU_FUNC3 0x7
 #define OP_REMU_FUNC7 0x1
+
+#define OP_AMOSWAP_FUNC3 0x2
+#define OP_AMOSWAP_FUNC7 0x4
+#define OP_AMOSWAP_RL_FUNC7 0x5
+#define OP_AMOSWAP_AQ_FUNC7 0x6
+#define OP_AMOSWAP_RL_AQ_FUNC7 0x7
 
 #define OP_ADD_FUNC3 0x0
 #define OP_ADD_FUNC7 0x0

@@ -11,6 +11,9 @@
 #include "uriscv/cpu.h"
 #include "uriscv/const.h"
 
+#define STATE_T_SIZE_IN_BYTES 148 
+#define INIT_SECONDARY_PROCESSOR_ROUTINE_ADDRESS 0x00000100  
+
 #define LEAF_FUNC(func)				\
 	.globl	func;              \
 	.type	func, @function;   \
@@ -86,7 +89,7 @@ LEAF_FUNC(getEPC)
 	jr	ra
 
 LEAF_FUNC(getPRID)
-  addi a0,a0,3
+  csrrw a0,PRID,zero
 	jr	ra
 
 LEAF_FUNC(getMIE)
@@ -325,3 +328,42 @@ LEAF_FUNC(PANIC)
 	nop
 	jr	ra
 
+/*
+ * INITCPU
+ *
+ * SYNOPSIS:
+ *	void INITCPU(u32 cpu_id, state t *start_state)
+ */
+LEAF_FUNC(INITCPU)
+	li	t0, MCTL_BOOT_PC
+	li	t1, INIT_SECONDARY_PROCESSOR_ROUTINE_ADDRESS 
+
+	sw	t1, 0(t0)
+
+	/* Compute starting address for this CPUs stored exception vector */
+	li	t0, STATE_T_SIZE_IN_BYTES 
+	mul t0, t0, a0
+	li	t1, BIOS_DATA_PAGE_BASE
+	add	t0, t1, t0
+
+	/* store start_state at start of this CPU's stored exception vector */
+	sw	a1, 0(t0)
+
+	li	t0, MCTL_RESET_CPU
+	sw	a0, 0(t0)
+
+	jr	ra
+
+
+LEAF_FUNC(ACQUIRE_LOCK)
+	li t0, 1
+	li t1, 0
+	retry:
+		amoswap.w t0, t0, 0(a0)
+		bne t0, t1, retry # if a1 != 0 then goto retry
+	jr	ra
+
+LEAF_FUNC(RELEASE_LOCK)
+	li t0, 0
+	amoswap.w t0, t0, 0(a0)
+	jr	ra

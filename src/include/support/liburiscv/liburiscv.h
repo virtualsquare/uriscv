@@ -154,4 +154,8 @@ extern void INITCPU(unsigned int cpuid, STATE_PTR start_state);
 extern int CAS(volatile unsigned int *atomic, unsigned int oldval,
                unsigned int newval);
 
+extern int ACQUIRE_LOCK(volatile unsigned int *atomic);
+
+extern int RELEASE_LOCK(volatile unsigned int *atomic);
+
 #endif /* !defined(URISCV_LIBURISCV_H) */

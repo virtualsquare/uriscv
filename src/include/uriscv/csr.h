@@ -57,5 +57,6 @@
 #define CSR_INDEX 0x802
 #define CSR_RANDOM 0x803
 #define CSR_BADVADDR 0x804
+#define PRID 0x805
 
 #endif

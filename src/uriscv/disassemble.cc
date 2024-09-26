@@ -195,7 +195,7 @@ HIDDEN void StrRInstr(Word instr) {
   uint8_t func3 = FUNC3(instr);
   uint8_t func7 = FUNC7(instr);
 
-  if (func7 == 0x20)
+  if (func7 == 0x20) // sub, sra
     func7 = 2;
   if (func7 > 2) {
     sprintf(strbuf, "unknown instruction");
@@ -205,6 +205,23 @@ HIDDEN void StrRInstr(Word instr) {
   sprintf(strbuf, "%s\t%s,%s%s,%s%s", RInstrName[func3][func7],
           regName[RD(instr)], sep, regName[RS1(instr)], sep,
           regName[RS2(instr)]);
+}
+
+HIDDEN const char *const AInstrName[] = {"amoswap.w", "amoswap.w", "amoswap.w", "amoswap.w"};
+
+HIDDEN void StrAInstr(Word instr) {
+  uint8_t func3 = FUNC3(instr);
+  uint8_t func7 = FUNC7(instr);
+
+  if (0x4 <= func7 && func7 <= 0x7) { // amoswap.w
+    func7 -= 4;
+  } else {
+    sprintf(strbuf, "unknown instruction A-type %x %x", func3, func7);
+    return;
+  }
+
+  sprintf(strbuf, "%s\t%s,%s%s,%s0(%s)", AInstrName[func7], regName[RD(instr)], sep, regName[RS2(instr)],
+          sep, regName[RS1(instr)]);
 }
 
 HIDDEN const char *const loadInstrName[] = {"lb", "lh", "lw", "", "lbu", "lhu"};
@@ -541,6 +558,10 @@ const char *StrInstr(Word instr) {
 
   case S_TYPE: {
     StrSInstr(instr);
+  } break;
+
+  case A_TYPE: {
+    StrAInstr(instr);
   } break;
 
   case OP_AUIPC:
