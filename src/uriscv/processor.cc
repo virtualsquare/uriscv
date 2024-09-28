@@ -156,6 +156,7 @@ void Processor::initCSR() {
 
   csr[TIME].perm = RRR;
   csr[TIMEH].perm = RRR;
+  csr[PRID].perm = RRR;
 
   csr[INSTRET].perm = RRR;
   csr[MINSTRET].perm = NNW;
@@ -270,6 +271,7 @@ void Processor::Reset(Word pc, Word sp) {
   csrWrite(MIE, 0);
   csrWrite(MCAUSE, 0);
   csrWrite(TIME, 0);
+  csrWrite(PRID, id);
   mode = 0x3;
 
   currPC = pc;
