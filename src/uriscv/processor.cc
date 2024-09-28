@@ -941,11 +941,12 @@ bool Processor::execInstrR(Word instr) {
 	case OP_AMOSWAP_AQ_FUNC7:
 	case OP_AMOSWAP_RL_AQ_FUNC7: {
       DISASSMSG("AMOSWAP %d,%d,%s(%x)\n", regRead(rd), regRead(rs2), regName[rs1], regRead(rs1));
-      regWrite(rd, regRead(rs1));
 	  Word datap;
-	  this->bus->DataRead(regRead(rs1), &datap, this);
+      Word reg1 = regRead(rs1);
+      Word reg2 = regRead(rs2);
+	  this->bus->DataRead(reg1, &datap, this);
       regWrite(rd, datap);
-	  this->bus->DataWrite(regRead(rs1), regRead(rs2), this);
+	  this->bus->DataWrite(reg1, reg2, this);
       break;
     }
     default: {

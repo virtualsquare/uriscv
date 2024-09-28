@@ -356,14 +356,14 @@ LEAF_FUNC(INITCPU)
 
 
 LEAF_FUNC(ACQUIRE_LOCK)
-	li a1, 0
-	li a2, 0
+	li t0, 1
+	li t1, 0
 	retry:
-		amoswap.w a1, a1, 0(a0)
-		bne a1, a2, retry # if a1 != 0 then goto retry
+		amoswap.w t0, t0, 0(a0)
+		bne t0, t1, retry # if a1 != 0 then goto retry
 	jr	ra
 
 LEAF_FUNC(RELEASE_LOCK)
-	li a1, 0
-	amoswap.w a1, a1, 0(a0)
+	li t0, 0
+	amoswap.w t0, t0, 0(a0)
 	jr	ra
