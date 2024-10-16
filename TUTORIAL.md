@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 ## Progetto Sistemi Virtuali 2022/2023
 ### RISCV
 

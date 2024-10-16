@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020 Mattia Biondi
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 set(ID org.virtualsquare.umps3)
 
 add_subdirectory(icons)

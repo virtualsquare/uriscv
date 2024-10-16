@@ -1,3 +1,11 @@
+/*
+ * SPDX-FileCopyrightText: 2010 Tomislav Jonjic
+ * SPDX-FileCopyrightText: 2020 Mattia Biondi
+ * SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #ifndef URISCV_CONST_H
 #define URISCV_CONST_H
 

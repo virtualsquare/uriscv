@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2020 Mattia Biondi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
 #cmakedefine WORDS_BIGENDIAN "@WORDS_BIGENDIAN@"

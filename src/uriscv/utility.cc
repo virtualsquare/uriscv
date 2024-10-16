@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: 2004 Mauro Morsiani
+// SPDX-FileCopyrightText: 2020 Mattia Biondi
+// SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "uriscv/utility.h"
 #include "uriscv/const.h"
 #include "uriscv/types.h"

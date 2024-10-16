@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020 Mattia Biondi
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 set(CRT_FILES crtso crti)
 
 set(CRT_CFLAGS -fno-pic -ffreestanding -c -g -static -march=rv32imfd -mabi=ilp32d )

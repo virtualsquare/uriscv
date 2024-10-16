@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "gdb/gdb.h"
 #include "uriscv/config.h"
 #include "uriscv/error.h"

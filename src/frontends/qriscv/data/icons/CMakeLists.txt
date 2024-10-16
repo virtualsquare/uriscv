@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020 Mattia Biondi
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 set(ICONS_DIR ${CMAKE_INSTALL_DATADIR}/icons/hicolor)
 
 set(ICONS_SIZE 16x16 22x22 24x24 32x32 48x48 64x64)

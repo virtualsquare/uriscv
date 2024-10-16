@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Davide Cioni
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include <stdio.h>
 
 #include "uriscv/disassemble.h"

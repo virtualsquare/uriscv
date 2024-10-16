@@ -1,3 +1,11 @@
+/*
+ * SPDX-FileCopyrightText: 2011 Tomislav Jonjic
+ * SPDX-FileCopyrightText: 2020 Mattia Biondi
+ * SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #include "uriscv/arch.h"
 #include "uriscv/bios.h"
 #include "uriscv/cpu.h"

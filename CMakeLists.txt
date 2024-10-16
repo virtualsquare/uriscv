@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2020 Mattia Biondi
+# SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 cmake_minimum_required(VERSION 3.5)
 
 project(uriscv VERSION 3.0.0)

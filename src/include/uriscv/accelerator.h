@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /*
  We use the term accelerator to refer to either a non-programmable
 fixed-function unit or a core that can operate autonomously but is specialized

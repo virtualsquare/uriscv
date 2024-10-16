@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2020 Mattia Biondi
+# SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 include(GNUInstallDirs)
 set(ROM_TYPES coreboot exec)
 set(CMAKE_VERBOSE_MAKEFILE ON)

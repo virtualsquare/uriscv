@@ -1,6 +1,8 @@
+// SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /*
- * Gianmaria Rovelli - 2023
- *
  * Reference
  * https://www.chciken.com/tlmboy/2022/04/03/gdb-z80.html
  */

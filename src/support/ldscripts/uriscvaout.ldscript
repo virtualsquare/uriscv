@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2011 Tomislav Jonjic
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 OUTPUT_ARCH(riscv)
 ENTRY(__start)
 

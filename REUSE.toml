@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2024 Luca Bassi
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+version = 1
+
+[[annotations]]
+path = ["src/frontends/qriscv/icons/*.svg", "src/frontends/qriscv/data/icons/**/*.svg"]
+SPDX-FileCopyrightText = "2020 Mattia Biondi"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = ["docs/riscv-privileged-20211203.pdf"]
+SPDX-FileCopyrightText = [
+	"2021 Andrew Waterman",
+	"2021 Krste Asanović",
+	"2021 John Hauser"
+]
+SPDX-License-Identifier = "CC-BY-4.0"
+
+[[annotations]]
+path = ["docs/riscv-spec.pdf", "docs/riscv-unprivileged-20191213.pdf"]
+SPDX-FileCopyrightText = [
+	"2019 Andrew Waterman",
+	"2019 Krste Asanović"
+]
+SPDX-License-Identifier = "CC-BY-4.0"
+
+[[annotations]]
+path = ["src/gdb/xgdb"]

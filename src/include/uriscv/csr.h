@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #ifndef URISCV_CSR_H
 #define URISCV_CSR_H
 

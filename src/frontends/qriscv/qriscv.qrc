@@ -1,4 +1,12 @@
 <!DOCTYPE RCC>
+
+<!--
+SPDX-FileCopyrightText: 2010 Tomislav Jonjic
+SPDX-FileCopyrightText: 2020 Mattia Biondi
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <RCC version="1.0">
   <qresource>
     <file>icons/create-22.svg</file>

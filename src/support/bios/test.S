@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 main:
 	addi	sp,sp,-32

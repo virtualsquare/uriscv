@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2020 Mattia Biondi
+# SPDX-FileCopyrightText: 2023 Davide Cioni
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 add_subdirectory(data)
 
 set(CMAKE_AUTOMOC ON)

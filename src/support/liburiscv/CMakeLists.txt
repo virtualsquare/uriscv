@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2020 Mattia Biondi
+# SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 set(URISCV_INCLUDE_DIR ${CMAKE_INSTALL_INCLUDEDIR}/uriscv)
 set(LIBURISCV_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include/support/liburiscv)
 

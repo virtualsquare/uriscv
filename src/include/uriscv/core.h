@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /*
 A RISC - V hardware platform can contain one or
     more RISC - V - compatible processing cores together with other non - RISC -

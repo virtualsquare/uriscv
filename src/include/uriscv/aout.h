@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2010 Tomislav Jonjic
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef URISCV_AOUT_H
 #define URISCV_AOUT_H
 

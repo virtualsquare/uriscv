@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2023 Gianmaria Rovelli
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 ## Progetto Sistemi Virtuali 2022/2023
 ### RISCV
 
@@ -28,6 +34,8 @@ sudo make
 Note per tesi
 - fare benchmark tra utilizzo del file binario e file elf durante esecuzione
 dell'emulatore
+
+[RISC-V: An Overview of the Instruction Set Architecture](https://web.cecs.pdx.edu/~harry/riscv/)
 
 [Exceptions](https://mullerlee.cyou/2020/07/09/riscv-exception-interrupt/)
 [Syscalls](https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/slides/14-ecf-pre-bw.pdf)
