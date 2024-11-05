@@ -272,6 +272,7 @@ void Processor::Reset(Word pc, Word sp) {
   csrWrite(MCAUSE, 0);
   csrWrite(TIME, 0);
   csrWrite(PRID, id);
+  csrWrite(MIP, 0);
   mode = 0x3;
 
   currPC = pc;
