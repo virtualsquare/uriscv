@@ -454,7 +454,9 @@ void Processor::getPrevStatus(Word *pc, Word *instr) {
 // exception happened (thanks to excName[] array)
 const char *Processor::getExcCauseStr() {
   // 0 means no exception
-  if (excCause)
+  if (CAUSE_IS_INT(excCause))
+    return "INT";
+  else if (excCause)
     return excName[excCause];
   else
     return (EMPTYSTR);
