@@ -623,9 +623,9 @@ void Processor::popKUIEStack() {
 // otherwise, and sets CP0 registers if needed
 bool Processor::checkForInt() {
   // check if interrupts are enabled and pending
-  if (csrRead(MSTATUS) & MSTATUS_MIE_MASK && (csrRead(MIE) & csrRead(MIP))) {
+  uint mip = csrRead(MIE) & csrRead(MIP);
+  if (csrRead(MSTATUS) & MSTATUS_MIE_MASK && mip) {
     uint l = 0;
-    uint mip = csrRead(MIP);
     while (mip > 1) {
       mip >>= 1;
       l++;
