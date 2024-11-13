@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.22)
 
 project(uriscv VERSION 3.0.0)
 
@@ -66,6 +66,11 @@ add_subdirectory(app)
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6widgets6, libqt6svg6, libsigc++-2.0-0v5")
 set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "gcc-riscv64-unknown-elf")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "VirtualSquare")
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+cmake_host_system_information(RESULT DISTRO QUERY DISTRIB_INFO)
+set(CPACK_DEBIAN_PACKAGE_RELEASE ${DISTRO_ID})
 set(CPACK_RPM_PACKAGE_SUGGESTS "gcc-riscv64-linux-gnu")
 set(CPACK_RPM_SPEC_MORE_DEFINE "%define __spec_install_post /bin/true")
+set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
 include(CPack)
