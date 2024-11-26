@@ -49,7 +49,7 @@ const char
 
 MonitorWindow::MonitorWindow()
     : QMainWindow(), dbgSession(Appl()->getDebugSession()) {
-  setWindowTitle("uRISCV");
+  setWindowTitle("µRISC-V");
 
   QVariant savedGeometry = Appl()->settings.value("MonitorWindow/geometry");
   if (savedGeometry.isValid())
@@ -135,7 +135,7 @@ void MonitorWindow::createActions() {
 
   quitAction = new QAction("&Quit", this);
   quitAction->setShortcut(QKeySequence("Ctrl+Q"));
-  quitAction->setStatusTip("Quit uRISCV");
+  quitAction->setStatusTip("Quit µRISC-V");
   connect(quitAction, SIGNAL(triggered()), this, SLOT(close()));
 
   viewStopMaskAction = new QAction("Stop Mask", this);
@@ -383,7 +383,7 @@ QWidget *MonitorWindow::createWelcomeTab() {
   layout->setContentsMargins(11, 22, 11, 11);
 
   QLabel *heading =
-      new QLabel(QString("Welcome to %1RISCV").arg(QChar(0x00b5)));
+      new QLabel(QString("Welcome to %1RISC-V").arg(QChar(0x00b5)));
   QFont font = heading->font();
   font.setPointSizeF(font.pointSizeF() * 1.3);
   font.setBold(true);
@@ -595,7 +595,7 @@ void MonitorWindow::onMachineConfigChanged() {
     configView->Update();
   }
 
-  setWindowTitle(QString("%1 (%2) - uRISCV")
+  setWindowTitle(QString("%1 (%2) - µRISC-V")
                      .arg(Appl()->document, Appl()->getCurrentDir()));
 
   updateRecentConfigList();
@@ -650,14 +650,14 @@ void MonitorWindow::showTerminal() {
 }
 
 void MonitorWindow::showAboutInfo() {
-  QString name = QString("%1MPS").arg(QChar(kCodePtMicro));
+  QString name = QString("%1RISC-V").arg(QChar(kCodePtMicro));
   QString text =
-      QString("<h2>&micro;MPS %1</h2>"
+      QString("<h2>&micro;RISC-V %1</h2>"
               "<em>An educational computer system emulator</em>"
               "<h4><a "
-              "href='https://github.com/virtualsquare/umps3'>github.com/"
-              "virtualsquare/umps3</a></h4>"
-              "Copyright &copy; 1998-2020 &micro;MPS authors"
+              "href='https://github.com/virtualsquare/uriscv'>github.com/"
+              "virtualsquare/uriscv</a></h4>"
+              "Copyright &copy; 1998-2024 &micro;RISC-V authors"
               "<hr />"
               "<h3 style='margin-top: 0;'>Credits</h3>"
               "<p style='margin: 0 0 0 10px;'>"
@@ -670,7 +670,7 @@ void MonitorWindow::showAboutInfo() {
               "<hr />"
               "<h3 style='margin-top: 0;'>License</h3>"
               "<p style='margin: 0 0 0 10px;'>"
-              " &micro;MPS is free software, licensed under"
+              " &micro;RISC-V is free software, licensed under"
               " the <a href='https://www.gnu.org/licenses/gpl-3.0.html'>GNU"
               " General Public License, version 3</a>."
               "</p>")

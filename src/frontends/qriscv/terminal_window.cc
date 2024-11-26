@@ -22,7 +22,7 @@
 
 TerminalWindow::TerminalWindow(unsigned int devNo, QWidget *parent)
     : QMainWindow(parent), devNo(devNo) {
-  setWindowTitle(QString("uRISCV Terminal %1").arg(devNo));
+  setWindowTitle(QString("µRISC-V Terminal %1").arg(devNo));
   setWindowIcon(QIcon(":/icons/terminal-32.svg"));
 
   TerminalDevice *terminal = getTerminal(devNo);

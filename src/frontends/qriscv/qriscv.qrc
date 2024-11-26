@@ -43,6 +43,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <file>icons/breakpoint_enabled-16.svg</file>
     <file>icons/breakpoint_disabled-16.svg</file>
 
-    <file>icons/umps3-48.svg</file>
+    <file>icons/uriscv-48.svg</file>
   </qresource>
 </RCC>

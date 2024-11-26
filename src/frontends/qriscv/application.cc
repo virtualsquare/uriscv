@@ -14,9 +14,9 @@
 #include "uriscv/error.h"
 
 Application::Application(int &argc, char **argv)
-    : QApplication(argc, argv), settings("umps3", "umps"), config(NULL) {
-  setApplicationName("uRISCV");
-  setWindowIcon(QIcon(":/icons/umps3-48.svg"));
+    : QApplication(argc, argv), settings("uriscv"), config(NULL) {
+  setApplicationName("µRISC-V");
+  setWindowIcon(QIcon(":/icons/uriscv-48.svg"));
 
   dbgSession.reset(new DebugSession);
 

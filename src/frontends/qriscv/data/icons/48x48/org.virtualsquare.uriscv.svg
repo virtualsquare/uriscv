@@ -11,7 +11,7 @@
    height="48"
    version="1"
    id="svg48"
-   sodipodi:docname="umps3-48.svg"
+   sodipodi:docname="uriscv.svg"
    inkscape:version="0.92.4 5da689c313, 2019-01-14">
   <metadata
      id="metadata54">
@@ -42,9 +42,9 @@
      inkscape:window-height="1028"
      id="namedview50"
      showgrid="false"
-     inkscape:zoom="1.7383043"
-     inkscape:cx="-167.72344"
-     inkscape:cy="-57.8454"
+     inkscape:zoom="2.4583334"
+     inkscape:cx="-12.88901"
+     inkscape:cy="-4.9187049"
      inkscape:window-x="1926"
      inkscape:window-y="67"
      inkscape:window-maximized="0"
@@ -52,37 +52,37 @@
   <g
      transform="matrix(3,0,0,2.9968156,2.3854158e-7,0.05094626)"
      id="g8-5-3"
-     style="opacity:1;fill-opacity:1;fill:#4f4f4f">
+     style="opacity:1;fill:#4f4f4f;fill-opacity:1">
     <rect
-       style="fill-opacity:1;stroke-width:0.86602539;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602539"
        width="1.5"
        height="16"
        x="11.75"
        y="-0.017000001"
        id="rect6-6-6" />
     <rect
-       style="fill-opacity:1;stroke-width:0.86602533;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602533"
        width="1.5"
        height="16"
        x="7.25"
        y="-1.110223e-16"
        id="rect2-3-1" />
     <rect
-       style="fill-opacity:1;stroke-width:0.86602533;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602533"
        width="1.5"
        height="16"
        x="9.5"
        y="0"
        id="rect4-5-2" />
     <rect
-       style="fill-opacity:1;stroke-width:0.86602533;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602533"
        width="1.5"
        height="16"
        x="5"
        y="1.2496771e-06"
        id="rect4-6-2-9" />
     <rect
-       style="fill-opacity:1;stroke-width:0.86602533;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602533"
        width="1.5"
        height="16"
        x="2.75"
@@ -92,37 +92,37 @@
   <g
      transform="matrix(0,3,-2.9968156,0,47.949054,2.6145844e-7)"
      id="g8-5"
-     style="opacity:1;fill-opacity:1;fill:#4f4f4f">
+     style="opacity:1;fill:#4f4f4f;fill-opacity:1">
     <rect
-       style="fill-opacity:1;stroke-width:0.86602539;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602539"
        width="1.5"
        height="16"
        x="11.75"
        y="-0.017000001"
        id="rect6-6" />
     <rect
-       style="fill-opacity:1;stroke-width:0.86602533;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602533"
        width="1.5"
        height="16"
        x="7.25"
        y="-1.110223e-16"
        id="rect2-3" />
     <rect
-       style="fill-opacity:1;stroke-width:0.86602533;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602533"
        width="1.5"
        height="16"
        x="9.5"
        y="0"
        id="rect4-5" />
     <rect
-       style="fill-opacity:1;stroke-width:0.86602533;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602533"
        width="1.5"
        height="16"
        x="5"
        y="1.2496771e-06"
        id="rect4-6-2" />
     <rect
-       style="fill-opacity:1;stroke-width:0.86602533;fill:#4f4f4f"
+       style="fill:#4f4f4f;fill-opacity:1;stroke-width:0.86602533"
        width="1.5"
        height="16"
        x="2.75"

@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-set(ID org.virtualsquare.umps3)
+set(ID org.virtualsquare.uriscv)
 
 add_subdirectory(icons)
 

@@ -7,11 +7,11 @@
 Version=1.0
 Type=Application
 
-Name=µMPS3
-Comment=Virtual machine simulator based around the MIPS R2/3000 microprocessor
+Name=µRISC-V
+Comment=Virtual machine simulator based on RISC-V
 Categories=Education;Emulator;
 
-Icon=org.virtualsquare.umps3
-Exec=umps3
+Icon=org.virtualsquare.uriscv
+Exec=uriscv
 Terminal=false
-Keywords=umps;umps3
+Keywords=uriscv,urisc-v

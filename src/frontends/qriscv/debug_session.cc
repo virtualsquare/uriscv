@@ -189,7 +189,7 @@ void DebugSession::initializeMachine() {
         QString("<b>Could not initialize machine:</b> "
                 "the file `%1' does not appear to be a valid <i>Core</i> file; "
                 "make sure you are creating the file with the "
-                "<code>umps3-elf2umps</code> utility")
+                "<code>uriscv-elf2uriscv</code> utility")
             .arg(e.fileName.c_str()));
     return;
   } catch (const CoreFileOverflow &e) {

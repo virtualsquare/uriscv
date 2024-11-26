@@ -33,7 +33,7 @@ ProcessorWindow::ProcessorWindow(Word cpuId, QWidget *parent)
     : QMainWindow(parent), dbgSession(Appl()->getDebugSession()), cpuId(cpuId) {
   cpu = dbgSession->getMachine()->getProcessor(cpuId);
 
-  setWindowTitle(QString("uRISCV Processor %1").arg(cpuId));
+  setWindowTitle(QString("µRISC-V Processor %1").arg(cpuId));
   setDockOptions(AnimatedDocks | AllowTabbedDocks);
 
   createToolBar();
