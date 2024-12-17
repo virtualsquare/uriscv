@@ -9,9 +9,7 @@
 #ifndef URISCV_CPU_H
 #define URISCV_CPU_H
 
-#define CAUSE_EXCCODE_MASK 0x0000007c
-#define CAUSE_EXCCODE_BIT 2
-#define CAUSE_GET_EXCCODE(x) (((x)&CAUSE_EXCCODE_MASK) >> CAUSE_EXCCODE_BIT)
+#define CAUSE_EXCCODE_MASK 0x7FFFFFFF
 
 /* Exception codes as described in RISCV manual */
 #define EXC_IAM 0  /* instruction address misaligned */
