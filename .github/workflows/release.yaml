@@ -4,7 +4,10 @@ name: Build package
 on: [push, pull_request]
 jobs:
   build-ubuntu:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runners: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runners }}
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -20,10 +23,13 @@ jobs:
           cpack -G DEB
       - uses: actions/upload-artifact@v4
         with:
-          name: build-ubuntu
+          name: build-ubuntu-${{ runner.arch }}
           path: build/*.deb
   build-debian:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runners: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runners }}
     container: 'debian:latest'
     steps:
       - name: Check out repository code
@@ -40,10 +46,13 @@ jobs:
           cpack -G DEB
       - uses: actions/upload-artifact@v4
         with:
-          name: build-debian
+          name: build-debian-${{ runner.arch }}
           path: build/*.deb
   build-fedora:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runners: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runners }}
     container: 'fedora:latest'
     steps:
       - name: Check out repository code
@@ -60,7 +69,7 @@ jobs:
           cpack -G RPM
       - uses: actions/upload-artifact@v4
         with:
-          name: build-fedora
+          name: build-fedora-${{ runner.arch }}
           path: build/*.rpm
   publish:
     needs: [build-ubuntu, build-debian, build-fedora]
@@ -75,4 +84,4 @@ jobs:
       - name: Create release
         run: |
           gh release delete latest --cleanup-tag --yes || true
-          gh release create latest --title "Latest release" --notes "Only Debian stable is officially supported" build-ubuntu/* build-debian/* build-fedora/*
+          gh release create latest --title "Latest release" --notes "Only Debian stable (amd64) is officially supported" build-*/*
