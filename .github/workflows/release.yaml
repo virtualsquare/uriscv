@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.runners }}
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -21,7 +21,7 @@ jobs:
           cd build
           cmake ..
           cpack -G DEB
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: build-ubuntu-${{ runner.arch }}
           path: build/*.deb
@@ -33,7 +33,7 @@ jobs:
     container: 'debian:latest'
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install dependencies
         run: |
           apt-get update -y
@@ -44,7 +44,7 @@ jobs:
           cd build
           cmake ..
           cpack -G DEB
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: build-debian-${{ runner.arch }}
           path: build/*.deb
@@ -56,7 +56,7 @@ jobs:
     container: 'fedora:latest'
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install dependencies
         run: |
           dnf upgrade -y
@@ -67,7 +67,7 @@ jobs:
           cd build
           cmake -DRISCV_TOOL_PREFIX="riscv64-linux-gnu-" ..
           cpack -G RPM
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: build-fedora-${{ runner.arch }}
           path: build/*.rpm
@@ -79,8 +79,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+        uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
       - name: Create release
         run: |
           gh release delete latest --cleanup-tag --yes || true
