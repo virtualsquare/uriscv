@@ -12,6 +12,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
 mkdir -p build && cd build && cmake .. && make && sudo make install 
 ```
 
+#### Compilare l'emulatore su Arch Linux
+Installazione delle dipendenze:
+```bash
+sudo pacman -S riscv64-elf-gcc boost
+```
+Clonazione e compilazione di uriscv:
+```bash
+git clone https://github.com/virtualsquare/uriscv
+cd uriscv
+mkdir -p build && cd build && cmake .. && make && sudo make install 
+```
+
 ### Eseguire l'emulatore
 ```bash
 uriscv-cli
