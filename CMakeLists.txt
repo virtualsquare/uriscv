@@ -23,13 +23,17 @@ configure_file(config.h.in config.h)
 
 set(XT_PREFIXES ${RISCV_TOOL_PREFIX})
 if(NOT XT_PREFIXES)
-      find_program(GCC_TEST riscv32-unknown-linux-gnu-gcc)
-      if (GCC_TEST)
+      find_program(GCC_TEST_32 riscv32-unknown-linux-gnu-gcc)
+      find_program(GCC_TEST_64 riscv64-unknown-elf-gcc)
+      if (GCC_TEST_32)
         set(XT_PREFIXES riscv32-unknown-linux-gnu- 
           ${XT_PREFIXES})
-      else ()
+      elseif (GCC_TEST_64)
         set(XT_PREFIXES riscv64-unknown-elf- 
           ${XT_PREFIXES})
+      else ()
+        set(XT_PREFIXES riscv64-elf-
+        ${XT_PREFIXES})
       endif()
 endif()
 
