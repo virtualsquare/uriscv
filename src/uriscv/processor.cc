@@ -1227,8 +1227,6 @@ bool Processor::execInstrI2(Word instr) {
     case EBREAK_IMM: {
       int mode = regRead(REG_A0);
       DISASSMSG("EBREAK\n");
-      if (mode == BIOS_SRV_PANIC)
-        exit(0);
       if (mode <= BIOS_SRV_HALT) {
         SignalExc(EXC_BP);
         e = true;
