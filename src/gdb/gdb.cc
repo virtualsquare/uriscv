@@ -19,6 +19,7 @@
 #include <netinet/in.h>
 #include <poll.h>
 #include <signal.h>
+#include <sstream>
 #define PORT 8080
 
 #define emptyReply "$#00"
