@@ -6,7 +6,7 @@ jobs:
   build-ubuntu:
     strategy:
       matrix:
-        runners: [ubuntu-latest, ubuntu-24.04-arm]
+        runners: [ubuntu-latest, ubuntu-26.04-arm]
     runs-on: ${{ matrix.runners }}
     steps:
       - name: Check out repository code
@@ -27,7 +27,7 @@ jobs:
   build-debian:
     strategy:
       matrix:
-        runners: [ubuntu-latest, ubuntu-24.04-arm]
+        runners: [ubuntu-latest, ubuntu-26.04-arm]
     runs-on: ${{ matrix.runners }}
     container: 'debian:latest'
     steps:
@@ -49,7 +49,7 @@ jobs:
   build-fedora:
     strategy:
       matrix:
-        runners: [ubuntu-latest, ubuntu-24.04-arm]
+        runners: [ubuntu-latest, ubuntu-26.04-arm]
     runs-on: ${{ matrix.runners }}
     container: 'fedora:latest'
     steps:
